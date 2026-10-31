@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ترند PLC — پمپاژ زیرزمینی</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">پ</div>
+    <div><h1>پمپاژ زیرزمینی</h1><span class="sub">سامانه ثبت و پایش تجهیزات</span></div>
+  </div>
+  <nav>
+    <a href="/" class="nav-link">ورود اطلاعات</a>
+    <a href="/daily.html" class="nav-link">گزارش روزانه شیفت</a>
+    <a href="/plc.html" class="nav-link">ترند PLC</a>
+    <a href="/dashboard.html" class="nav-link">داشبورد</a>
+    <a href="/maintenance.html" class="nav-link">تعمیرات و PM</a>
+    <a href="/shifts.html" class="nav-link">شیفت‌ها</a>
+    <a href="/report.html" class="nav-link">گزارش ماهانه</a>
+  </nav>
+  <div class="header-actions">
+    <button id="btn-backup" class="btn ghost">بک‌آپ دیتابیس</button>
+  </div>
+</header>
+<div id="user-bar"></div>
+
+<main class="container">
+  <section class="card">
+    <h2>بارگذاری خروجی اکسل PLC</h2>
+    <p class="muted">فایل اکسل یا CSV خروجی PLC را بده. ستون زمان و ستون‌های دما/جریان/ولتاژ/فشار خودکار تشخیص داده می‌شوند.
+    داده‌ها دقیقه‌ای میانگین‌گیری و ذخیره می‌شوند تا حجم پایین بماند. هر بار که فایل جدید می‌دهی، در همان جدول جمع می‌شود.</p>
+    <form id="plc-form" class="filters" style="margin-top:10px">
+      <input type="file" id="plc-file" accept=".xlsx,.xls,.csv" required style="max-width:280px">
+      <input type="text" id="plc-tag" placeholder="نام منبع داده (مثل: PLC-دما-موتور۱)" style="max-width:220px">
+      <button type="submit" class="btn primary">بارگذاری و پردازش</button>
+      <span id="plc-msg"></span>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>نمودار ترند</h2>
+      <div class="filters">
+        <select id="plc-tag-filter"></select>
+        <select id="plc-gran">
+          <option value="minute">هر دقیقه</option>
+          <option value="hour" selected>هر ساعت</option>
+          <option value="day">روزانه</option>
+        </select>
+        <select id="plc-days">
+          <option value="1">۲۴ ساعت اخیر</option>
+          <option value="7">۷ روز اخیر</option>
+          <option value="30">۳۰ روز اخیر</option>
+        </select>
+        <button id="plc-refresh" class="btn ghost">نمایش</button>
+      </div>
+    </div>
+    <div class="chart-card"><div class="chart-box"><canvas id="plc-chart"></canvas></div></div>
+    <p class="muted" id="plc-info"></p>
+  </section>
+</main>
+
+<script src="chart.umd.js"></script>
+<script src="app.js"></script>
+<script src="plc.js"></script>
+</body>
+</html>

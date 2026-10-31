@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>داشبورد — پمپاژ زیرزمینی</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">پ</div>
+    <div><h1>پمپاژ زیرزمینی</h1><span class="sub">سامانه ثبت و پایش تجهیزات</span></div>
+  </div>
+  <nav>
+    <a href="/" class="nav-link">ورود اطلاعات</a>
+    <a href="/daily.html" class="nav-link">گزارش روزانه شیفت</a>
+    <a href="/flow.html" class="nav-link">دبی ماهانه</a>
+    <a href="/plc.html" class="nav-link">ترند PLC</a>
+    <a href="/equipment.html" class="nav-link">پرونده تجهیزات</a>
+    <a href="/dashboard.html" class="nav-link">داشبورد</a>
+    <a href="/maintenance.html" class="nav-link">تعمیرات و PM</a>
+    <a href="/shifts.html" class="nav-link">شیفت‌ها</a>
+    <a href="/report.html" class="nav-link">گزارش ماهانه</a>
+  </nav>
+  <div class="header-actions">
+    <button id="btn-demo" class="btn ghost">داده نمونه</button>
+    <button id="btn-backup" class="btn ghost">بک‌آپ دیتابیس</button>
+  </div>
+</header>
+<div id="user-bar"></div>
+
+<main class="container">
+  <div class="kpis">
+    <div class="kpi"><div class="lbl">تعداد تجهیزات</div><div class="val" id="k-eq">—</div></div>
+    <div class="kpi"><div class="lbl">رکوردهای ثبت‌شده</div><div class="val" id="k-reading">—</div></div>
+    <div class="kpi"><div class="lbl">رکوردهای ۳۰ روز اخیر</div><div class="val" id="k-month">—</div></div>
+    <div class="kpi"><div class="lbl">تعمیرات ثبت‌شده</div><div class="val" id="k-maint">—</div></div>
+    <div class="kpi kpi-warn"><div class="lbl">PM عقب‌افتاده</div><div class="val" id="k-pm-late">—</div></div>
+    <div class="kpi"><div class="lbl">دبی توتال امروز (L/s)</div><div class="val" id="k-flow-today">—</div></div>
+    <div class="kpi"><div class="lbl">شیفت امروز</div><div class="val" id="k-shift" style="font-size:18px">—</div></div>
+  </div>
+
+  <div class="grid-2">
+    <section class="card chart-card">
+      <h2>روند دمای پمپ‌ها — ۳۰ روز اخیر</h2>
+      <div class="chart-box"><canvas id="chart-temp"></canvas></div>
+    </section>
+    <section class="card chart-card">
+      <h2>روند جریان پمپ‌ها — ۳۰ روز اخیر</h2>
+      <div class="chart-box"><canvas id="chart-current"></canvas></div>
+    </section>
+  </div>
+
+  <div class="grid-2">
+    <section class="card chart-card">
+      <h2>روند ولتاژ پمپ‌ها — ۳۰ روز اخیر</h2>
+      <div class="chart-box"><canvas id="chart-voltage"></canvas></div>
+    </section>
+    <section class="card chart-card">
+      <h2>میانگین جریان هر پمپ — ۳۰ روز اخیر</h2>
+      <div class="chart-box"><canvas id="chart-avg-current"></canvas></div>
+    </section>
+  </div>
+
+  <section class="card chart-card">
+    <h2>دبی توتال روزانه — ماه جاری</h2>
+    <div class="chart-box"><canvas id="chart-flow"></canvas></div>
+  </section>
+
+  <div class="grid-2">
+    <section class="card">
+      <h2>آخرین وضعیت پمپ‌ها</h2>
+      <div class="table-wrap">
+        <table id="last-table">
+          <thead><tr>
+            <th>پمپ</th><th>تاریخ</th><th>دما °C</th><th>جریان A</th>
+            <th>ولتاژ V</th><th>ساعت کارکرد</th><th>فشار bar</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="card">
+      <h2>نوبت‌های PM پیش‌رو</h2>
+      <div id="pm-list"></div>
+    </section>
+  </div>
+</main>
+
+<script src="chart.umd.js"></script>
+<script src="app.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>

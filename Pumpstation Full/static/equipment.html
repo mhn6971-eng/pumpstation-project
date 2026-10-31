@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>پرونده تجهیزات — پمپاژ زیرزمینی</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="topbar">
+  <div class="brand"><span class="logo">پ</span> پمپاژ زیرزمینی — سامانه ثبت و پایش تجهیزات</div>
+  <div class="menu">
+    <a href="index.html">ورود اطلاعات</a>
+    <a href="daily.html">گزارش روزانه شیفت</a>
+    <a href="flow.html">دبی ماهانه</a>
+    <a href="plc.html">ترند PLC</a>
+    <a href="equipment.html" class="active">پرونده تجهیزات</a>
+    <a href="dashboard.html">داشبورد</a>
+    <a href="maintenance.html">تعمیرات و PM</a>
+    <a href="shifts.html">شیفت‌ها</a>
+    <a href="report.html">گزارش ماهانه</a>
+    <a href="#" id="btn-backup">بک‌آپ دیتابیس</a>
+  </div>
+</nav>
+<div id="user-bar"></div>
+
+<main class="wrap">
+  <div class="card">
+    <div class="row" style="gap:12px; flex-wrap:wrap; align-items:flex-end">
+      <div style="flex:1; min-width:220px">
+        <label>جستجو (تگ، نام، محل نصب، پلاک، کاتالوگ، اوردر)</label>
+        <input id="q" placeholder="مثلاً: P-01 یا ترانس یا مغار ...">
+      </div>
+      <div>
+        <label>دسته</label>
+        <select id="cat">
+          <option value="">همه</option>
+          <option value="pump">پمپ</option>
+          <option value="motor">الکتروموتور</option>
+          <option value="transformer">ترانس</option>
+          <option value="panel">تابلو</option>
+          <option value="valve">شیرآلات</option>
+          <option value="instrument">ابزار دقیق</option>
+          <option value="other">سایر</option>
+        </select>
+      </div>
+      <button id="btn-search" class="primary">جستجو</button>
+      <span id="count" class="muted"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>لیست تجهیزات</h2>
+    <div class="table-wrap">
+      <table id="tbl">
+        <thead><tr>
+          <th>تگ</th><th>نام تجهیز</th><th>دسته</th><th>مشخصات</th><th>محل نصب</th>
+          <th>پلاک</th><th>کاتالوگ</th><th>اوردر</th><th></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" id="dossier" style="display:none">
+    <h2 id="d-title">پرونده تجهیز</h2>
+    <div id="d-specs"></div>
+    <h3 style="margin-top:18px">مشخصات پلاک و کاتالوگ (قابل ویرایش)</h3>
+    <div class="row">
+      <div><label>سازنده</label><input id="f-manufacturer"></div>
+      <div><label>پلاک / نامبر پلاک</label><input id="f-plate"></div>
+      <div><label>شماره کاتالوگ</label><input id="f-catalog_no"></div>
+      <div><label>اوردر نامبر</label><input id="f-order_no"></div>
+      <div style="flex-basis:100%"><label>مشخصات فنی تکمیلی</label><input id="f-spec"></div>
+      <div style="flex-basis:100%"><label>یادداشت</label><input id="f-notes"></div>
+    </div>
+    <button id="btn-save-dossier" class="primary" style="margin-top:10px">ذخیره پرونده</button>
+    <span id="save-msg" class="muted" style="margin-right:10px"></span>
+
+    <h3 style="margin-top:22px">آخرین PM و تعمیرات این تجهیز</h3>
+    <div class="table-wrap">
+      <table id="d-maint">
+        <thead><tr><th>تاریخ</th><th>نوع</th><th>شرح</th><th>اپراتور</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:22px">آخرین ثبت‌های پارامتر</h3>
+    <div class="table-wrap">
+      <table id="d-readings">
+        <thead><tr><th>تاریخ</th><th>ساعت</th><th>دما</th><th>جریان</th><th>ولتاژ</th><th>ساعت کارکرد</th><th>فشار</th><th>یادداشت</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+<script src="app.js"></script>
+<script src="equipment.js"></script>
+</body>
+</html>

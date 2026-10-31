@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>گزارش ماهانه — پمپاژ زیرزمینی</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">پ</div>
+    <div><h1>پمپاژ زیرزمینی</h1><span class="sub">سامانه ثبت و پایش تجهیزات</span></div>
+  </div>
+  <nav>
+    <a href="/" class="nav-link">ورود اطلاعات</a>
+    <a href="/daily.html" class="nav-link">گزارش روزانه شیفت</a>
+    <a href="/plc.html" class="nav-link">ترند PLC</a>
+    <a href="/dashboard.html" class="nav-link">داشبورد</a>
+    <a href="/maintenance.html" class="nav-link">تعمیرات و PM</a>
+    <a href="/shifts.html" class="nav-link">شیفت‌ها</a>
+    <a href="/report.html" class="nav-link">گزارش ماهانه</a>
+  </nav>
+  <div class="header-actions">
+    <button id="btn-backup" class="btn ghost">بک‌آپ دیتابیس</button>
+  </div>
+</header>
+<div id="user-bar"></div>
+
+<main class="container">
+  <section class="card">
+    <div class="card-head">
+      <h2>گزارش ماهانه</h2>
+      <div class="report-controls">
+        <div class="field">
+          <label>ماه شمسی</label>
+          <select id="r-month"></select>
+        </div>
+        <div class="field">
+          <label>سال شمسی</label>
+          <select id="r-year"></select>
+        </div>
+        <button id="r-show" class="btn primary">نمایش گزارش</button>
+        <button id="r-excel" class="btn ghost">خروجی اکسل کل داده‌ها</button>
+        <button id="r-print" class="btn ghost">چاپ</button>
+      </div>
+    </div>
+
+    <div id="report-body"></div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+<script src="report.js"></script>
+</body>
+</html>

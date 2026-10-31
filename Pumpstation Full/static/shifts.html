@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>شیفت‌ها و مرخصی — پمپاژ زیرزمینی</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">پ</div>
+    <div><h1>پمپاژ زیرزمینی</h1><span class="sub">سامانه ثبت و پایش تجهیزات</span></div>
+  </div>
+  <nav>
+    <a href="/" class="nav-link">ورود اطلاعات</a>
+    <a href="/daily.html" class="nav-link">گزارش روزانه شیفت</a>
+    <a href="/plc.html" class="nav-link">ترند PLC</a>
+    <a href="/dashboard.html" class="nav-link">داشبورد</a>
+    <a href="/maintenance.html" class="nav-link">تعمیرات و PM</a>
+    <a href="/shifts.html" class="nav-link">شیفت‌ها</a>
+    <a href="/report.html" class="nav-link">گزارش ماهانه</a>
+  </nav>
+  <div class="header-actions">
+    <button id="btn-backup" class="btn ghost">بک‌آپ دیتابیس</button>
+  </div>
+</header>
+<div id="user-bar"></div>
+
+<main class="container">
+  <section class="card">
+    <h2>کاربران و شیفت‌ها</h2>
+    <p class="muted">هر اپراتور با نام خودش و رمز پیش‌فرض <b>1234</b> وارد می‌شود (از بالای صفحه). رمزها بعداً قابل تغییر است.</p>
+    <div class="table-wrap">
+      <table id="users-table">
+        <thead><tr><th>نام</th><th>شیفت</th><th>وضعیت امروز</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>ثبت مرخصی یا جابجایی</h2>
+    <form id="sched-form" class="form-grid">
+      <div class="field">
+        <label>کاربر</label>
+        <select id="s-user" required></select>
+      </div>
+      <div class="field">
+        <label>نوع</label>
+        <select id="s-type">
+          <option value="leave">مرخصی</option>
+          <option value="swap">جابجایی شیفت</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>تاریخ (شمسی)</label>
+        <input type="text" id="s-date" required placeholder="1404/08/09" pattern="\d{4}/\d{2}/\d{2}">
+      </div>
+      <div class="field">
+        <label>جانشین (اختیاری)</label>
+        <select id="s-replacement"></select>
+      </div>
+      <div class="field span-2">
+        <label>توضیحات</label>
+        <input type="text" id="s-note" placeholder="مثلاً مرخصی استحقاقی، جابجایی با هماهنگی سرشیفت">
+      </div>
+      <div class="span-2 actions">
+        <button type="submit" class="btn primary">ثبت</button>
+        <span id="s-msg"></span>
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>سوابق مرخصی و جابجایی</h2>
+      <button id="s-print" class="btn ghost">چاپ</button>
+    </div>
+    <div class="table-wrap">
+      <table id="sched-table">
+        <thead><tr>
+          <th>تاریخ</th><th>کاربر</th><th>شیفت</th><th>نوع</th><th>جانشین</th><th>توضیحات</th><th></th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+<script src="shifts.js"></script>
+</body>
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>پمپاژ زیرزمینی</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">پ</div>
+    <div>
+      <h1>پمپاژ زیرزمینی</h1>
+      <span class="sub">سامانه ثبت و پایش تجهیزات</span>
+    </div>
+  </div>
+  <nav>
+    <a href="/" class="nav-link">ورود اطلاعات</a>
+    <a href="/daily.html" class="nav-link">گزارش روزانه شیفت</a>
+    <a href="/flow.html" class="nav-link">دبی ماهانه</a>
+    <a href="/plc.html" class="nav-link">ترند PLC</a>
+    <a href="/equipment.html" class="nav-link">پرونده تجهیزات</a>
+    <a href="/dashboard.html" class="nav-link">داشبورد</a>
+    <a href="/maintenance.html" class="nav-link">تعمیرات و PM</a>
+    <a href="/shifts.html" class="nav-link">شیفت‌ها</a>
+    <a href="/report.html" class="nav-link">گزارش ماهانه</a>
+  </nav>
+  <div class="header-actions">
+    <button id="btn-demo" class="btn ghost" title="ثبت داده نمونه ۳۰ روز اخیر برای آزمایش">داده نمونه</button>
+    <button id="btn-backup" class="btn ghost">بک‌آپ دیتابیس</button>
+  </div>
+</header>
+<div id="user-bar"></div>
+
+<main class="container">
+  <section class="card">
+    <h2>ثبت بازدید و اندازه‌گیری تجهیز</h2>
+    <form id="reading-form" class="form-grid">
+      <div class="field span-2">
+        <label>تجهیز</label>
+        <select id="f-equipment" required></select>
+      </div>
+      <div class="field">
+        <label>تاریخ (شمسی، مثل 1404/08/09)</label>
+        <input type="text" id="f-date" required value="" placeholder="1404/08/09" pattern="\d{4}/\d{2}/\d{2}">
+      </div>
+      <div class="field">
+        <label>ساعت</label>
+        <input type="time" id="f-time" value="08:00">
+      </div>
+      <div class="field">
+        <label>دما (°C)</label>
+        <input type="number" step="0.1" id="f-temp" placeholder="مثلاً 68.5">
+      </div>
+      <div class="field">
+        <label>جریان (آمپر)</label>
+        <input type="number" step="0.1" id="f-current" placeholder="مثلاً 205">
+      </div>
+      <div class="field">
+        <label>ولتاژ (ولت)</label>
+        <input type="number" step="1" id="f-voltage" placeholder="مثلاً 6300">
+      </div>
+      <div class="field">
+        <label>ساعت کارکرد (h)</label>
+        <input type="number" step="0.1" id="f-hours" placeholder="مثلاً 12450.5">
+      </div>
+      <div class="field">
+        <label>فشار (بار)</label>
+        <input type="number" step="0.01" id="f-pressure" placeholder="مثلاً 9.2">
+      </div>
+      <div class="field">
+        <label>اپراتور</label>
+        <input type="text" id="f-operator" placeholder="نام اپراتور">
+      </div>
+      <div class="field span-2">
+        <label>توضیحات</label>
+        <input type="text" id="f-note" placeholder="مثلاً صدای غیرعادی بلبرینگ، چک کردن روغن و...">
+      </div>
+      <div class="span-2 actions">
+        <button type="submit" class="btn primary">ثبت اندازه‌گیری</button>
+        <span id="form-msg"></span>
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>آخرین رکوردها</h2>
+      <div class="filters">
+        <select id="filter-equipment"></select>
+        <select id="filter-days">
+          <option value="7">۷ روز اخیر</option>
+          <option value="30" selected>۳۰ روز اخیر</option>
+          <option value="90">۹۰ روز اخیر</option>
+        </select>
+        <button id="btn-refresh" class="btn ghost">به‌روزرسانی</button>
+        <button id="btn-print" class="btn ghost">چاپ</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="readings-table">
+        <thead>
+          <tr>
+            <th>تاریخ</th><th>ساعت</th><th>تجهیز</th>
+            <th>دما (°C)</th><th>جریان (A)</th><th>ولتاژ (V)</th>
+            <th>ساعت کارکرد (h)</th><th>فشار (bar)</th>
+            <th>اپراتور</th><th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        <caption class="empty" hidden>هنوز رکوردی ثبت نشده است. فرم بالا را پر کنید یا «داده نمونه» را بزنید.</caption>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script src="app.js"></script>
+<script src="entry.js"></script>
+</body>
+</html>

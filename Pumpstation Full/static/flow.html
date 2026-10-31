@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>دبی ماهانه — پمپاژ زیرزمینی</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="topbar">
+  <div class="brand"><span class="logo">پ</span> پمپاژ زیرزمینی — سامانه ثبت و پایش تجهیزات</div>
+  <div class="menu">
+    <a href="index.html">ورود اطلاعات</a>
+    <a href="daily.html">گزارش روزانه شیفت</a>
+    <a href="flow.html" class="active">دبی ماهانه</a>
+    <a href="plc.html">ترند PLC</a>
+    <a href="equipment.html">پرونده تجهیزات</a>
+    <a href="dashboard.html">داشبورد</a>
+    <a href="maintenance.html">تعمیرات و PM</a>
+    <a href="shifts.html">شیفت‌ها</a>
+    <a href="report.html">گزارش ماهانه</a>
+    <a href="#" id="btn-backup">بک‌آپ دیتابیس</a>
+  </div>
+</nav>
+<div id="user-bar"></div>
+
+<main class="wrap">
+  <div class="card">
+    <h2>دبی توتال روزانه و تجمعی ماه</h2>
+    <div class="row" style="align-items:flex-end">
+      <div><label>سال شمسی</label><input id="jyear" type="number" style="width:110px"></div>
+      <div><label>ماه شمسی</label>
+        <select id="jmonth" style="width:130px">
+          <option value="1">فروردین</option><option value="2">اردیبهشت</option>
+          <option value="3">خرداد</option><option value="4">تیر</option>
+          <option value="5">مرداد</option><option value="6">شهریور</option>
+          <option value="7">مهر</option><option value="8">آبان</option>
+          <option value="9">آذر</option><option value="10">دی</option>
+          <option value="11">بهمن</option><option value="12">اسفند</option>
+        </select>
+      </div>
+      <button id="btn-show" class="primary">نمایش</button>
+      <button id="btn-print" class="ghost">چاپ</button>
+      <span id="sum-info" class="muted"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 id="tbl-title">جدول ماهانه</h2>
+    <div class="table-wrap">
+      <table id="tbl">
+        <thead><tr>
+          <th>روز ماه</th><th>تاریخ</th><th>دبی توتال روز (L/s)</th><th>جمع تجمعی تا این روز</th>
+        </tr></thead>
+        <tbody></tbody>
+        <tfoot><tr style="font-weight:700; background:#eef4f4">
+          <td colspan="2">جمع کل ماه</td><td id="t-total">-</td><td></td>
+        </tr></tfoot>
+      </table>
+    </div>
+  </div>
+</main>
+<script src="app.js"></script>
+<script src="flow.js"></script>
+</body>
+</html>
