@@ -1,0 +1,6 @@
+data/
+program/.venv/
+program/wheels/
+__pycache__/
+*.pyc
+.pytest_cache/

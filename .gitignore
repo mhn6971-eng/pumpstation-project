@@ -1,0 +1,14 @@
+# Local tooling and generated preview/demo artifacts
+node_modules/
+.cache/
+.pytest_cache/
+__pycache__/
+*.pyc
+live-preview/runtime/
+live-preview/test-artifacts/
+live-preview/debug*.cjs
+package-lock.json
+# Distribution copies are delivered separately, not kept in source control
+download/
+pumpstation-v5-package*.zip
+pumpstation-v5-package*.sha256
