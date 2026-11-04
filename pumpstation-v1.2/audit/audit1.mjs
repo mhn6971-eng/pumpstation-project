@@ -1,4 +1,4 @@
-const BASE = "http://127.0.0.1:3000";
+const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 const out = [];
 function log(name, pass, detail) {
   out.push({ name, pass, detail });

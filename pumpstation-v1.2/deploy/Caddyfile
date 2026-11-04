@@ -1,0 +1,69 @@
+# ============================================================================
+#  Caddy — پروکسی HTTPS برای «سامانهٔ ایستگاه پمپاژ گلاب»
+#  فایل را در کنار Caddyfile اصلی قرار دهید یا محتوایش را جایگزین کنید.
+#  مسیر پیشنهادی در ویندوز: C:\pumpstation\deploy\Caddyfile
+# ============================================================================
+{
+	# پورت‌های مدیریت و HTTPS داخلی
+	admin localhost:2019
+	# اگر سرور به اینترنت وصل نیست و گواهی خودکار Let's Encrypt نمی‌خواهید،
+	# خط زیر را فعال کنید تا Caddy از CA داخلی خودش گواهی بسازد:
+	auto_https disable_redirects
+}
+
+# ---------------------------------------------------------------------------
+#  سناریوی ۱ — شبکهٔ محلی بدون دامنهٔ عمومی (توصیه‌شده برای ایستگاه)
+#  گواهی با CA داخلی Caddy ساخته می‌شود؛ فقط باید ریشهٔ Caddy
+#  روی دستگاه‌های اپراتور نصب شود (فایل: C:\ProgramData\Caddy\pki\authorities\local\root.crt)
+# ---------------------------------------------------------------------------
+https://pumpstation.local, https://192.168.1.50 {
+	tls internal
+
+	encode zstd gzip
+
+	# حجم درخواست: کاتالوگ‌ها تا ۸ مگابایت مجاز است
+	request_body {
+		max_size 12MB
+	}
+
+	# پراکسی به اپ Next.js روی همان ماشین
+	reverse_proxy 127.0.0.1:3000 {
+		header_up X-Forwarded-Proto https
+		header_up X-Real-IP {remote_host}
+		header_up X-Request-Id {http.request.uuid}
+		# سرور محلی است؛ انتقال فشرده لازم نیست
+		transport http {
+			compression off
+		}
+	}
+
+	header {
+		Strict-Transport-Security "max-age=15552000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "same-origin"
+		-Server
+	}
+
+	log {
+		output file C:\pumpstation\logs\caddy-access.log {
+			roll_size 20mb
+			roll_keep 10
+		}
+		format json
+	}
+}
+
+# ---------------------------------------------------------------------------
+#  سناریوی ۲ — دامنهٔ واقعی با گواهی خودکار Let's Encrypt
+#  (سرور باید از اینترنت روی پورت ۸۰/۴۴۳ قابل دسترس باشد؛ برای ایستگاه
+#   بدون IP ثابت توصیه نمی‌شود.)
+# ---------------------------------------------------------------------------
+#pumpstation.example.ir {
+#	encode zstd gzip
+#	reverse_proxy 127.0.0.1:3000 {
+#		header_up X-Forwarded-Proto https
+#		header_up X-Real-IP {remote_host}
+#	}
+#	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+#}

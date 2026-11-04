@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 /** هدرهای امنیتی (H6) — قبلاً هیچ‌کدام ست نمی‌شد */
-const securityHeaders = [
+const securityHeaders: { key: string; value: string }[] = [
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "same-origin" },
@@ -22,6 +22,12 @@ const securityHeaders = [
     ].join("; "),
   },
 ];
+
+// HSTS فقط وقتی سایت واقعاً روی HTTPS سرو می‌شود فرستاده می‌شود؛
+// وگرنه کوکی secure و اجبار HTTPS می‌تواند دسترسی محلی را قطع کند.
+if (process.env.COOKIE_SECURE === "1" || process.env.FORCE_HTTPS === "1") {
+  securityHeaders.push({ key: "Strict-Transport-Security", value: "max-age=15552000; includeSubDomains" });
+}
 
 const nextConfig: NextConfig = {
   // PGlite و pg باید بیرون از باندل Next بمانند (فایل WASM و باینری بومی)

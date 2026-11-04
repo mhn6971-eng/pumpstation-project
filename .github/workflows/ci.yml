@@ -31,6 +31,9 @@ jobs:
       - name: بررسی نوع‌ها
         run: npx tsc --noEmit
 
+      - name: بررسی ESLint
+        run: npx eslint .
+
       - name: ساخت دیتابیس آزمایشی
         run: mkdir -p .data/pglite && node scripts/init-db.mjs
 
@@ -54,6 +57,12 @@ jobs:
           node audit/audit2.mjs
           node audit/audit3.mjs
           node audit/audit4.mjs
+          node audit/audit5.mjs
+
+      - name: آزمون آینه روی رسانهٔ آزمایشی
+        run: |
+          MIRROR_DIR=.data/mirror-ci node scripts/mirror-backup.mjs
+          ls -l .data/mirror-ci | head
 
       - name: آزمون کارایی
         run: node audit/perf.mjs || true

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { shifts } from "@/db/schema";
@@ -66,6 +66,21 @@ export async function authenticate(shiftKey: string, pin: string) {
   return { key: row.key, label: row.label, role: row.role, members: row.members ?? [], version: pinVersion(row.pin) };
 }
 
+/** ساخت نشست برای کاربری که قبلاً احراز هویت شده (پس از بررسی PIN و کد دوعاملی) */
+export async function startSession(
+  user: { key: string; role: string; version: string; label: string; members: string[] },
+  meta: { ip?: string; agent?: string } = {},
+) {
+  const session = await issueSession({
+    shiftKey: user.key,
+    role: user.role,
+    pinVersion: user.version,
+    ip: meta.ip,
+    agent: meta.agent,
+  });
+  return { user: { key: user.key, label: user.label, role: user.role, members: user.members }, token: session.token, sid: session.sid, expiresAt: session.expiresAt };
+}
+
 /** ورود کامل: بررسی PIN + ساخت نشست سروری + توکن */
 export async function login(shiftKey: string, pin: string, meta: { ip?: string; agent?: string } = {}) {
   const user = await authenticate(shiftKey, pin);
@@ -82,12 +97,19 @@ export async function login(shiftKey: string, pin: string, meta: { ip?: string; 
 
 export async function setSessionCookie(token: string) {
   const store = await cookies();
+  let behindHttps = false;
+  try {
+    const h = await headers();
+    behindHttps = (h.get("x-forwarded-proto") ?? "").split(",")[0].trim() === "https";
+  } catch {
+    /* بیرون از درخواست (تست/اسکریپت) */
+  }
   store.set(COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
     // پشت HTTPS (نسخهٔ نهایی) با COOKIE_SECURE=1 فعال شود
-    secure: process.env.COOKIE_SECURE === "1",
+    secure: process.env.COOKIE_SECURE === "1" || behindHttps,
     maxAge: Math.floor(SESSION_MS / 1000),
   });
 }

@@ -1,4 +1,4 @@
-const BASE = "http://127.0.0.1:3000";
+const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 const login = async (k, p) => (await (await fetch(`${BASE}/api/auth`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: k, pin: p }) })).headers.get("set-cookie") || "").split(";")[0];
 const time = async (label, fn, n = 3) => {
   const ts = [];

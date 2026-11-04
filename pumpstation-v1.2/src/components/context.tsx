@@ -11,6 +11,8 @@ export type AppContextValue = {
   setInterval: (interval: number) => void;
   refresh: (opts?: { day?: string; interval?: number }) => Promise<void>;
   act: (action: string, payload?: Record<string, unknown>) => Promise<boolean | number>;
+  /** مثل act، اما بدنهٔ کامل پاسخ را برمی‌گرداند (برای عملیات دوعاملی که راز/کد پشتیبان برمی‌گردانند) */
+  call: (action: string, payload?: Record<string, unknown>) => Promise<Record<string, unknown>>;
   busy: boolean;
   toast: (message: string, kind?: "ok" | "error") => void;
   openModal: (title: string, node: ReactNode, opts?: { wide?: boolean; sub?: string }) => void;

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useApp } from "./context";
 import { Icon, Panel } from "./ui";
 import { EquipmentForm } from "./RegistryTab";
+import TwoFactorPanel from "./TwoFactorPanel";
+import MirrorPanel from "./MirrorPanel";
 
 export default function AdminTab() {
   const { state, act, busy, toast, openModal, refresh } = useApp();
@@ -12,8 +14,8 @@ export default function AdminTab() {
     <div className="grid">
       <div className="kpi-grid">
         <div className="kpi">
-          <div className="v" style={{ color: "var(--accent)" }}>نسخه ۱.۲</div>
-          <div className="l">تم B «فولاد روشن» — Next.js + PostgreSQL</div>
+          <div className="v" style={{ color: "var(--accent)" }}>نسخه ۱.۴</div>
+          <div className="l">تم B «فولاد روشن» — Next.js + PostgreSQL (PGlite/سروری)</div>
         </div>
         <div className="kpi">
           <div className="v">{state.backups.length}</div>
@@ -40,6 +42,11 @@ export default function AdminTab() {
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(340px,1fr))" }}>
         <SettingsPanel />
         <ShiftPanel />
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(340px,1fr))" }}>
+        <TwoFactorPanel />
+        <MirrorPanel />
       </div>
 
       <ProcessSetpoints />

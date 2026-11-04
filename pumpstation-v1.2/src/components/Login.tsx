@@ -11,19 +11,30 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [totp, setTotp] = useState("");
+  const [needsTotp, setNeedsTotp] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError("");
     try {
-      const res = await fetch("/api/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: selected, pin }) });
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: selected, pin, ...(totp ? { totp } : {}) }),
+      });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "ورود ناموفق بود");
+      if (!res.ok) {
+        if (data?.needsTotp) setNeedsTotp(true);
+        throw new Error(data.error ?? "ورود ناموفق بود");
+      }
       window.location.replace("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "ورود ناموفق بود");
-      setPin("");
+      setTotp("");
+      // اگر ورود دوعاملی فعال است، PIN را نگه می‌داریم تا اپراتور فقط کد را وارد کند
+      if (!needsTotp) setPin("");
     } finally {
       setBusy(false);
     }
@@ -59,7 +70,7 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
 
           <div className="shift-options">
             {roster.map((r) => (
-              <button key={r.key} type="button" className={`shift-option ${selected === r.key ? "active" : ""}`} onClick={() => { setSelected(r.key); setPin(""); setError(""); }}>
+              <button key={r.key} type="button" className={`shift-option ${selected === r.key ? "active" : ""}`} onClick={() => { setSelected(r.key); setPin(""); setTotp(""); setNeedsTotp(false); setError(""); }}>
                 <b>{r.label}</b>
                 <small>{r.members.join(" و ")}</small>
               </button>
@@ -75,9 +86,28 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
             <input id="pin" className="pin-input" type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="••••" autoFocus />
           </div>
 
+          {needsTotp && (
+            <div className="field">
+              <label htmlFor="totp">کد ورود دوعاملی (۶ رقم) یا کد پشتیبان</label>
+              <input
+                id="totp"
+                className="input mono"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={totp}
+                onChange={(e) => setTotp(e.target.value.replace(/[^0-9A-Za-z-]/g, "").slice(0, 9))}
+                placeholder="۱۲۳۴۵۶"
+                autoFocus
+              />
+              <div className="tiny muted" style={{ marginTop: 4 }}>
+                کد از برنامهٔ Authenticator گوشی؛ هر ۳۰ ثانیه عوض می‌شود. اگر گوشی در دسترس نیست، یکی از کدهای پشتیبان را وارد کنید.
+              </div>
+            </div>
+          )}
+
           {error && <div className="note warn-note" style={{ marginBottom: 10 }}>{error}</div>}
 
-          <button className="btn primary" type="submit" disabled={busy || pin.length !== 4} style={{ width: "100%", padding: 13, fontSize: 16 }}>
+          <button className="btn primary" type="submit" disabled={busy || pin.length !== 4 || (needsTotp && totp.length < 6)} style={{ width: "100%", padding: 13, fontSize: 16 }}>
             {busy ? "در حال ورود…" : "ورود به سامانه"}
           </button>
 

@@ -19,6 +19,14 @@ export const shifts = pgTable("shifts", {
   role: text("role").notNull().default("operator"),
   pin: text("pin").notNull(),
   members: jsonb("members").$type<string[]>().notNull().default([]),
+  /** راز فعال ورود دوعاملی (Base32) — خالی یعنی فعال نیست */
+  totpSecret: text("totp_secret").notNull().default(""),
+  /** راز در حال ثبت (پس از اسکن، پیش از تأیید اولین کد) */
+  totpPending: text("totp_pending").notNull().default(""),
+  totpEnabled: boolean("totp_enabled").notNull().default(false),
+  /** کدهای پشتیبان یک‌بارمصرف (هش‌شده) */
+  totpBackupCodes: jsonb("totp_backup_codes").$type<string[]>().notNull().default([]),
+  totpEnabledAt: text("totp_enabled_at").notNull().default(""),
 });
 
 export const settings = pgTable("settings", {
@@ -428,3 +436,19 @@ export const processReadingsAll = pgView("process_readings_all", {
   recordedAt: text("recorded_at").notNull(),
   updatedAt: text("updated_at").notNull(),
 }).existing();
+
+/** سابقهٔ کپی بک‌آپ به مسیر بیرونی (آینه) */
+export const backupMirrorRuns = pgTable(
+  "backup_mirror_runs",
+  {
+    id: serial("id").primaryKey(),
+    at: text("at").notNull(),
+    ts: bigint("ts", { mode: "number" }).notNull().default(0),
+    file: text("file").notNull().default(""),
+    target: text("target").notNull().default(""),
+    bytes: integer("bytes").notNull().default(0),
+    ok: boolean("ok").notNull().default(false),
+    error: text("error").notNull().default(""),
+  },
+  (t) => [index("backup_mirror_at_idx").on(t.ts)],
+);

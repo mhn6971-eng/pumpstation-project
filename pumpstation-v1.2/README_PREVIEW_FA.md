@@ -72,3 +72,20 @@ npm run preview     # اجرای سامانه
 npm test          # بررسی نوع‌ها + ۸۹ تست امنیتی/رفتاری
 npm run doctor    # بررسی سلامت دیتابیس
 ```
+
+## نسخه ۱.۴ — امنیت انتقال، دوعاملی، آینهٔ بک‌آپ، مسیر PostgreSQL
+
+| موضوع | افزوده‌ها |
+|---|---|
+| ورود دوعاملی | TOTP بدون وابستگی (SHA-1/۳۰ثانیه/۶رقم، تحمل ±۳۰ ثانیه)، ۱۰ کد پشتیبان یک‌بارمصرف هش‌شده، پنل راه‌اندازی + بازنشانی گوشی گم‌شده |
+| HTTPS | نمونهٔ آمادهٔ Caddy و nginx، کوکی `Secure` با `COOKIE_SECURE=1` یا `x-forwarded-proto`، HSTS فقط در حالت امن، راهنمای استقرار با چک‌لیست |
+| آینهٔ بک‌آپ | کپی خودکار روی فلش/درایو/شبکه، تأیید با sha256 مبدأ و مقصد، سابقهٔ اجراها (`backup_mirror_runs`)، هشدار کهنگی، اسکریپت زمان‌بند با توکن محلی |
+| دیتابیس | سوئیچ خودکار PGlite ↔ PostgreSQL با `DATABASE_URL`؛ `pg-init`، `pg-dump` (دامپ فشردهٔ روزانه) و `pg-import-json` (انتقال داده با بررسی هش) |
+| پایش | `/api/health?full=1` حالا حالت دیتابیس، وضعیت آینه، مهاجرت‌ها و هشدارهای آن‌ها را هم می‌گوید |
+| مستندات | `docs/DEPLOY_HTTPS_FA.md`، `docs/POSTGRES_MIGRATION_FA.md`، به‌روزرسانی RUNBOOK و SECURITY، `docs/PROMPT_V1.4_FA.txt` |
+
+```bash
+npm test                       # بررسی نوع‌ها + ۱۴۰ تست (audit1..audit5)
+node audit/audit5.mjs          # فقط دوعاملی + آینه + هدرها + آمادگی HTTPS/PostgreSQL
+node scripts/mirror-backup.mjs # کپی بک‌آپ روی آینه (برای Task Scheduler)
+```

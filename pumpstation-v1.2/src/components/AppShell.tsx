@@ -191,6 +191,18 @@ export default function AppShell({ initial }: { initial: AppState }) {
     [postAction, toast],
   );
 
+  const call = useCallback(
+    async (action: string, payload: Record<string, unknown> = {}) => {
+      setBusy(true);
+      try {
+        return (await postAction(action, payload, uid())) as unknown as Record<string, unknown>;
+      } finally {
+        setBusy(false);
+      }
+    },
+    [postAction],
+  );
+
   const act = useCallback(
     async (action: string, payload: Record<string, unknown> = {}) => {
       setBusy(true);
@@ -292,7 +304,7 @@ export default function AppShell({ initial }: { initial: AppState }) {
   const topModal = stack[stack.length - 1];
 
   return (
-    <AppCtx.Provider value={{ state, day, interval, setDay, setInterval, refresh, act, busy, toast, openModal, closeModal, goTab, isAdmin }}>
+    <AppCtx.Provider value={{ state, day, interval, setDay, setInterval, refresh, act, call, busy, toast, openModal, closeModal, goTab, isAdmin }}>
       <div className="shell">
         <header className="topbar">
           <div className="brand">

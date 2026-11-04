@@ -1,6 +1,6 @@
 import { statfs } from "node:fs/promises";
 import { sql } from "drizzle-orm";
-import { db } from "@/db";
+import { db, usingPostgres } from "@/db";
 import { getSessionUser } from "@/lib/auth";
 import { APP_VERSION } from "@/lib/version";
 import { listFileBackups } from "@/lib/backup";
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     ok: dbOk,
     version: APP_VERSION,
     uptimeSec: Math.round((Date.now() - startedAt) / 1000),
-    db: { ok: dbOk, latencyMs: dbLatency },
+    db: { ok: dbOk, latencyMs: dbLatency, mode: usingPostgres ? "postgres" : "pglite" },
     time: new Date().toISOString(),
   };
   if (url.searchParams.get("full") !== "1") return jsonResponse(base);
@@ -97,6 +97,15 @@ export async function GET(request: Request) {
     detail.rows = counts.rows[0] ?? null;
   } catch {
     detail.rows = null;
+  }
+
+  try {
+    const { mirrorStatus } = await import("@/lib/mirror");
+    const mirror = await mirrorStatus();
+    detail.mirror = { verdict: mirror.verdict, available: mirror.available, last: mirror.last?.at ?? null, last24: mirror.last24, dir: mirror.dir };
+    if (mirror.verdict !== "ok") warnings.push(`آینهٔ بک‌آپ: ${mirror.message}`);
+  } catch {
+    detail.mirror = null;
   }
 
   detail.migrations = (

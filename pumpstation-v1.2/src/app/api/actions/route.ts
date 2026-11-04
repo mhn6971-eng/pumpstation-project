@@ -34,8 +34,10 @@ import { cleanupSessions, listSessions, revokeAllSessions, revokeSession } from 
 import { verifyActivityChain } from "@/lib/audit";
 import { archiveOlderThan, archiveStats, pruneArchives } from "@/lib/archive";
 import { recordEvent } from "@/lib/log";
-import { hashPin } from "@/lib/pin";
+import { hashPin, verifyPin } from "@/lib/pin";
+import { generateBackupCode, generateTotpSecret, normalizeBackupCode, otpauthUrl, verifyTotp } from "@/lib/totp";
 import { ensureSeed, getAllSettings, saveSettings } from "@/db/seed";
+import { ensureMirrorFresh, mirrorLatest, mirrorStatus } from "@/lib/mirror";
 import { createInternalBackup, ensureDailyFileBackup, listFileBackups, restoreAll, restoreFromFile, verifyFileBackup, writeFileBackup, type Snapshot } from "@/lib/backup";
 import { bodyTooLarge, clearLoginLock, logSecurityEvent, rateLimitedResponse, tooLargeResponse, writeRateLimited } from "@/lib/security";
 import { effectiveShift, getProcessThresholds, logActivity, thresholdSeverity } from "@/lib/state";
@@ -151,6 +153,7 @@ export async function POST(request: Request) {
   const shiftKey = user.key;
   const op = operationalDay();
   void ensureDailyFileBackup().catch(() => {});
+  void ensureMirrorFresh().catch(() => {});
   // تاریخ نامعتبر رد می‌شود، نه این‌که بی‌صدا امروز فرض شود (H4)
   let day = op.day;
   if (typeof p.day === "string" && p.day.trim()) {
@@ -810,6 +813,110 @@ export async function POST(request: Request) {
         const result = await restoreFromFile(file, { force: p.force === true });
         await logActivity(shiftKey, "بازیابی از فایل بک‌آپ", `${file} — ${result.rows} ردیف`);
         return Response.json({ ok: true, ...result, message: "داده‌ها از فایل بازگردانی شد" });
+      }
+
+      case "totp.status": {
+        const target = isAdmin && p.key ? str(p.key, 10) : shiftKey;
+        const row = (await db.select().from(shifts).where(eq(shifts.key, target)).limit(1))[0];
+        if (!row) throw new Error("شیفت پیدا نشد");
+        return Response.json({
+          ok: true,
+          key: target,
+          enabled: row.totpEnabled,
+          enabledAt: row.totpEnabledAt,
+          backupCodes: (row.totpBackupCodes ?? []).length,
+          pending: Boolean(row.totpPending),
+        });
+      }
+
+      case "totp.begin": {
+        // فقط برای شیفت خودِ کاربر (یا ادمین به‌جای شیفت دیگر)
+        const target = isAdmin && p.key ? str(p.key, 10) : shiftKey;
+        const secret = generateTotpSecret();
+        const updated = await db.update(shifts).set({ totpPending: secret }).where(eq(shifts.key, target)).returning({ key: shifts.key });
+        if (!updated.length) throw new Error("شیفت پیدا نشد");
+        const url = otpauthUrl({ issuer: "Pumpstation Golab", account: `${target} — ایستگاه پمپاژ گلاب`, secret });
+        await logActivity(shiftKey, "شروع ثبت ورود دوعاملی", `شیفت ${target}`);
+        return Response.json({
+          ok: true,
+          key: target,
+          secret,
+          otpauth: url,
+          message: "راز ساخته شد؛ آن را در برنامهٔ Authenticator ثبت و کد ۶ رقمی را تأیید کنید",
+        });
+      }
+
+      case "totp.enable": {
+        const target = isAdmin && p.key ? str(p.key, 10) : shiftKey;
+        const row = (await db.select().from(shifts).where(eq(shifts.key, target)).limit(1))[0];
+        if (!row) throw new Error("شیفت پیدا نشد");
+        if (!row.totpPending) throw new Error("ابتدا مرحلهٔ «ساخت راز» را انجام دهید");
+        if (!verifyTotp(row.totpPending, str(p.code, 10))) {
+          throw new Error("کد وارد‌شده معتبر نیست؛ ساعت گوشی و کد ۶ رقمی را بررسی کنید");
+        }
+        const codes = Array.from({ length: 10 }, () => generateBackupCode());
+        await db
+          .update(shifts)
+          .set({
+            totpSecret: row.totpPending,
+            totpPending: "",
+            totpEnabled: true,
+            totpEnabledAt: jalaliNow(),
+            totpBackupCodes: codes.map((c) => hashPin(normalizeBackupCode(c))),
+          })
+          .where(eq(shifts.key, target));
+        await logActivity(shiftKey, "فعال‌سازی ورود دوعاملی", `شیفت ${target} — ۱۰ کد پشتیبان صادر شد`);
+        await logSecurityEvent("totp_enabled", target, "local", "ورود دوعاملی فعال شد");
+        return Response.json({
+          ok: true,
+          backupCodes: codes,
+          message: "ورود دوعاملی فعال شد. کدهای پشتیبان را همین حالا یادداشت کنید؛ دیگر نمایش داده نمی‌شوند.",
+        });
+      }
+
+      case "totp.disable": {
+        const target = isAdmin && p.key ? str(p.key, 10) : shiftKey;
+        const row = (await db.select().from(shifts).where(eq(shifts.key, target)).limit(1))[0];
+        if (!row) throw new Error("شیفت پیدا نشد");
+        // تأیید هویت دوباره: کاربر عادی با PIN همان شیفت، ادمین با PIN خودش (برای نجات گوشی گم‌شده)
+        const authRow = isAdmin ? (await db.select().from(shifts).where(eq(shifts.key, shiftKey)).limit(1))[0] : row;
+        if (!authRow || !verifyPin(str(p.pin, 10).trim(), authRow.pin)) {
+          throw new Error(isAdmin && target !== shiftKey ? "برای این کار PIN حساب ادمین را وارد کنید" : "PIN نادرست است");
+        }
+        await db
+          .update(shifts)
+          .set({ totpEnabled: false, totpSecret: "", totpPending: "", totpBackupCodes: [], totpEnabledAt: "" })
+          .where(eq(shifts.key, target));
+        await logActivity(shiftKey, "غیرفعال‌سازی ورود دوعاملی", `شیفت ${target}`);
+        await logSecurityEvent("totp_disabled", target, "local", "ورود دوعاملی غیرفعال شد");
+        return Response.json({ ok: true, message: "ورود دوعاملی غیرفعال شد" });
+      }
+
+      case "totp.codes": {
+        const target = isAdmin && p.key ? str(p.key, 10) : shiftKey;
+        const row = (await db.select().from(shifts).where(eq(shifts.key, target)).limit(1))[0];
+        if (!row) throw new Error("شیفت پیدا نشد");
+        if (!row.totpEnabled) throw new Error("ورود دوعاملی برای این شیفت فعال نیست");
+        const authRow2 = isAdmin ? (await db.select().from(shifts).where(eq(shifts.key, shiftKey)).limit(1))[0] : row;
+        if (!authRow2 || !verifyPin(str(p.pin, 10).trim(), authRow2.pin)) throw new Error("PIN نادرست است");
+        const codes = Array.from({ length: 10 }, () => generateBackupCode());
+        await db.update(shifts).set({ totpBackupCodes: codes.map((c) => hashPin(normalizeBackupCode(c))) }).where(eq(shifts.key, target));
+        await logActivity(shiftKey, "صدور مجدد کدهای پشتیبان", `شیفت ${target}`);
+        return Response.json({ ok: true, backupCodes: codes, message: "کدهای پشتیبان قبلی باطل و ۱۰ کد تازه صادر شد" });
+      }
+
+      case "mirror.status": {
+        if (!isAdmin) throw new Error("برای دیدن وضعیت آینه، دسترسی مدیریت لازم است");
+        const st = await mirrorStatus();
+        return Response.json({ ...st });
+      }
+
+      case "mirror.now": {
+        if (!isAdmin) throw new Error("برای کپی به آینه، دسترسی مدیریت لازم است");
+        const result = await mirrorLatest({ fresh: true, actor: `${user.label} (${shiftKey})` });
+        await logActivity(shiftKey, "کپی بک‌آپ به آینه", result.ok ? `فایل ${result.file}` : `ناموفق: ${result.error}`);
+        if (!result.ok) return Response.json({ ok: false, error: `کپی به آینه ناموفق بود: ${result.error}` }, { status: 500 });
+        return Response.json({ ...result, message: `نسخهٔ ${result.file} روی آینه کپی و با هش تأیید شد` });
       }
 
       default:

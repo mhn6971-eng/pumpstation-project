@@ -41,7 +41,8 @@ node audit/probe.mjs               # آزمون سالم‌بودن دیتابی
 ```bash
 node audit/audit3.mjs   # نشست سروری، ابطال دستگاه، شناسهٔ یکتا، CSRF، ETag، بایگانی، CSV، سطل بازیافت
 node audit/audit4.mjs   # بک‌آپ و بازیابی از فایل، سناریوی «ویندوز عوض شد»، تداوم پس از بازیابی
-npm run test:audit      # اجرای هر چهار مجموعه با هم
+node audit/audit5.mjs   # ورود دوعاملی، آینهٔ بک‌آپ، هدرهای امنیتی، آمادگی HTTPS و PostgreSQL
+npm run test:audit      # اجرای هر پنج مجموعه با هم
 npm run test            # بررسی نوع‌ها + همهٔ تست‌های بالا
 ```
 
@@ -52,6 +53,10 @@ npm run doctor                        # بررسی سلامت دیتابیس و 
 node scripts/doctor.mjs --repair      # قرنطینهٔ دیتابیس خراب و بازیابی از آخرین بک‌آپ
 node scripts/doctor.mjs --restore FILE
 node scripts/reset-admin-pin.mjs      # بازنشانی اضطراری PIN ادمین (سامانه خاموش)
+node scripts/mirror-backup.mjs        # کپی بک‌آپ روی آینه (سامانه روشن؛ برای Task Scheduler)
+node scripts/pg-init.mjs              # ساخت اسکیما روی PostgreSQL سروری (DATABASE_URL)
+node scripts/pg-dump.mjs              # دامپ فشردهٔ روزانه با pg_dump
+node scripts/pg-import-json.mjs       # انتقال دادهٔ بک‌آپ JSON به PostgreSQL
 ```
 
 > پیش از هر اسکریپت عملیاتی، سامانه را ببندید؛ قفل پوشهٔ داده مانع اجرای هم‌زمان می‌شود.
