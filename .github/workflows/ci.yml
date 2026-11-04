@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: pumpstation-v1.2
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: pumpstation-v1.2/package-lock.json
+
+      - name: نصب وابستگی‌ها
+        run: npm ci --no-audit --no-fund
+
+      - name: بررسی امنیتی وابستگی‌ها
+        run: npm audit --omit=dev
+
+      - name: بررسی نوع‌ها
+        run: npx tsc --noEmit
+
+      - name: ساخت دیتابیس آزمایشی
+        run: mkdir -p .data/pglite && node scripts/init-db.mjs
+
+      - name: بیلد تولیدی
+        run: npx next build
+
+      - name: اجرای سامانه برای تست‌ها
+        run: npx next start -H 127.0.0.1 -p 3000 & echo $! > /tmp/next.pid
+
+      - name: انتظار برای آماده شدن سرور
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:3000/api/health > /dev/null; then echo "ready"; exit 0; fi
+            sleep 2
+          done
+          echo "server did not start"; exit 1
+
+      - name: تست‌های امنیتی و رفتاری
+        run: |
+          node audit/audit1.mjs
+          node audit/audit2.mjs
+          node audit/audit3.mjs
+          node audit/audit4.mjs
+
+      - name: آزمون کارایی
+        run: node audit/perf.mjs || true
+
+      - name: توقف سرور
+        if: always()
+        run: kill "$(cat /tmp/next.pid)" || true

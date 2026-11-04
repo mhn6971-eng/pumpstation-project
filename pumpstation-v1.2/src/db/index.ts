@@ -17,8 +17,9 @@ const dataDir = process.env.PGLITE_DATA_DIR ?? ".data/pglite";
  * قفل پوشهٔ داده: جلوگیری از باز شدن هم‌زمان توسط دو برنامه (عامل اصلی خرابی فایل‌ها).
  * اگر پوشه در اختیار برنامهٔ دیگری باشد، خطای روشن داده می‌شود، نه خرابی خاموش.
  */
-if (!(globalThis as { __psDbLocked?: boolean }).__psDbLocked) {
-  acquireDbLock(dataDir);
+const buildPhase = process.env.NEXT_PHASE === "phase-production-build";
+if (!buildPhase && !(globalThis as { __psDbLocked?: boolean }).__psDbLocked) {
+  acquireDbLock(dataDir, { enforce: process.env.NODE_ENV === "production" });
   (globalThis as { __psDbLocked?: boolean }).__psDbLocked = true;
   const release = () => releaseDbLock(dataDir);
   process.once("exit", release);

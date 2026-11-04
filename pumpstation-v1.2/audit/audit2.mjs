@@ -14,6 +14,7 @@ const state = (cookie, q = "") => fetch(`${BASE}/api/state${q}`, { headers: { co
 (async () => {
   const A = await login("A", "1111");
   const ADM = await login("admin", "9999");
+  await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: ADM.cookie }, body: JSON.stringify({ action: "admin.unlock", payload: { key: "all" } }) });
   const day = "1405/08/14";
 
   // ---- concurrency: same cell from two "tabs" ----

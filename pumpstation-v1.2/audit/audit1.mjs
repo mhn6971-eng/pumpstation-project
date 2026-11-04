@@ -50,11 +50,21 @@ const H = (cookie) => ({ cookie });
   }
   log("global shift lock (IP rotation)", globalLock > 0 && globalLock <= 25, `شیفت C پس از ${globalLock} تلاش قفل شد`);
 
+  // پاک‌سازی قفل‌های ایجادشده در تست‌های حدس PIN تا مجموعهٔ بعدی سالم بماند
+  {
+    const adm = await login("admin", "9999");
+    if (adm.cookie) {
+      await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie }, body: JSON.stringify({ action: "admin.unlock", payload: { key: "all" } }) });
+    }
+  }
+
   const okA = await login("A", "1111");
   log("valid PIN accepted", okA.status === 200 && okA.cookie.includes("ps_session"), `status=${okA.status}`);
   const A = okA.cookie;
 
   const admin = await login("admin", "9999");
+  // تست‌های قبلی ممکن است قفل ورود گذاشته باشند؛ ادمین آن را برمی‌دارد
+  await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: admin.cookie }, body: JSON.stringify({ action: "admin.unlock", payload: { key: "all" } }) });
   const ADM = admin.cookie;
   log("admin login", admin.status === 200, `status=${admin.status}, role=${admin.body?.user?.role}`);
 
@@ -106,10 +116,12 @@ const H = (cookie) => ({ cookie });
   log("absurd value rejected", huge.status === 400, `status=${huge.status} error=${huge.body?.error}`);
   const negative = await act(A, "total.set", { value: -5000, day: "1405/08/13" });
   log("negative total rejected", negative.status === 400, `status=${negative.status} ${negative.body?.ok ? "ACCEPTED (bug)" : "error=" + negative.body?.error}`);
-  const xss = await act(A, "note.save", { text: '<script>alert(1)</script><img src=x onerror=alert(1)>', day: "1405/08/13" });
+  // قفل خوش‌بینانه: متن فعلی را می‌خوانیم تا ثبت با تعارض رد نشود
+  const cur = await fetch(`${BASE}/api/state`, { headers: H(A) }).then((r) => r.json());
+  const xss = await act(A, "note.save", { text: '<script>alert(1)</script><img src=x onerror=alert(1)>', day: "1405/08/13", expected: cur.note ?? "" });
   const stateAfter = await fetch(`${BASE}/api/state`, { headers: H(A) }).then((r) => r.json());
   log("XSS payload stored as inert text", stateAfter.note.includes("<script>") && xss.body?.ok, `stored raw, rendered by React escaping. len=${stateAfter.note.length}`);
-  const longNote = await act(A, "note.save", { text: "ا".repeat(10000), day: "1405/08/13" });
+  const longNote = await act(A, "note.save", { text: "ا".repeat(10000), day: "1405/08/13", expected: '<script>alert(1)</script><img src=x onerror=alert(1)>' });
   const st2 = await fetch(`${BASE}/api/state`, { headers: H(A) }).then((r) => r.json());
   log("over-long note truncated silently", st2.note.length <= 4000, `saved length=${st2.note.length} (silently truncated, no warning)`);
 

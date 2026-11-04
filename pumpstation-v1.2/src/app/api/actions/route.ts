@@ -489,7 +489,8 @@ export async function POST(request: Request) {
         if (raw.length > 4000) throw new Error("متن گزارش حداکثر ۴٬۰۰۰ کاراکتر است؛ لطفاً کوتاه‌تر کنید");
         const text = raw.trim();
         await runTx(async (d) => {
-          const existing = (await d.select().from(operatorNotes).where(and(eq(operatorNotes.day, day), eq(operatorNotes.shiftKey, shiftKey))).limit(1))[0];
+          // «گزارش دستی روز» یک متن مشترک برای همان روز است؛ همهٔ شیفت‌ها همان را می‌بینند
+          const existing = (await d.select().from(operatorNotes).where(eq(operatorNotes.day, day)).orderBy(desc(operatorNotes.id)).limit(1))[0];
           // قفل خوش‌بینانه (H7): اگر تب/دستگاه دیگری متن را عوض کرده، بی‌صدا رویش نوشته نمی‌شود
           if (existing && typeof p.expected === "string" && p.expected.trim() !== (existing.text ?? "").trim()) {
             throw new Error("این گزارش در تب یا دستگاه دیگری تغییر کرده است؛ صفحه را تازه کنید و متن خود را دوباره وارد کنید");

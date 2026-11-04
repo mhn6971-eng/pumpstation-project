@@ -22,13 +22,18 @@ function alive(pid: number) {
   }
 }
 
-export function acquireDbLock(dataDir: string) {
+export function acquireDbLock(dataDir: string, options: { enforce?: boolean } = {}) {
   const file = lockPath(dataDir);
   mkdirSync(path.dirname(file), { recursive: true });
   if (existsSync(file)) {
     try {
       const info = JSON.parse(readFileSync(file, "utf8")) as LockInfo;
       if (info.pid && info.pid !== process.pid && alive(info.pid)) {
+        if (options.enforce === false) {
+          // در حالت توسعه ممکن است Next چند پردازه داشته باشد؛ فقط هشدار می‌دهیم
+          console.warn(`[db-lock] پوشهٔ داده توسط PID ${info.pid} باز است؛ در حالت توسعه ادامه می‌دهیم.`);
+          return;
+        }
         throw new Error(
           `دیتابیس همین حالا توسط برنامهٔ دیگری (PID ${info.pid}) باز است. ` +
             "برای جلوگیری از خرابی داده، دو برنامه نباید هم‌زمان به یک پوشهٔ داده دسترسی داشته باشند. " +
