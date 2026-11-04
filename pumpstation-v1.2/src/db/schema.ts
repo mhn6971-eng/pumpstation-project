@@ -9,6 +9,7 @@ import {
   bigint,
   index,
   uniqueIndex,
+  pgView,
 } from "drizzle-orm/pg-core";
 
 /** کاربران/شیفت‌ها: هر شیفت یک PIN چهاررقمی مشترک (هش‌شده) */
@@ -220,6 +221,9 @@ export const activity = pgTable("activity", {
   shiftKey: text("shift_key").notNull(),
   action: text("action").notNull(),
   detail: text("detail").default("").notNull(),
+  /** زنجیرهٔ هش برای تشخیص دست‌کاری دفتر فعالیت (نسخه ۱.۳) */
+  prevHash: text("prev_hash").default("").notNull(),
+  hash: text("hash").default("").notNull(),
 });
 
 export const problems = pgTable("problems", {
@@ -302,3 +306,125 @@ export const securityEvents = pgTable("security_events", {
   ip: text("ip").notNull().default(""),
   detail: text("detail").notNull().default(""),
 }, (t) => [index("security_events_ts_idx").on(t.ts)]);
+
+/* ============================================================================
+ * نسخه ۱.۳ — جداول تاب‌آوری، نشست سروری، ردیابی خطا و بایگانی
+ * ========================================================================== */
+
+/** نشست‌های سروری: هر ورود یک ردیف؛ امکان فهرست‌کردن و ابطال تک‌تک دستگاه‌ها */
+export const sessions = pgTable(
+  "sessions",
+  {
+    id: text("id").primaryKey(),
+    tokenHash: text("token_hash").notNull(),
+    shiftKey: text("shift_key").notNull(),
+    role: text("role").notNull().default("operator"),
+    ip: text("ip").notNull().default(""),
+    agent: text("agent").notNull().default(""),
+    createdAt: bigint("created_at", { mode: "number" }).notNull(),
+    lastSeenAt: bigint("last_seen_at", { mode: "number" }).notNull(),
+    expiresAt: bigint("expires_at", { mode: "number" }).notNull(),
+    revokedAt: bigint("revoked_at", { mode: "number" }).notNull().default(0),
+    revokedReason: text("revoked_reason").notNull().default(""),
+  },
+  (t) => [index("sessions_shift_idx").on(t.shiftKey, t.expiresAt), index("sessions_expires_idx").on(t.expiresAt)],
+);
+
+/** قفل ورود ماندگار (با ری‌استارت سرور پاک نمی‌شود) */
+export const authLocks = pgTable("auth_locks", {
+  scope: text("scope").primaryKey(),
+  fails: integer("fails").notNull().default(0),
+  firstFailAt: bigint("first_fail_at", { mode: "number" }).notNull().default(0),
+  lockedUntil: bigint("locked_until", { mode: "number" }).notNull().default(0),
+  updatedAt: bigint("updated_at", { mode: "number" }).notNull().default(0),
+});
+
+/** ردیابی خطاها و رخدادهای فنی (قابل مشاهده در تب ادمین) */
+export const appEvents = pgTable(
+  "app_events",
+  {
+    id: serial("id").primaryKey(),
+    ts: bigint("ts", { mode: "number" }).notNull(),
+    level: text("level").notNull().default("error"),
+    source: text("source").notNull().default(""),
+    message: text("message").notNull().default(""),
+    detail: jsonb("detail").$type<unknown>(),
+    requestId: text("request_id").notNull().default(""),
+    shiftKey: text("shift_key").notNull().default(""),
+    path: text("path").notNull().default(""),
+    durationMs: integer("duration_ms").notNull().default(0),
+  },
+  (t) => [index("app_events_ts_idx").on(t.ts), index("app_events_level_idx").on(t.level, t.ts)],
+);
+
+/** جلوگیری از ثبت تکراری هنگام دوبار کلیک/تلاش مجدد شبکه */
+export const idempotencyKeys = pgTable(
+  "idempotency_keys",
+  {
+    key: text("key").primaryKey(),
+    shiftKey: text("shift_key").notNull().default(""),
+    action: text("action").notNull().default(""),
+    createdAt: bigint("created_at", { mode: "number" }).notNull(),
+    response: jsonb("response").$type<unknown>(),
+  },
+  (t) => [index("idempotency_created_idx").on(t.createdAt)],
+);
+
+export const archiveRuns = pgTable("archive_runs", {
+  id: serial("id").primaryKey(),
+  at: text("at").notNull(),
+  shiftKey: text("shift_key").notNull().default(""),
+  cutoffDay: text("cutoff_day").notNull().default(""),
+  motorRows: integer("motor_rows").notNull().default(0),
+  processRows: integer("process_rows").notNull().default(0),
+  file: text("file").notNull().default(""),
+  sha256: text("sha256").notNull().default(""),
+  bytes: integer("bytes").notNull().default(0),
+});
+
+export const motorReadingsArchive = pgTable("motor_readings_archive", {
+  id: bigint("id", { mode: "number" }).primaryKey(),
+  tag: text("tag").notNull(),
+  day: text("day").notNull(),
+  intervalIndex: integer("interval_index").notNull(),
+  param: text("param").notNull(),
+  value: doublePrecision("value").notNull(),
+  shiftKey: text("shift_key").notNull().default(""),
+  recordedAt: text("recorded_at").notNull().default(""),
+  updatedAt: text("updated_at").notNull().default(""),
+});
+
+export const processReadingsArchive = pgTable("process_readings_archive", {
+  id: bigint("id", { mode: "number" }).primaryKey(),
+  day: text("day").notNull(),
+  intervalIndex: integer("interval_index").notNull(),
+  tag: text("tag").notNull(),
+  value: doublePrecision("value").notNull(),
+  shiftKey: text("shift_key").notNull().default(""),
+  recordedAt: text("recorded_at").notNull().default(""),
+  updatedAt: text("updated_at").notNull().default(""),
+});
+
+/** نمای ترکیبی جدول جاری + بایگانی تا گزارش‌های چندساله کامل بمانند */
+export const motorReadingsAll = pgView("motor_readings_all", {
+  id: bigint("id", { mode: "number" }).notNull(),
+  tag: text("tag").notNull(),
+  day: text("day").notNull(),
+  intervalIndex: integer("interval_index").notNull(),
+  param: text("param").notNull(),
+  value: doublePrecision("value").notNull(),
+  shiftKey: text("shift_key").notNull(),
+  recordedAt: text("recorded_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+}).existing();
+
+export const processReadingsAll = pgView("process_readings_all", {
+  id: bigint("id", { mode: "number" }).notNull(),
+  day: text("day").notNull(),
+  intervalIndex: integer("interval_index").notNull(),
+  tag: text("tag").notNull(),
+  value: doublePrecision("value").notNull(),
+  shiftKey: text("shift_key").notNull(),
+  recordedAt: text("recorded_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+}).existing();

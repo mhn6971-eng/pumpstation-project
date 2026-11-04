@@ -2,7 +2,6 @@ import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { db } from "@/db";
 import {
   equipment,
-  processReadings,
   dailyTotals,
   motors,
   equipmentReports,
@@ -13,11 +12,12 @@ import {
   oilChanges,
   pmRecords,
   catalogs,
+  motorReadingsAll,
+  processReadingsAll,
 } from "@/db/schema";
 import { getProcessThresholds, thresholdSeverity } from "@/lib/state";
 import { jalaliNow, operationalDay } from "@/lib/jalali";
 import { MOTORS, MOTOR_PARAMS, PROCESS_PARAMS, STATUS_FA } from "@/lib/domain";
-import { motorReadings } from "@/db/schema";
 
 export const REPORT_KINDS: Record<string, string> = {
   trend: "گزارش روند پارامتر",
@@ -34,7 +34,7 @@ type ShiftLike = { key: string; label: string; members: string[] };
 
 export async function buildOperationalPayload(kind: "daily" | "aux", day: string, shift: ShiftLike) {
   const op = operationalDay();
-  const processRows = await db.select().from(processReadings).where(eq(processReadings.day, day));
+  const processRows = await db.select().from(processReadingsAll).where(eq(processReadingsAll.day, day));
   const total = (await db.select().from(dailyTotals).where(eq(dailyTotals.day, day)).limit(1))[0];
   const motorRows = await db.select().from(motors);
   const equipmentRows = await db.select().from(equipment).where(eq(equipment.deletedAt, ""));
@@ -173,8 +173,8 @@ export async function buildTrendPayload(
     if (!meta) throw new Error("پارامتر نامعتبر است");
     const rows = await db
       .select()
-      .from(processReadings)
-      .where(and(eq(processReadings.tag, tag), gte(processReadings.day, from), lte(processReadings.day, to)));
+      .from(processReadingsAll)
+      .where(and(eq(processReadingsAll.tag, tag), gte(processReadingsAll.day, from), lte(processReadingsAll.day, to)));
     rows.sort((a, b) => (a.day + a.intervalIndex).localeCompare(b.day + b.intervalIndex));
     const grouped = rows.length > 1500;
     const points: TrendPoint[] = grouped
@@ -185,14 +185,14 @@ export async function buildTrendPayload(
   const meta = MOTOR_PARAMS.find((p) => p.key === param);
   if (!meta) throw new Error("پارامتر نامعتبر است");
   if (compare) {
-    const rows = await db.select().from(motorReadings).where(and(eq(motorReadings.param, param), gte(motorReadings.day, from), lte(motorReadings.day, to)));
+    const rows = await db.select().from(motorReadingsAll).where(and(eq(motorReadingsAll.param, param), gte(motorReadingsAll.day, from), lte(motorReadingsAll.day, to)));
     const points: TrendPoint[] = MOTORS.map((m) => {
       const vals = rows.filter((r) => r.tag === m.tag).map((r) => r.value);
       return { x: m.tag, y: vals.length ? Number((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2)) : 0, day: from, interval: -1, shift: `${vals.length} ثبت` };
     });
     return { scope, tag: "", param, compare: true, label: meta.label, unit: meta.unit, from, to, grouped: "motor", points, truncated: false, stats: trendStats(points.filter((p) => p.y > 0)) };
   }
-  const rows = await db.select().from(motorReadings).where(and(eq(motorReadings.tag, tag), eq(motorReadings.param, param), gte(motorReadings.day, from), lte(motorReadings.day, to)));
+  const rows = await db.select().from(motorReadingsAll).where(and(eq(motorReadingsAll.tag, tag), eq(motorReadingsAll.param, param), gte(motorReadingsAll.day, from), lte(motorReadingsAll.day, to)));
   rows.sort((a, b) => (a.day + a.intervalIndex).localeCompare(b.day + b.intervalIndex));
   const grouped = rows.length > 1500;
   const points: TrendPoint[] = grouped

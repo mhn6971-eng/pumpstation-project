@@ -10,7 +10,7 @@ import { jalaliNow } from "@/lib/jalali";
 
 export const dynamic = "force-dynamic";
 
-export const CATALOG_DIR = process.env.CATALOG_DIR ?? "files/catalogs";
+export const CATALOG_DIR = path.resolve(process.cwd(), process.env.CATALOG_DIR ?? "files/catalogs");
 const MAX_BYTES = 8 * 1024 * 1024;
 
 /** محافظت از مسیر: فقط فایل‌های داخل پوشهٔ کاتالوگ خوانده شوند */
@@ -43,8 +43,8 @@ export async function POST(request: Request) {
 
   const sha256 = createHash("sha256").update(bytes).digest("hex");
   const stored = `${Date.now()}-${randomBytes(4).toString("hex")}-${safeName(file.name || "catalog.pdf")}`;
-  await mkdir(CATALOG_DIR, { recursive: true });
-  await writeFile(path.join(CATALOG_DIR, stored), bytes);
+  await mkdir(/*turbopackIgnore: true*/ CATALOG_DIR, { recursive: true });
+  await writeFile(/*turbopackIgnore: true*/ path.join(CATALOG_DIR, stored), bytes);
 
   const row = await db
     .insert(catalogs)
@@ -83,7 +83,7 @@ export async function GET(request: Request) {
   };
 
   if (row.path) {
-    const file = await readFile(path.join(CATALOG_DIR, safeName(row.path))).catch(() => null);
+    const file = await readFile(/*turbopackIgnore: true*/ path.join(CATALOG_DIR, safeName(row.path))).catch(() => null);
     if (!file) return Response.json({ error: "فایل روی دیسک پیدا نشد" }, { status: 404 });
     return new Response(new Uint8Array(file), {
       headers: { ...headers, "Content-Disposition": `inline; filename="${encodeURIComponent(row.name)}"` },

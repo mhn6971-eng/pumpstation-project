@@ -1,5 +1,6 @@
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
+import { acquireDbLock, releaseDbLock } from "@/lib/dblock";
 
 /**
  * در نسخهٔ پیش‌نمایش (داخل این محیط اجرایی) به‌جای سرور PostgreSQL از PGlite
@@ -11,6 +12,19 @@ import { drizzle } from "drizzle-orm/pglite";
  */
 
 const dataDir = process.env.PGLITE_DATA_DIR ?? ".data/pglite";
+
+/**
+ * قفل پوشهٔ داده: جلوگیری از باز شدن هم‌زمان توسط دو برنامه (عامل اصلی خرابی فایل‌ها).
+ * اگر پوشه در اختیار برنامهٔ دیگری باشد، خطای روشن داده می‌شود، نه خرابی خاموش.
+ */
+if (!(globalThis as { __psDbLocked?: boolean }).__psDbLocked) {
+  acquireDbLock(dataDir);
+  (globalThis as { __psDbLocked?: boolean }).__psDbLocked = true;
+  const release = () => releaseDbLock(dataDir);
+  process.once("exit", release);
+  process.once("SIGTERM", release);
+  process.once("SIGINT", release);
+}
 
 const globalForDb = globalThis as typeof globalThis & {
   __pumpstationPglite?: PGlite;

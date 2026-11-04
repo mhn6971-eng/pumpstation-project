@@ -44,6 +44,10 @@ const paths: Record<string, string> = {
   info: "M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 5v.5m0 3V16",
   fire: "M12 3c1 4 5 5 5 9a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 1-2 0-5 1-8Z",
   wave: "M3 9c3-3 6 3 9 0s6 3 9 0M3 15c3-3 6 3 9 0s6 3 9 0",
+  archive: "M4 7h16v4H4zM6 11v9h12v-9M9 15h6",
+  save: "M5 4h11l3 3v13H5zM8 4v6h7V4M8 20v-6h8v6",
+  settings: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm9 4a9 9 0 0 0-.2-1.8l2-1.5-2-3.4-2.3 1a9 9 0 0 0-3.1-1.8L15 2H9l-.4 2.5a9 9 0 0 0-3.1 1.8l-2.3-1-2 3.4 2 1.5A9 9 0 0 0 3 12c0 .6.1 1.2.2 1.8l-2 1.5 2 3.4 2.3-1a9 9 0 0 0 3.1 1.8L9 22h6l.4-2.5a9 9 0 0 0 3.1-1.8l2.3 1 2-3.4-2-1.5c.1-.6.2-1.2.2-1.8Z",
+  refresh: "M20 12a8 8 0 1 1-2.3-5.7M20 4v4h-4",
 };
 
 export function Icon({ name, size = 15, className = "", style }: { name: keyof typeof paths | string; size?: number; className?: string; style?: CSSProperties }) {

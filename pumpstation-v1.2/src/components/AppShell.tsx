@@ -14,6 +14,39 @@ import TrainingTab from "./TrainingTab";
 import ProblemsTab from "./ProblemsTab";
 import AdminTab from "./AdminTab";
 
+
+/** ---------------- صف آفلاین با کلید یکتا (ضدثبت تکراری) ----------------
+ * اگر اینترنت قطع شود، عمل اپراتور در حافظهٔ مرورگر می‌ماند و پس از وصل شدن
+ * با همان «کلید یکتا» دوباره فرستاده می‌شود؛ سرور درخواست تکراری را اجرا نمی‌کند.
+ */
+type PendingAction = { key: string; action: string; payload: Record<string, unknown>; at: number; tries: number };
+const QUEUE_KEY = "ps_pending_v1";
+const QUEUE_MAX = 50;
+
+function readQueue(): PendingAction[] {
+  try {
+    const raw = localStorage.getItem(QUEUE_KEY);
+    const list = raw ? (JSON.parse(raw) as PendingAction[]) : [];
+    return Array.isArray(list) ? list.filter((x) => x && typeof x.key === "string" && typeof x.action === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeQueue(list: PendingAction[]) {
+  try {
+    if (!list.length) localStorage.removeItem(QUEUE_KEY);
+    else localStorage.setItem(QUEUE_KEY, JSON.stringify(list.slice(-QUEUE_MAX)));
+  } catch {
+    /* حافظهٔ مرورگر ممکن است پر باشد */
+  }
+}
+
+function uid() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 type ModalEntry = { id: number; title: string; node: ReactNode; wide: boolean; sub?: string };
 
 const TABS = [
@@ -73,13 +106,30 @@ export default function AppShell({ initial }: { initial: AppState }) {
     window.setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4200);
   }, []);
 
+  const etagRef = useRef<{ key: string; value: string } | null>(null);
+
   const refresh = useCallback(
     async (opts?: { day?: string; interval?: number }) => {
       const d = opts?.day ?? day;
       const i = opts?.interval ?? interval;
-      const res = await fetch(`/api/state?day=${encodeURIComponent(d)}&interval=${i}`, { cache: "no-store" });
+      const cacheKey = `${d}|${i}`;
+      const headers: Record<string, string> = {};
+      // اگر دادهٔ همین نما تغییری نکرده باشد، سرور ۳۰۴ می‌دهد و بدنه‌ای منتقل نمی‌شود
+      if (etagRef.current && etagRef.current.key === cacheKey) headers["if-none-match"] = etagRef.current.value;
+      let res: Response;
+      try {
+        res = await fetch(`/api/state?day=${encodeURIComponent(d)}&interval=${i}`, { cache: "no-store", headers });
+      } catch {
+        return toast("ارتباط با سرور برقرار نشد — دادهٔ همین صفحه نمایش داده می‌شود", "error");
+      }
       if (res.status === 401) return void window.location.replace("/");
+      if (res.status === 304) {
+        setLastSync(new Date().toLocaleTimeString("fa-IR"));
+        return;
+      }
       if (!res.ok) return toast("دریافت وضعیت ناموفق بود", "error");
+      const etag = res.headers.get("etag");
+      if (etag) etagRef.current = { key: cacheKey, value: etag };
       setState((await res.json()) as AppState);
       setLastSync(new Date().toLocaleTimeString("fa-IR"));
     },
@@ -89,28 +139,105 @@ export default function AppShell({ initial }: { initial: AppState }) {
   const setDay = useCallback((next: string) => { setDayState(next); void refresh({ day: next, interval }); }, [interval, refresh]);
   const setInterval = useCallback((next: number) => { setIntervalState(next); void refresh({ day, interval: next }); }, [day, refresh]);
 
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const postAction = useCallback(
+    async (action: string, payload: Record<string, unknown>, key: string) => {
+      const res = await fetch("/api/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Idempotency-Key": key },
+        body: JSON.stringify({ action, payload }),
+      });
+      if (res.status === 401) {
+        window.location.replace("/");
+        throw new Error("unauthorized");
+      }
+      const data = (await res.json()) as { ok: boolean; error?: string; message?: string; id?: number };
+      if (!res.ok || !data.ok) throw new Error(data.error ?? "عملیات انجام نشد");
+      return data;
+    },
+    [],
+  );
+
+  const flushQueue = useCallback(
+    async (silent = false) => {
+      const list = readQueue();
+      if (!list.length) return;
+      setPendingCount(list.length);
+      const remaining: PendingAction[] = [];
+      let done = 0;
+      for (const item of list) {
+        try {
+          await postAction(item.action, item.payload, item.key);
+          done += 1;
+        } catch (error) {
+          if (error instanceof Error && error.message === "unauthorized") return;
+          const tries = item.tries + 1;
+          // خطای اعتبارسنجی تکرارنشدنی است؛ فقط خطای شبکه دوباره تلاش می‌شود
+          const message = error instanceof Error ? error.message : "";
+          const retriable = /ارتباط|network|fetch/i.test(message) || tries < 3;
+          if (retriable) remaining.push({ ...item, tries });
+          else if (!silent) toast(`یک ثبت ذخیره‌نشده کنار گذاشته شد: ${message}`, "error");
+        }
+      }
+      writeQueue(remaining);
+      setPendingCount(remaining.length);
+      if (done) {
+        if (!silent) toast(`${done} ثبت ذخیره‌شده ارسال شد`);
+        await refresh();
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [postAction, toast],
+  );
+
   const act = useCallback(
     async (action: string, payload: Record<string, unknown> = {}) => {
       setBusy(true);
+      const key = uid();
       try {
-        const res = await fetch("/api/actions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, payload }) });
-        if (res.status === 401) { window.location.replace("/"); return false; }
-        const data = (await res.json()) as { ok: boolean; error?: string; message?: string; id?: number };
-        if (!res.ok || !data.ok) { toast(data.error ?? "عملیات انجام نشد", "error"); return false; }
+        const data = await postAction(action, payload, key);
         toast(data.message ?? "ثبت شد");
-        // به تب‌های دیگر همان دستگاه خبر بده (H7)
         channelRef.current?.postMessage("changed");
         await refresh();
+        // اگر قبلاً چیزی در صف مانده بود، الان که شبکه هست فرصت خوبی است
+        if (readQueue().length) void flushQueue(true);
         return data.id ?? true;
-      } catch {
-        toast("ارتباط با سامانه برقرار نشد", "error");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "خطای نامشخص";
+        if (message === "unauthorized") return false;
+        const offline = typeof navigator !== "undefined" && navigator.onLine === false;
+        const networkish = offline || /fetch|network|ارتباط/i.test(message);
+        if (networkish) {
+          const list = readQueue();
+          list.push({ key, action, payload, at: Date.now(), tries: 0 });
+          writeQueue(list);
+          setPendingCount(list.length);
+          toast("ارتباط قطع است؛ ثبت در حافظهٔ همین دستگاه نگه داشته شد و پس از وصل شدن ارسال می‌شود", "error");
+        } else {
+          toast(message, "error");
+        }
         return false;
       } finally {
         setBusy(false);
       }
     },
-    [refresh, toast],
+    [flushQueue, postAction, refresh, toast],
   );
+
+  // تلاش مجدد خودکار صف آفلاین
+  useEffect(() => {
+    setPendingCount(readQueue().length);
+    const onOnline = () => void flushQueue(false);
+    window.addEventListener("online", onOnline);
+    const id = window.setInterval(() => {
+      if (navigator.onLine && readQueue().length) void flushQueue(true);
+    }, 45_000);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      window.clearInterval(id);
+    };
+  }, [flushQueue]);
 
   // همگام‌سازی بین تب‌ها: هر ثبتی در یک تب، تب‌های دیگر را تازه می‌کند
   useEffect(() => {
@@ -201,6 +328,11 @@ export default function AppShell({ initial }: { initial: AppState }) {
             <span className="chip accent"><Icon name="clock" size={13} /> {state.now.weekday} {state.now.day} — {state.now.time}</span>
             <span className="chip live"><span className="dot live" />{state.shift.label}{state.shift.members.length ? ` — ${state.shift.members.join(" و ")}` : ""}</span>
             {lastSync && <span className="chip" title="آخرین به‌روزرسانی داده از سرور"><Icon name="clock" size={12} /> {lastSync}</span>}
+            {pendingCount > 0 && (
+              <span className="chip" style={{ background: "rgba(255,180,0,0.2)", color: "#ffd479" }} title="ثبت‌های ذخیره‌شده روی این دستگاه که هنوز ارسال نشده‌اند">
+                <Icon name="wave" size={12} /> {pendingCount} در انتظار ارسال
+              </span>
+            )}
             <button type="button" className="btn tiny ghost" style={{ color: "#fff", borderColor: "rgba(255,255,255,0.3)" }} title="خروج"
               onClick={async () => { await fetch("/api/auth", { method: "DELETE" }); window.location.replace("/"); }}>
               <Icon name="logout" size={14} /> خروج

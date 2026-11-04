@@ -26,6 +26,7 @@ import {
   channels,
 } from "@/db/schema";
 import { ensureSeed, getAllSettings } from "@/db/seed";
+import { appendActivity } from "@/lib/audit";
 import { INTERVALS, jalaliNow, operationalDay } from "@/lib/jalali";
 import { MOTORS, MOTOR_PARAMS, MOTOR_STATE_FA, PROCESS_PARAMS, STATUS_FA, type Severity } from "@/lib/domain";
 import type { AppState, MotorView, ProcessView } from "@/lib/types";
@@ -257,5 +258,6 @@ export async function buildState(input: { who: { key: string; label: string; rol
 }
 
 export async function logActivity(shiftKey: string, action: string, detail = "", d: typeof db = db) {
-  await d.insert(activity).values({ at: jalaliNow(), shiftKey, action, detail });
+  // دفتر فعالیت با زنجیرهٔ هش ثبت می‌شود (تشخیص دست‌کاری)
+  await appendActivity(d, shiftKey, action, detail);
 }

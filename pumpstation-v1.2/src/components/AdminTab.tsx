@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useApp } from "./context";
 import { Icon, Panel } from "./ui";
 import { EquipmentForm } from "./RegistryTab";
@@ -496,6 +496,257 @@ function PmTemplatesPanel() {
       <div className="table-wrap" style={{ maxHeight: 320 }}>
         <table className="data"><thead><tr><th>دسته</th><th>قالب</th><th>آیتم‌ها</th><th></th></tr></thead>
           <tbody>{state.pmTemplates.map((t) => <tr key={t.id}><td className="small">{t.category}</td><td>{t.name}</td><td className="small muted">{t.items.length} آیتم</td><td><button type="button" className="btn tiny" onClick={() => setEditing({ id: t.id, category: t.category, name: t.name, items: t.items.join("\n") })}>ویرایش</button></td></tr>)}</tbody></table>
+      </div>
+    </Panel>
+  );
+}
+
+
+/* ============================================================================
+ * کارت امنیت و پایداری — سلامت سامانه، دستگاه‌های فعال، بایگانی، بازیابی
+ * ========================================================================== */
+type HealthFull = {
+  ok: boolean;
+  version: string;
+  uptimeSec: number;
+  db: { ok: boolean; latencyMs: number };
+  warnings?: string[];
+  detail?: {
+    dbSizeMB?: number | null;
+    diskFreeMB?: number | null;
+    backups?: { count: number; lastAt: string | null; ageHours: number | null } | null;
+    sessions?: { active: number } | null;
+    queue?: { pending: number } | null;
+    errors24h?: number;
+    events24h?: number;
+    rows?: { motor: number; process: number; totals: number; archiveMotor: number; archiveProcess: number } | null;
+    migrations?: { name: string; applied_at: string }[];
+  };
+};
+
+type SessionRow = {
+  id: string;
+  shiftKey: string;
+  role: string;
+  ip: string;
+  agent: string;
+  createdAt: number;
+  lastSeenAt: number;
+  expiresAt: number;
+  current: boolean;
+};
+
+type BackupFile = { file: string; bytes: number; modifiedAt: string; sha256: string | null };
+
+function SecurityPanel() {
+  const { act, busy, toast, refresh } = useApp();
+  const [health, setHealth] = useState<HealthFull | null>(null);
+  const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [files, setFiles] = useState<BackupFile[]>([]);
+  const [chain, setChain] = useState<{ ok: boolean; checked: number; brokenAtId: number | null } | null>(null);
+  const [stats, setStats] = useState<{ main: { motor: number; process: number }; archive: { motor: number; process: number }; runs: { id: number; at: string; cutoffDay: string; motorRows: number; processRows: number }[] } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const call = async (action: string, payload: Record<string, unknown> = {}) => {
+    const res = await fetch("/api/actions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, payload }),
+    });
+    return (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  };
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const [h, s, f, c, d] = await Promise.all([
+        fetch("/api/health?full=1", { cache: "no-store" }).then((r) => r.json() as Promise<HealthFull>),
+        call("session.list", { shifts: true }),
+        call("backup.files"),
+        call("audit.verify", { limit: 5000 }),
+        call("data.stats"),
+      ]);
+      setHealth(h);
+      setSessions((s.sessions as SessionRow[]) ?? []);
+      setFiles((f.files as BackupFile[]) ?? []);
+      setChain(c as { ok: boolean; checked: number; brokenAtId: number | null });
+      setStats((d.archive as typeof stats) ?? null);
+    } catch {
+      toast("دریافت اطلاعات سلامت ناموفق بود", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void load();
+    // فقط یک‌بار در ورود به تب ادمین
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const ago = (ts: number) => {
+    const min = Math.round((Date.now() - ts) / 60000);
+    if (min < 60) return `${min} دقیقه پیش`;
+    const h = Math.round(min / 60);
+    if (h < 24) return `${h} ساعت پیش`;
+    return `${Math.round(h / 24)} روز پیش`;
+  };
+
+  return (
+    <Panel
+      title="امنیت، سلامت و نگه‌داری"
+      icon="shield"
+      hint="بازبینی وضعیت سرور، دستگاه‌های واردشده، صحت دفتر فعالیت و بایگانی"
+      actions={
+        <button type="button" className="btn tiny" onClick={() => void load()} disabled={loading}>
+          <Icon name="refresh" size={12} /> {loading ? "در حال خواندن…" : "به‌روزرسانی"}
+        </button>
+      }
+    >
+      <div className="kpi-grid">
+        <div className="kpi">
+          <div className="v" style={{ color: health?.ok ? "var(--green)" : "var(--red)" }}>{health?.ok ? "سالم" : "مشکل"}</div>
+          <div className="l">وضعیت پایهٔ سامانه — نسخه {health?.version ?? "…"}</div>
+        </div>
+        <div className="kpi">
+          <div className="v">{health?.db?.latencyMs ?? "—"}<span className="tiny muted">ms</span></div>
+          <div className="l">زمان پاسخ دیتابیس</div>
+        </div>
+        <div className="kpi">
+          <div className="v">{health?.detail?.dbSizeMB ?? "—"}<span className="tiny muted">MB</span></div>
+          <div className="l">حجم دیتابیس</div>
+        </div>
+        <div className="kpi">
+          <div className="v">{health?.detail?.diskFreeMB ?? "—"}<span className="tiny muted">MB</span></div>
+          <div className="l">فضای آزاد دیسک</div>
+        </div>
+        <div className="kpi">
+          <div className="v">{health?.detail?.backups?.count ?? 0}</div>
+          <div className="l">
+            بک‌آپ فایلی{health?.detail?.backups?.ageHours != null ? ` — آخرین ${health.detail.backups.ageHours} ساعت پیش` : ""}
+          </div>
+        </div>
+        <div className="kpi">
+          <div className="v">{health?.detail?.sessions?.active ?? 0}</div>
+          <div className="l">دستگاه فعال</div>
+        </div>
+        <div className="kpi">
+          <div className="v" style={{ color: (health?.detail?.errors24h ?? 0) > 0 ? "var(--amber)" : undefined }}>{health?.detail?.errors24h ?? 0}</div>
+          <div className="l">خطای ثبت‌شده ۲۴ ساعت</div>
+        </div>
+        <div className="kpi">
+          <div className="v" style={{ color: chain?.ok === false ? "var(--red)" : "var(--green)" }}>{chain?.ok === false ? "شکسته" : "سالم"}</div>
+          <div className="l">زنجیرهٔ دفتر فعالیت ({chain?.checked ?? 0} ردیف)</div>
+        </div>
+      </div>
+
+      {!!health?.warnings?.length && (
+        <div className="note warn-note" style={{ marginTop: 10 }}>
+          {health.warnings.map((w) => (
+            <div key={w}>• {w}</div>
+          ))}
+        </div>
+      )}
+
+      <div className="row" style={{ gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+        <button type="button" className="btn tiny primary" disabled={busy} onClick={() => void act("backup.create")}>
+          <Icon name="save" size={12} /> بک‌آپ کامل فوری
+        </button>
+        <button type="button" className="btn tiny" disabled={busy} onClick={async () => { await act("data.optimize"); void load(); }}>
+          <Icon name="settings" size={12} /> بهینه‌سازی دیتابیس
+        </button>
+        <button type="button" className="btn tiny" disabled={busy} onClick={async () => { await act("data.archive", { years: 3 }); void load(); await refresh(); }}>
+          <Icon name="archive" size={12} /> بایگانی قدیمی‌تر از ۳ سال
+        </button>
+        <button type="button" className="btn tiny" disabled={busy} onClick={async () => { await act("session.revoke_others", {}); void load(); }}>
+          <Icon name="logout" size={12} /> خروج از سایر دستگاه‌ها
+        </button>
+        <button type="button" className="btn tiny" disabled={busy} onClick={() => void act("audit.verify", { limit: 20000 }).then(load)}>
+          <Icon name="check" size={12} /> بازبینی کامل دفتر فعالیت
+        </button>
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))", marginTop: 12 }}>
+        <div>
+          <h4 style={{ margin: "0 0 6px" }}>دستگاه‌های واردشده</h4>
+          <div className="table-wrap" style={{ maxHeight: 240 }}>
+            <table className="data">
+              <thead>
+                <tr><th>شیفت</th><th>نشانی</th><th>آخرین فعالیت</th><th></th></tr>
+              </thead>
+              <tbody>
+                {sessions.map((s) => (
+                  <tr key={s.id}>
+                    <td className="mono">{s.shiftKey}{s.current ? " (این دستگاه)" : ""}</td>
+                    <td className="tiny muted" title={s.agent}>{s.ip || "—"}</td>
+                    <td className="tiny">{ago(s.lastSeenAt)}</td>
+                    <td>
+                      <button type="button" className="btn tiny ghost" disabled={busy} onClick={async () => { await act("session.revoke", { id: s.id }); void load(); }}>
+                        بستن
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {!sessions.length && <tr><td colSpan={4} className="tiny muted">نشست فعالی ثبت نشده است.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div>
+          <h4 style={{ margin: "0 0 6px" }}>بک‌آپ‌های روی دیسک</h4>
+          <div className="table-wrap" style={{ maxHeight: 240 }}>
+            <table className="data">
+              <thead>
+                <tr><th>فایل</th><th>حجم</th><th>چک‌سام</th><th></th></tr>
+              </thead>
+              <tbody>
+                {files.map((f) => (
+                  <tr key={f.file}>
+                    <td className="tiny mono">{f.file.replace("pumpstation-", "")}</td>
+                    <td className="tiny">{(f.bytes / 1024).toFixed(0)} KB</td>
+                    <td className="tiny" style={{ color: f.sha256 ? "var(--green)" : "var(--amber)" }}>{f.sha256 ? "دارد" : "ندارد"}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn tiny ghost"
+                        disabled={busy}
+                        title="آزمون بازیابی این فایل (بدون اعمال تغییر)"
+                        onClick={async () => {
+                          const r = await call("backup.verify", { file: f.file });
+                          toast(r.ok ? "فایل سالم و قابل بازیابی است" : "فایل مشکل دارد", r.ok ? "ok" : "error");
+                        }}
+                      >
+                        آزمون
+                      </button>
+                      <button
+                        type="button"
+                        className="btn tiny ghost"
+                        disabled={busy}
+                        title="بازیابی کامل از این فایل"
+                        onClick={async () => {
+                          if (!confirm(`داده‌های فعلی با محتوای «${f.file}» جایگزین شود؟ یک نسخهٔ ایمنی خودکار گرفته می‌شود.`)) return;
+                          await act("backup.restore_file", { file: f.file });
+                          void load();
+                          await refresh();
+                        }}
+                      >
+                        بازیابی
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {!files.length && <tr><td colSpan={4} className="tiny muted">فایلی موجود نیست.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <h4 style={{ margin: "12px 0 6px" }}>بایگانی داده‌ها</h4>
+      <div className="note" style={{ fontSize: 11 }}>
+        جاری: {stats?.main.motor.toLocaleString("en-US") ?? 0} قرائت موتور و {stats?.main.process.toLocaleString("en-US") ?? 0} قرائت فرایندی — بایگانی‌شده: {stats?.archive.motor.toLocaleString("en-US") ?? 0} و {stats?.archive.process.toLocaleString("en-US") ?? 0}.
+        {!!stats?.runs.length && <span> آخرین بایگانی {stats.runs[stats.runs.length - 1].at} تا {stats.runs[stats.runs.length - 1].cutoffDay}.</span>}
       </div>
     </Panel>
   );

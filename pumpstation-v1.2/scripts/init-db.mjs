@@ -6,11 +6,34 @@
  *   node scripts/init-db.mjs
  */
 import { PGlite } from "@electric-sql/pglite";
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
 const dataDir = process.env.PGLITE_DATA_DIR ?? ".data/pglite";
 await mkdir(dataDir, { recursive: true });
+
+/**
+ * قفل: اگر سامانه همین حالا روشن است، مهاجرت اجرا نشود تا فایل‌های دیتابیس خراب نشوند.
+ */
+const lockFile = path.join(path.resolve(dataDir), ".pumpstation.lock");
+if (existsSync(lockFile)) {
+  try {
+    const info = JSON.parse(readFileSync(lockFile, "utf8"));
+    if (info?.pid) {
+      try {
+        process.kill(info.pid, 0);
+        console.error(`[migrate] سامانه در حال اجراست (PID ${info.pid}). ابتدا آن را ببندید، بعد مهاجرت را اجرا کنید.`);
+        process.exit(1);
+      } catch {
+        console.warn(`[migrate] قفل قدیمی (PID ${info.pid}) پیدا شد؛ ادامه می‌دهیم.`);
+      }
+    }
+  } catch {
+    /* قفل ناقص؛ ادامه */
+  }
+}
+writeFileSync(lockFile, JSON.stringify({ pid: process.pid, startedAt: Date.now(), dir: path.resolve(dataDir) }), "utf8");
 const client = new PGlite(dataDir);
 
 await client.exec(`CREATE TABLE IF NOT EXISTS "_migrations" ("name" text PRIMARY KEY NOT NULL, "applied_at" text NOT NULL);`);
@@ -48,4 +71,9 @@ for (const file of files) {
 }
 
 await client.close();
+try {
+  unlinkSync(lockFile);
+} catch {
+  /* ignore */
+}
 console.log("[migrate] done");

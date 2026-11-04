@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   shifts,
@@ -25,12 +25,19 @@ import {
   valueAudits,
   sendQueue,
   channels,
+  sessions as sessionsTable,
+  appEvents,
+  idempotencyKeys,
 } from "@/db/schema";
-import { getSessionUser, revokeSessions } from "@/lib/auth";
+import { getSessionId, getSessionUser, revokeSessions } from "@/lib/auth";
+import { cleanupSessions, listSessions, revokeAllSessions, revokeSession } from "@/lib/sessions";
+import { verifyActivityChain } from "@/lib/audit";
+import { archiveOlderThan, archiveStats, pruneArchives } from "@/lib/archive";
+import { recordEvent } from "@/lib/log";
 import { hashPin } from "@/lib/pin";
 import { ensureSeed, getAllSettings, saveSettings } from "@/db/seed";
-import { createInternalBackup, ensureDailyFileBackup, listFileBackups, restoreAll, verifyFileBackup, writeFileBackup, type Snapshot } from "@/lib/backup";
-import { bodyTooLarge, logSecurityEvent, rateLimitedResponse, tooLargeResponse, writeRateLimited } from "@/lib/security";
+import { createInternalBackup, ensureDailyFileBackup, listFileBackups, restoreAll, restoreFromFile, verifyFileBackup, writeFileBackup, type Snapshot } from "@/lib/backup";
+import { bodyTooLarge, clearLoginLock, logSecurityEvent, rateLimitedResponse, tooLargeResponse, writeRateLimited } from "@/lib/security";
 import { effectiveShift, getProcessThresholds, logActivity, thresholdSeverity } from "@/lib/state";
 import { buildOperationalPayload, buildRegistryPayload, buildTrendPayload, createReport, latestMotorRecords, normalizeRange, REPORT_KINDS } from "@/lib/reporting";
 import { addDaysToDay, isValidJalaliDay, jalaliNow, operationalDay } from "@/lib/jalali";
@@ -164,8 +171,19 @@ export async function POST(request: Request) {
     if (!isAdmin) throw new Error("دسترسی ادمین لازم است");
   };
 
+  // ضدثبتِ تکراری: اگر همین درخواست قبلاً با موفقیت انجام شده، همان پاسخ برگردانده می‌شود
+  const idemRaw = (request.headers.get("idempotency-key") ?? "").trim().slice(0, 80);
+  const idemKey = idemRaw ? `${shiftKey}:${idemRaw}` : "";
+  if (idemKey) {
+    const prior = (await db.select().from(idempotencyKeys).where(eq(idempotencyKeys.key, idemKey)).limit(1))[0];
+    if (prior?.response) {
+      return Response.json(prior.response, { headers: { "idempotent-replay": "1", "cache-control": "no-store" } });
+    }
+  }
+
   try {
-    switch (action) {
+    const response = await (async (): Promise<Response> => {
+      switch (action) {
       case "process.set": {
         const tag = str(p.tag, 20);
         const meta = PROCESS_PARAMS.find((x) => x.tag === tag);
@@ -677,9 +695,145 @@ export async function POST(request: Request) {
         return Response.json({ ok: true, message: key === "all" ? "همهٔ نشست‌ها باطل شدند؛ ورود دوباره لازم است" : `نشست‌های شیفت ${key} باطل شدند` });
       }
 
+      case "admin.unlock": {
+        requireAdmin();
+        const target = str(p.key, 10) || "all";
+        if (!["A", "B", "C", "admin", "all"].includes(target)) throw new Error("شیفت نامعتبر است");
+        const cleared = await clearLoginLock(target);
+        await logSecurityEvent("lock_cleared", target, "admin", "رفع قفل ورود توسط ادمین");
+        await logActivity(shiftKey, "رفع قفل ورود", `${target} — ${cleared} قفل`);
+        return Response.json({ ok: true, cleared, message: cleared ? `قفل ورود ${target === "all" ? "همهٔ شیفت‌ها" : `شیفت ${target}`} برداشته شد` : "قفلی برای این شیفت ثبت نشده بود" });
+      }
+
+      case "session.list": {
+        const includeRevoked = p.all === true;
+        const rows = isAdmin && p.shifts === true ? await listSessions({ includeRevoked }) : await listSessions({ shiftKey, includeRevoked });
+        const current = await getSessionId();
+        return Response.json({
+          ok: true,
+          current: current ? current.slice(0, 8) : null,
+          sessions: rows.map((r) => ({ ...r, current: r.id === current, agent: r.agent.slice(0, 60) })),
+        });
+      }
+
+      case "session.revoke": {
+        const id = str(p.id, 64);
+        const row = (await db.select().from(sessionsTable).where(eq(sessionsTable.id, id)).limit(1))[0];
+        if (!row) throw new Error("نشست پیدا نشد");
+        if (!isAdmin && row.shiftKey !== shiftKey) throw new Error("دسترسی لازم است");
+        await revokeSession(id, isAdmin ? "ابطال توسط ادمین" : "ابطال توسط کاربر");
+        await logActivity(shiftKey, "ابطال نشست", `${row.shiftKey} — ${row.ip}`);
+        return Response.json({ ok: true, message: "آن دستگاه از سامانه خارج شد" });
+      }
+
+      case "session.revoke_others": {
+        const current = await getSessionId();
+        const target = isAdmin ? str(p.key, 10) || "all" : shiftKey;
+        const count = await revokeAllSessions(target, "خروج از سایر دستگاه‌ها", current ?? undefined);
+        await logActivity(shiftKey, "خروج از سایر دستگاه‌ها", `${target} — ${count} نشست`);
+        return Response.json({ ok: true, count, message: count ? `${count} نشست بسته شد` : "نشست دیگری فعال نبود" });
+      }
+
+      case "audit.verify": {
+        requireAdmin();
+        const report = await verifyActivityChain(Math.min(20000, Math.max(10, Number(p.limit) || 5000)));
+        return Response.json({ ...report, ok: true });
+      }
+
+      case "data.stats": {
+        requireAdmin();
+        const stats = await archiveStats();
+        const counts = await db.execute<{ motor: number; process: number; sessions: number; events: number; audits: number }>(sql`
+          select (select count(*)::int from motor_readings) as motor,
+                 (select count(*)::int from process_readings) as process,
+                 (select count(*)::int from sessions) as sessions,
+                 (select count(*)::int from app_events) as events,
+                 (select count(*)::int from activity) as audits`);
+        return Response.json({ ok: true, archive: stats, counts: counts.rows[0] ?? null });
+      }
+
+      case "data.archive": {
+        requireAdmin();
+        const years = Math.min(20, Math.max(1, Number(p.years) || 3));
+        const result = await archiveOlderThan(years, shiftKey);
+        await pruneArchives().catch(() => 0);
+        await logActivity(shiftKey, "بایگانی داده قدیمی", `قدیمی‌تر از ${years} سال (${result.cutoffDay}) — ${result.motorRows + result.processRows} ردیف`);
+        return Response.json({ ok: true, ...result, message: `${result.motorRows + result.processRows} ردیف بایگانی شد` });
+      }
+
+      case "data.optimize": {
+        requireAdmin();
+        const tables = ["motor_readings", "process_readings", "alerts", "activity", "value_audits", "send_queue", "security_events", "app_events", "problems", "motors", "equipment"];
+        for (const t of tables) {
+          try {
+            await db.execute(sql.raw(`vacuum (analyze) "${t}"`));
+          } catch (error) {
+            await recordEvent({ level: "warn", source: "maintenance", message: `vacuum ${t} ناموفق بود`, detail: error });
+          }
+        }
+        const removed = await cleanupSessions().catch(() => 0);
+        await db
+          .delete(idempotencyKeys)
+          .where(sql`${idempotencyKeys.createdAt} < ${Date.now() - 24 * 60 * 60 * 1000}`)
+          .catch(() => undefined);
+        await logActivity(shiftKey, "بهینه‌سازی دیتابیس", `vacuum analyze — ${removed} نشست کهنه پاک شد`);
+        return Response.json({ ok: true, message: `بهینه‌سازی انجام شد؛ ${removed} نشست کهنه پاک شد` });
+      }
+
+      case "equipment.trash": {
+        requireAdmin();
+        const rows = await db.select().from(equipment).where(sql`${equipment.deletedAt} <> ''`).orderBy(desc(equipment.id)).limit(100);
+        return Response.json({ ok: true, items: rows.map((r) => ({ id: r.id, tag: r.tag, name: r.name, category: r.category, deletedAt: r.deletedAt })) });
+      }
+
+      case "equipment.restore": {
+        requireAdmin();
+        const id = Number(p.id);
+        const row = (await db.select().from(equipment).where(eq(equipment.id, id)).limit(1))[0];
+        if (!row) throw new Error("تجهیز پیدا نشد");
+        await db.update(equipment).set({ deletedAt: "", updatedAt: jalaliNow() }).where(eq(equipment.id, id));
+        await logActivity(shiftKey, "بازگرداندن تجهیز از سطل بازیافت", row.tag);
+        return Response.json({ ok: true, message: `${row.tag} به فهرست برگشت` });
+      }
+
+      case "events.list": {
+        requireAdmin();
+        const rows = await db.select().from(appEvents).orderBy(desc(appEvents.id)).limit(100);
+        return Response.json({ ok: true, events: rows });
+      }
+
+      case "backup.restore_file": {
+        requireAdmin();
+        const file = str(p.file, 200);
+        if (!file) throw new Error("نام فایل را انتخاب کنید");
+        const result = await restoreFromFile(file, { force: p.force === true });
+        await logActivity(shiftKey, "بازیابی از فایل بک‌آپ", `${file} — ${result.rows} ردیف`);
+        return Response.json({ ok: true, ...result, message: "داده‌ها از فایل بازگردانی شد" });
+      }
+
       default:
         return Response.json({ ok: false, error: "عملیات ناشناخته" }, { status: 400 });
+      }
+    })();
+
+    if (idemKey && response.ok) {
+      try {
+        const parsed = JSON.parse(await response.clone().text()) as unknown;
+        await db
+          .insert(idempotencyKeys)
+          .values({ key: idemKey, shiftKey, action, createdAt: Date.now(), response: parsed })
+          .onConflictDoNothing();
+        // پاک‌سازی تنبل کلیدهای کهنه (بیش از ۲۴ ساعت)
+        await db
+          .delete(idempotencyKeys)
+          .where(sql`${idempotencyKeys.createdAt} < ${Date.now() - 24 * 60 * 60 * 1000}`)
+          .catch(() => undefined);
+      } catch {
+        /* ثبت کلید نباید پاسخ موفق را خراب کند */
+      }
     }
+
+    return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : "خطای نامشخص";
     try {

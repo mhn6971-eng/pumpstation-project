@@ -38,7 +38,7 @@ import { getAllSettings, saveSettings } from "@/db/seed";
  * - بازیابی اتمیک (در یک تراکنش) با تطبیق شمارش ردیف‌ها.
  */
 
-export const BACKUP_DIR = process.env.BACKUP_DIR ?? ".data/backups";
+export const BACKUP_DIR = path.resolve(process.cwd(), process.env.BACKUP_DIR ?? ".data/backups");
 const KEEP = Number(process.env.BACKUP_KEEP ?? 30);
 const INTERVAL_MS = 24 * 60 * 60 * 1000;
 
@@ -139,10 +139,10 @@ export async function writeFileBackup(label: string) {
   const payload = stripBinaries(await snapshotAll());
   const json = JSON.stringify(payload);
   const stamp = jalaliStamp();
-  await mkdir(BACKUP_DIR, { recursive: true });
+  await mkdir(/*turbopackIgnore: true*/ BACKUP_DIR, { recursive: true });
   const file = path.join(BACKUP_DIR, `pumpstation-${stamp}.json`);
-  await writeFile(file, json, "utf8");
-  await writeFile(`${file}.sha256`, createHash("sha256").update(json).digest("hex"), "utf8");
+  await writeFile(/*turbopackIgnore: true*/ file, json, "utf8");
+  await writeFile(/*turbopackIgnore: true*/ `${file}.sha256`, createHash("sha256").update(json).digest("hex"), "utf8");
   await pruneFileBackups();
   await saveSettings({ lastFileBackupAt: Date.now(), lastFileBackupFile: file, lastFileBackupLabel: label } as never);
   return { file, bytes: Buffer.byteLength(json, "utf8"), rows: Object.values(payload).reduce((a, b) => a + b.length, 0) };
@@ -150,10 +150,10 @@ export async function writeFileBackup(label: string) {
 
 async function pruneFileBackups() {
   try {
-    const files = (await readdir(BACKUP_DIR)).filter((f) => f.endsWith(".json")).sort();
+    const files = (await readdir(/*turbopackIgnore: true*/ BACKUP_DIR)).filter((f) => f.endsWith(".json")).sort();
     for (const old of files.slice(0, Math.max(0, files.length - KEEP))) {
-      await unlink(path.join(BACKUP_DIR, old)).catch(() => {});
-      await unlink(path.join(BACKUP_DIR, `${old}.sha256`)).catch(() => {});
+      await unlink(/*turbopackIgnore: true*/ path.join(BACKUP_DIR, old)).catch(() => {});
+      await unlink(/*turbopackIgnore: true*/ path.join(BACKUP_DIR, `${old}.sha256`)).catch(() => {});
     }
   } catch {
     /* پاک‌سازی قدیمی‌ها نباید نوشتن بک‌آپ را خراب کند */
@@ -163,14 +163,14 @@ async function pruneFileBackups() {
 export type FileBackupInfo = { file: string; bytes: number; modifiedAt: string; sha256: string | null };
 
 export async function listFileBackups(): Promise<FileBackupInfo[]> {
-  await mkdir(BACKUP_DIR, { recursive: true });
-  const files = (await readdir(BACKUP_DIR)).filter((f) => f.endsWith(".json")).sort().reverse().slice(0, 20);
+  await mkdir(/*turbopackIgnore: true*/ BACKUP_DIR, { recursive: true });
+  const files = (await readdir(/*turbopackIgnore: true*/ BACKUP_DIR)).filter((f) => f.endsWith(".json")).sort().reverse().slice(0, 20);
   const out: FileBackupInfo[] = [];
   for (const file of files) {
     const full = path.join(BACKUP_DIR, file);
-    const info = await stat(full).catch(() => null);
+    const info = await stat(/*turbopackIgnore: true*/ full).catch(() => null);
     if (!info) continue;
-    const sha = await readFile(`${full}.sha256`, "utf8").catch(() => null);
+    const sha = await readFile(/*turbopackIgnore: true*/ `${full}.sha256`, "utf8").catch(() => null);
     out.push({ file, bytes: info.size, modifiedAt: info.mtime.toISOString(), sha256: sha?.trim() ?? null });
   }
   return out;
@@ -180,12 +180,29 @@ export async function listFileBackups(): Promise<FileBackupInfo[]> {
 export async function verifyFileBackup(file: string) {
   const safe = path.basename(file);
   const full = path.join(BACKUP_DIR, safe);
-  const json = await readFile(full, "utf8");
-  const sha = (await readFile(`${full}.sha256`, "utf8").catch(() => ""))?.trim();
+  const json = await readFile(/*turbopackIgnore: true*/ full, "utf8");
+  const sha = (await readFile(/*turbopackIgnore: true*/ `${full}.sha256`, "utf8").catch(() => ""))?.trim();
   const actual = createHash("sha256").update(json).digest("hex");
   const payload = JSON.parse(json) as Snapshot;
   const counts = Object.fromEntries(Object.entries(payload).map(([k, v]) => [k, Array.isArray(v) ? v.length : 0]));
   return { file: safe, checksumOk: !sha || sha === actual, counts, bytes: Buffer.byteLength(json, "utf8") };
+}
+
+/** بازیابی کامل از یک فایل بک‌آپ روی دیسک (سناریوی «ویندوز عوض شد») */
+export async function restoreFromFile(file: string, opts: { force?: boolean } = {}) {
+  const safe = path.basename(file);
+  const full = path.join(BACKUP_DIR, safe);
+  const json = await readFile(/*turbopackIgnore: true*/ full, "utf8");
+  const sha = (await readFile(/*turbopackIgnore: true*/ `${full}.sha256`, "utf8").catch(() => "")).trim();
+  const actual = createHash("sha256").update(json).digest("hex");
+  if (sha && sha !== actual && !opts.force) {
+    throw new Error("چک‌سام فایل با محتوای آن نمی‌خواند؛ برای جلوگیری از بازیابی مخدوش متوقف شد");
+  }
+  const payload = JSON.parse(json) as Snapshot;
+  // نسخهٔ ایمنی از وضعیت فعلی، تا اگر فایل قدیمی بود بتوان برگشت
+  await createInternalBackup("نسخه ایمنی قبل از بازیابی از فایل");
+  await restoreAll(payload);
+  return { file: safe, checksumOk: !sha || sha === actual, rows: Object.values(payload).reduce((a, b) => a + (Array.isArray(b) ? b.length : 0), 0) };
 }
 
 let lastCheck = 0;
