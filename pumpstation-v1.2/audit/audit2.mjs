@@ -62,7 +62,7 @@ const state = (cookie, q = "") => fetch(`${BASE}/api/state${q}`, { headers: { co
   fd2.append("tag", "EM-01");
   fd2.append("file", new Blob([Buffer.alloc(9 * 1024 * 1024)], { type: "application/pdf" }), "big.pdf");
   const up2 = await fetch(`${BASE}/api/catalogs`, { method: "POST", headers: { cookie: ADM }, body: fd2 });
-  log("oversize upload rejected", up2.status === 400, `status=${up2.status}`);
+  log("oversize upload rejected", [400, 413].includes(up2.status), `status=${up2.status} (413 = توسط سقف حجم بدنه رد شد)`);
 
   // ---- offline queue (simulated: channel unconfigured) ----
   const send = await act(A, "report.send", { kind: "daily" });

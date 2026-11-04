@@ -12,13 +12,13 @@ const ptags = ["PIT-001","PIT-002","PIT-003","PIT-004","FIT-001","LT-01","LT-02"
 const t0 = Date.now();
 await db.query(`insert into motor_readings (tag, day, interval_index, param, value, shift_key, recorded_at, updated_at)
   select t, d, i, p, 50 + random()*20, 'A', 'x', 'x'
-  from unnest($1::text[]) d cross join unnest($2::text[]) t cross join generate_series(0,5) i cross join unnest($3::text[]) p`,
+  from unnest($1::text[]) d cross join unnest($2::text[]) t cross join generate_series(0,5) i cross join unnest($3::text[]) p on conflict do nothing`,
   [days, tags, params]);
 console.log("motor_readings inserted in", Date.now() - t0, "ms");
 const t1 = Date.now();
 await db.query(`insert into process_readings (day, interval_index, tag, value, shift_key, recorded_at, updated_at)
   select d, i, t, 3 + random()*2, 'A', 'x', 'x'
-  from unnest($1::text[]) d cross join generate_series(0,5) i cross join unnest($2::text[]) t`, [days, ptags]);
+  from unnest($1::text[]) d cross join generate_series(0,5) i cross join unnest($2::text[]) t on conflict do nothing`, [days, ptags]);
 console.log("process_readings inserted in", Date.now() - t1, "ms");
 const t2 = Date.now();
 await db.query(`insert into daily_totals (day, value, shift_key, recorded_at, updated_at)

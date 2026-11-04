@@ -191,6 +191,16 @@ export function jalaliStamp(now = new Date()) {
   return `${j.jy}-${pad(j.jm)}-${pad(j.jd)}_${pad(p.hour)}-${pad(p.minute)}-${pad(p.second)}`;
 }
 
+/** اعتبارسنجی تاریخ شمسی واقعی (روز/ماه/کبیسه) — ورودی نامعتبر رد می‌شود، نه تبدیل بی‌صدا (H4) */
+export function isValidJalaliDay(day: string) {
+  if (typeof day !== "string" || !/^\d{4}\/\d{2}\/\d{2}$/.test(day)) return false;
+  const [jy, jm, jd] = day.split("/").map(Number);
+  if (!Number.isInteger(jy) || jy < 1300 || jy > 1500) return false;
+  if (!Number.isInteger(jm) || jm < 1 || jm > 12) return false;
+  if (!Number.isInteger(jd) || jd < 1) return false;
+  return jd <= jalaaliMonthLength(jy, jm);
+}
+
 export function addDaysToDay(day: string, delta: number) {
   const [jy, jm, jd] = day.split("/").map(Number);
   const g = toGregorian(jy, jm, jd);

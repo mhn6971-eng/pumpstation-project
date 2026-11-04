@@ -8,7 +8,8 @@ export function hashPin(pin: string) {
 }
 
 export function verifyPin(pin: string, stored: string) {
-  if (!stored.startsWith("scrypt$")) return stored === pin;
+  // فقط قالب هش‌شده پذیرفته می‌شود؛ مقایسهٔ متنی (مسیر جایگزین قدیمی) حذف شد — H8
+  if (!stored.startsWith("scrypt$")) return false;
   const [, salt, hash] = stored.split("$");
   if (!salt || !hash) return false;
   const test = scryptSync(pin, salt, 32);

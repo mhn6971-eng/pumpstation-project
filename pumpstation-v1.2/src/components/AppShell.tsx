@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { AppState } from "@/lib/types";
 import { APP_NAME, APP_SUBTITLE } from "@/lib/domain";
 import { AppCtx } from "./context";
@@ -42,6 +42,8 @@ export default function AppShell({ initial }: { initial: AppState }) {
   const [toasts, setToasts] = useState<{ id: number; message: string; kind: "ok" | "error" }[]>([]);
   const [stack, setStack] = useState<ModalEntry[]>([]);
   const [query, setQuery] = useState("");
+  const [lastSync, setLastSync] = useState("");
+  const channelRef = useRef<BroadcastChannel | null>(null);
   const isAdmin = state.me.role === "admin";
 
   // همگام‌سازی سربرگ با URL تا دکمهٔ «بازگشت» مرورگر بین سربرگ‌ها/پنجره‌ها جابه‌جا شود، نه به صفحهٔ ورود
@@ -79,6 +81,7 @@ export default function AppShell({ initial }: { initial: AppState }) {
       if (res.status === 401) return void window.location.replace("/");
       if (!res.ok) return toast("دریافت وضعیت ناموفق بود", "error");
       setState((await res.json()) as AppState);
+      setLastSync(new Date().toLocaleTimeString("fa-IR"));
     },
     [day, interval, toast],
   );
@@ -95,6 +98,8 @@ export default function AppShell({ initial }: { initial: AppState }) {
         const data = (await res.json()) as { ok: boolean; error?: string; message?: string; id?: number };
         if (!res.ok || !data.ok) { toast(data.error ?? "عملیات انجام نشد", "error"); return false; }
         toast(data.message ?? "ثبت شد");
+        // به تب‌های دیگر همان دستگاه خبر بده (H7)
+        channelRef.current?.postMessage("changed");
         await refresh();
         return data.id ?? true;
       } catch {
@@ -106,6 +111,28 @@ export default function AppShell({ initial }: { initial: AppState }) {
     },
     [refresh, toast],
   );
+
+  // همگام‌سازی بین تب‌ها: هر ثبتی در یک تب، تب‌های دیگر را تازه می‌کند
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof BroadcastChannel === "undefined") return;
+    const channel = new BroadcastChannel("pumpstation-state");
+    channelRef.current = channel;
+    channel.onmessage = (event) => {
+      if (event.data === "changed") void refresh();
+    };
+    return () => {
+      channel.close();
+      channelRef.current = null;
+    };
+  }, [refresh]);
+
+  // تازه‌سازی خودکار هر ۶۰ ثانیه تا دادهٔ تب باز کهنه نماند
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refresh();
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, [refresh]);
 
   const openModal = useCallback((title: string, node: ReactNode, opts?: { wide?: boolean; sub?: string }) => {
     window.history.pushState({ psModal: true }, "", window.location.href);
@@ -173,6 +200,7 @@ export default function AppShell({ initial }: { initial: AppState }) {
           <div className="header-meta">
             <span className="chip accent"><Icon name="clock" size={13} /> {state.now.weekday} {state.now.day} — {state.now.time}</span>
             <span className="chip live"><span className="dot live" />{state.shift.label}{state.shift.members.length ? ` — ${state.shift.members.join(" و ")}` : ""}</span>
+            {lastSync && <span className="chip" title="آخرین به‌روزرسانی داده از سرور"><Icon name="clock" size={12} /> {lastSync}</span>}
             <button type="button" className="btn tiny ghost" style={{ color: "#fff", borderColor: "rgba(255,255,255,0.3)" }} title="خروج"
               onClick={async () => { await fetch("/api/auth", { method: "DELETE" }); window.location.replace("/"); }}>
               <Icon name="logout" size={14} /> خروج

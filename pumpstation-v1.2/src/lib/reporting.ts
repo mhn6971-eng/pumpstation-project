@@ -78,10 +78,10 @@ export async function buildOperationalPayload(kind: "daily" | "aux", day: string
   };
 }
 
-export async function createReport(input: { kind: string; day: string; shift: ShiftLike; payload: Record<string, unknown>; title?: string }) {
+export async function createReport(input: { kind: string; day: string; shift: ShiftLike; payload: Record<string, unknown>; title?: string }, d: typeof db = db) {
   const title = input.title ?? `${REPORT_KINDS[input.kind] ?? input.kind} — ${input.day}`;
   const operators = `${input.shift.label}${input.shift.members.length ? ` — ${input.shift.members.join(" و ")}` : ""}`;
-  const row = await db
+  const row = await d
     .insert(reports)
     .values({ kind: input.kind, title, day: input.day, shiftKey: input.shift.key, operators, createdAt: jalaliNow(), payload: input.payload })
     .returning({ id: reports.id });

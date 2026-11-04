@@ -26,15 +26,29 @@ const H = (cookie) => ({ cookie });
   const bad = await login("A", "0000");
   log("wrong PIN rejected", bad.status === 401, `status=${bad.status}`);
 
+  // ---- per-IP lock after 5 wrong PINs ----
+  const attacker = { "x-forwarded-for": "10.9.9.9" };
+  const post = (body, headers = {}) => fetch(`${BASE}/api/auth`, { method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify(body) });
+  let firstLock = 0;
   const t0 = Date.now();
-  let blocked = 0;
-  for (let i = 0; i < 40; i++) {
-    const r = await login("A", String(1000 + i));
-    if (r.status === 429) blocked++;
+  for (let i = 0; i < 6; i++) {
+    const r = await post({ key: "B", pin: String(1000 + i) }, attacker);
+    if (r.status === 429 && !firstLock) firstLock = i + 1;
   }
-  const perAttempt = (Date.now() - t0) / 40;
-  log("brute-force throttling", blocked > 0,
-    `40 wrong PINs in ${Date.now() - t0}ms (${perAttempt.toFixed(1)}ms/attempt, lockouts=${blocked}). 10k PINs ≈ ${((10000 * perAttempt) / 1000 / 60).toFixed(1)} min`);
+  const perAttempt = (Date.now() - t0) / 6;
+  log("brute-force throttling (per IP)", firstLock > 0 && firstLock <= 5, `قفل از تلاش ${firstLock} ام فعال شد (${perAttempt.toFixed(1)}ms/attempt) — ادامهٔ حدس بی‌فایده است`);
+
+  // legitimate user from another IP is not affected by the attacker's lock
+  const legitOtherIp = await post({ key: "A", pin: "1111" }, { "x-forwarded-for": "10.1.1.1" });
+  log("other IP not locked out by attacker", legitOtherIp.status === 200, `status=${legitOtherIp.status}`);
+
+  // global shift lock after 20 failures from rotating IPs
+  let globalLock = 0;
+  for (let i = 0; i < 26; i++) {
+    const r = await post({ key: "C", pin: String(2000 + i) }, { "x-forwarded-for": `10.8.8.${i}` });
+    if (r.status === 429 && !globalLock) globalLock = i + 1;
+  }
+  log("global shift lock (IP rotation)", globalLock > 0 && globalLock <= 25, `شیفت C پس از ${globalLock} تلاش قفل شد`);
 
   const okA = await login("A", "1111");
   log("valid PIN accepted", okA.status === 200 && okA.cookie.includes("ps_session"), `status=${okA.status}`);

@@ -300,3 +300,32 @@ export function serviceTone(pct: number): "ok" | "warn" | "crit" {
   if (pct >= 50) return "warn";
   return "ok";
 }
+
+/* ---------------------------------------------------------------------------
+ * محدودهٔ فیزیکی مقادیر (H4 در گزارش بازبینی)
+ * مقدار بیرون از این محدوده یعنی خطای تایپ اپراتور، نه یک اندازه‌گیری واقعی.
+ * ------------------------------------------------------------------------- */
+export const PROCESS_LIMITS: Record<string, [number, number]> = {
+  "PIT-001": [0, 40],        // فشار تونل / مکش (bar)
+  "PIT-002": [0, 40],        // فشار خط رانش (bar)
+  "PIT-003": [0, 10],        // فشار سرچ تانک ۱ (bar)
+  "PIT-004": [0, 10],        // فشار سرچ تانک ۲ (bar)
+  "FIT-001": [0, 800],       // دبی لحظه‌ای (L/s)
+  "LT-01": [0, 400],         // ارتفاع مخزن تصفیه‌خانه ۱ (cm)
+  "LT-02": [0, 400],         // ارتفاع مخزن تصفیه‌خانه ۲ (cm)
+};
+
+/** محدودهٔ مجاز بر اساس نوع پارامتر موتور */
+export const MOTOR_TYPE_LIMITS: Record<string, [number, number]> = {
+  current: [0, 2000],   // آمپر
+  temp: [-20, 250],     // درجه سانتی‌گراد
+  bearing: [-20, 250],  // درجه سانتی‌گراد
+  vib: [0, 100],        // mm/s
+};
+
+/** توتال روزانه (متر مکعب) */
+export const TOTAL_LIMITS: [number, number] = [0, 1_000_000];
+
+export function limitError(label: string, unit: string, min: number, max: number) {
+  return new Error(`${label}: مقدار باید بین ${min} و ${max} ${unit} باشد`);
+}

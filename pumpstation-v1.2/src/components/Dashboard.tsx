@@ -134,7 +134,7 @@ export default function Dashboard() {
       <Panel title="گزارش دستی اپراتور" icon="file" hint={`${state.shift.label} — ${state.shift.members.join(" و ")} — ${day}`}>
         <textarea className="input" rows={4} value={note} onChange={(e) => setNote(e.target.value)} placeholder="کارهای انجام‌شدهٔ شیفت، مشکلات، نکات تحویل شیفت…" />
         <div className="row" style={{ marginTop: 8, justifyContent: "flex-end" }}>
-          <button type="button" className="btn primary" disabled={busy} onClick={() => act("note.save", { text: note, day })}>ذخیره گزارش دستی</button>
+          <button type="button" className="btn primary" disabled={busy} onClick={() => act("note.save", { text: note, day, expected: state.note })}>ذخیره گزارش دستی</button>
         </div>
       </Panel>
 

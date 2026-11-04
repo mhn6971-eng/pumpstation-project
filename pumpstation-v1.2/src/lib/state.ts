@@ -95,7 +95,7 @@ export async function buildState(input: { who: { key: string; label: string; rol
       db.select().from(motorReadings).where(eq(motorReadings.day, day)),
       db.select().from(equipment).where(eq(equipment.deletedAt, "")).orderBy(equipment.tag),
       db.select().from(operatorNotes).where(eq(operatorNotes.day, day)).orderBy(desc(operatorNotes.id)).limit(1),
-      db.select().from(alerts).orderBy(desc(alerts.id)).limit(200),
+      db.select().from(alerts).where(eq(alerts.resolvedAt, "")).orderBy(desc(alerts.id)).limit(200),
       db.select().from(activity).orderBy(desc(activity.id)).limit(100),
       db.select({ id: reports.id, kind: reports.kind, title: reports.title, day: reports.day, shiftKey: reports.shiftKey, operators: reports.operators, createdAt: reports.createdAt }).from(reports).orderBy(desc(reports.id)).limit(300),
       db.select({ id: backups.id, label: backups.label, createdAt: backups.createdAt, sizeBytes: backups.sizeBytes }).from(backups).orderBy(desc(backups.id)).limit(20),
@@ -256,6 +256,6 @@ export async function buildState(input: { who: { key: string; label: string; rol
   };
 }
 
-export async function logActivity(shiftKey: string, action: string, detail = "") {
-  await db.insert(activity).values({ at: jalaliNow(), shiftKey, action, detail });
+export async function logActivity(shiftKey: string, action: string, detail = "", d: typeof db = db) {
+  await d.insert(activity).values({ at: jalaliNow(), shiftKey, action, detail });
 }

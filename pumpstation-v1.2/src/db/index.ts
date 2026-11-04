@@ -19,8 +19,12 @@ const globalForDb = globalThis as typeof globalThis & {
 export const client =
   globalForDb.__pumpstationPglite ??
   new PGlite(dataDir, {
-    // پیکربندی حداقلی؛ منطقهٔ زمانی و تاریخ‌ها در برنامه به‌صورت شمسی مدیریت می‌شوند
-    relaxedDurability: true,
+    /**
+     * durability واقعی: هر تراکنش با fsync روی دیسک می‌نشیند تا قطع برق داده را از بین نبرد
+     * (C3 در گزارش بازبینی). اگر سرعت روی سخت‌افزار ضعیف مشکل شد، با
+     * PGLITE_RELAXED=1 می‌توان موقتاً خاموشش کرد.
+     */
+    relaxedDurability: process.env.PGLITE_RELAXED === "1",
   });
 
 globalForDb.__pumpstationPglite = client;

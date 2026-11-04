@@ -25,7 +25,9 @@ console.log("logout status:", logout.status, "| old cookie still valid after log
 // two tabs / two clients: last write wins on the same note
 const T1 = await login("A", "1111");
 const T2 = await login("A", "1111");
-await act(T1.cookie, "note.save", { text: "متن تب اول", day: "1405/08/13" });
-await act(T2.cookie, "note.save", { text: "متن تب دوم", day: "1405/08/13" });
+await act(T1.cookie, "note.save", { text: "متن تب اول", day: "1405/08/13", expected: "" });
+// تب دوم همان متن قدیمی را در حافظه دارد و می‌خواهد رویش بنویسد → باید هشدار بگیرد
+const conflict = await act(T2.cookie, "note.save", { text: "متن تب دوم", day: "1405/08/13", expected: "" });
 const s = await fetch(`${BASE}/api/state`, { headers: { cookie: T1.cookie } }).then((r) => r.json());
-console.log("note after two tabs:", JSON.stringify(s.note), "→ last write silently wins, first entry lost");
+console.log("two tabs conflict:", conflict?.error ?? "بدون هشدار", "| note =", JSON.stringify(s.note));
+console.log(conflict?.ok ? "FAIL: overwrite silently allowed" : "PASS: conflicting overwrite blocked");

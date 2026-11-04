@@ -26,13 +26,15 @@ import {
   sendQueue,
   channels,
 } from "@/db/schema";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, revokeSessions } from "@/lib/auth";
 import { hashPin } from "@/lib/pin";
 import { ensureSeed, getAllSettings, saveSettings } from "@/db/seed";
+import { createInternalBackup, ensureDailyFileBackup, listFileBackups, restoreAll, verifyFileBackup, writeFileBackup, type Snapshot } from "@/lib/backup";
+import { bodyTooLarge, logSecurityEvent, rateLimitedResponse, tooLargeResponse, writeRateLimited } from "@/lib/security";
 import { effectiveShift, getProcessThresholds, logActivity, thresholdSeverity } from "@/lib/state";
 import { buildOperationalPayload, buildRegistryPayload, buildTrendPayload, createReport, latestMotorRecords, normalizeRange, REPORT_KINDS } from "@/lib/reporting";
-import { addDaysToDay, jalaliNow, operationalDay } from "@/lib/jalali";
-import { CATEGORIES, MOTORS, MOTOR_PARAMS, MOTOR_STATE_FA, PROCESS_PARAMS, type Settings } from "@/lib/domain";
+import { addDaysToDay, isValidJalaliDay, jalaliNow, operationalDay } from "@/lib/jalali";
+import { CATEGORIES, MOTORS, MOTOR_PARAMS, MOTOR_TYPE_LIMITS, MOTOR_STATE_FA, PROCESS_LIMITS, PROCESS_PARAMS, TOTAL_LIMITS, limitError, type Settings } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
 
@@ -51,13 +53,41 @@ function optNum(value: unknown): number | null {
 function str(value: unknown, max = 2000) {
   return String(value ?? "").trim().slice(0, max);
 }
-
-async function addAlert(input: { tag: string; param: string; label: string; value: number; severity: "warning" | "critical"; message: string; day: string; shiftKey: string }) {
-  await db.insert(alerts).values({ ...input, at: jalaliNow(), seenAt: "", actedAt: "" });
+/** اعتبارسنجی محدودهٔ فیزیکی مقدار (H4) */
+function inRange(value: number, limits: [number, number], label: string, unit: string) {
+  if (value < limits[0] || value > limits[1]) throw limitError(label, unit, limits[0], limits[1]);
+  return value;
 }
 
-async function audit(shiftKey: string, scope: string, tag: string, param: string, oldValue: unknown, newValue: unknown) {
-  await db.insert(valueAudits).values({ at: jalaliNow(), shiftKey, scope, tag, param, oldValue: String(oldValue), newValue: String(newValue) });
+type Db = typeof db;
+/** اجرای اتمیک چند نوشتن پشت‌سرهم (C5) — اگر یکی شکست بخورد هیچ‌کدام اعمال نمی‌شود */
+async function runTx<T>(fn: (d: Db) => Promise<T>): Promise<T> {
+  return (await db.transaction(async (tx) => fn(tx as unknown as Db))) as T;
+}
+
+/**
+ * ثبت هشدار با ضدسیل (H3): برای هر (تگ، پارامتر، روز) فقط یک هشدار «باز» نگه داشته می‌شود
+ * و ثبت‌های بعدی همان هشدار را به‌روز می‌کنند، نه ردیف تازه.
+ */
+async function addAlert(input: { tag: string; param: string; label: string; value: number; severity: "warning" | "critical"; message: string; day: string; shiftKey: string }, d: Db = db) {
+  const open = (await d.select().from(alerts).where(and(eq(alerts.tag, input.tag), eq(alerts.param, input.param), eq(alerts.day, input.day), eq(alerts.actedAt, ""), eq(alerts.resolvedAt, ""))).limit(1))[0];
+  if (open) {
+    await d.update(alerts).set({ value: input.value, severity: input.severity, message: input.message, at: jalaliNow(), shiftKey: input.shiftKey }).where(eq(alerts.id, open.id));
+    return;
+  }
+  await d.insert(alerts).values({ ...input, at: jalaliNow(), seenAt: "", actedAt: "", seenShift: "", actedShift: "", resolvedAt: "" });
+}
+
+/** وقتی مقدار به محدودهٔ مجاز برگشت، هشدارهای باز همان پارامتر بسته می‌شوند */
+async function resolveAlerts(tag: string, param: string, day: string, d: Db = db) {
+  const open = await d.select().from(alerts).where(and(eq(alerts.tag, tag), eq(alerts.param, param), eq(alerts.day, day), eq(alerts.actedAt, ""), eq(alerts.resolvedAt, "")));
+  for (const row of open) {
+    await d.update(alerts).set({ resolvedAt: jalaliNow() }).where(eq(alerts.id, row.id));
+  }
+}
+
+async function audit(shiftKey: string, scope: string, tag: string, param: string, oldValue: unknown, newValue: unknown, d: Db = db) {
+  await d.insert(valueAudits).values({ at: jalaliNow(), shiftKey, scope, tag, param, oldValue: String(oldValue), newValue: String(newValue) });
 }
 
 async function trySend(reportId: number, channelKey: string, shiftKey: string) {
@@ -86,9 +116,24 @@ export async function POST(request: Request) {
   const user = await getSessionUser();
   if (!user) return Response.json({ ok: false, error: "ابتدا وارد سامانه شوید" }, { status: 401 });
   await ensureSeed();
+
+  // محدودیت نرخ نوشتن (H2)
+  if (writeRateLimited(user.key)) {
+    await logSecurityEvent("rate_limited", user.key, "local", "نوشتن بیش از حد مجاز");
+    return rateLimitedResponse();
+  }
+
+  let raw: string;
+  try {
+    raw = await request.text();
+  } catch {
+    return Response.json({ ok: false, error: "درخواست نامعتبر" }, { status: 400 });
+  }
+  if (bodyTooLarge(request, raw.length)) return tooLargeResponse();
+
   let body: { action?: string; payload?: Payload };
   try {
-    body = await request.json();
+    body = JSON.parse(raw) as { action?: string; payload?: Payload };
   } catch {
     return Response.json({ ok: false, error: "درخواست نامعتبر" }, { status: 400 });
   }
@@ -98,8 +143,23 @@ export async function POST(request: Request) {
   const shift = isAdmin ? await effectiveShift() : { key: user.key, label: user.label, members: user.members };
   const shiftKey = user.key;
   const op = operationalDay();
-  const day = typeof p.day === "string" && /^\d{4}\/\d{2}\/\d{2}$/.test(p.day) ? p.day : op.day;
-  const interval = Number.isInteger(p.intervalIndex) && Number(p.intervalIndex) >= 0 && Number(p.intervalIndex) <= 5 ? Number(p.intervalIndex) : op.intervalIndex;
+  void ensureDailyFileBackup().catch(() => {});
+  // تاریخ نامعتبر رد می‌شود، نه این‌که بی‌صدا امروز فرض شود (H4)
+  let day = op.day;
+  if (typeof p.day === "string" && p.day.trim()) {
+    const candidate = p.day.trim();
+    if (!isValidJalaliDay(candidate)) return Response.json({ ok: false, error: "تاریخ شمسی نامعتبر است (مثال درست: ۱۴۰۵/۰۸/۱۳)" }, { status: 400 });
+    day = candidate;
+  }
+  // بازهٔ نامعتبر بی‌صدا به بازهٔ جاری تبدیل نمی‌شود (M1)
+  let interval = op.intervalIndex;
+  if (p.intervalIndex !== undefined && p.intervalIndex !== null && p.intervalIndex !== "") {
+    const candidate = Number(p.intervalIndex);
+    if (!Number.isInteger(candidate) || candidate < 0 || candidate > 5) {
+      return Response.json({ ok: false, error: "بازهٔ زمانی نامعتبر است" }, { status: 400 });
+    }
+    interval = candidate;
+  }
   const requireAdmin = () => {
     if (!isAdmin) throw new Error("دسترسی ادمین لازم است");
   };
@@ -111,30 +171,40 @@ export async function POST(request: Request) {
         const meta = PROCESS_PARAMS.find((x) => x.tag === tag);
         if (!meta) throw new Error("پارامتر نامعتبر است");
         const value = num(p.value);
-        const existing = (await db.select().from(processReadings).where(and(eq(processReadings.day, day), eq(processReadings.intervalIndex, interval), eq(processReadings.tag, tag))).limit(1))[0];
-        if (existing) {
-          await audit(shiftKey, "process", tag, tag, existing.value, value);
-          await db.update(processReadings).set({ value, updatedAt: jalaliNow(), shiftKey }).where(eq(processReadings.id, existing.id));
-        } else {
-          await db.insert(processReadings).values({ day, intervalIndex: interval, tag, value, shiftKey, recordedAt: jalaliNow(), updatedAt: jalaliNow() });
-        }
+        inRange(value, PROCESS_LIMITS[tag] ?? [-1e9, 1e9], meta.label, meta.unit);
         const thresholds = await getProcessThresholds();
         const severity = thresholdSeverity(value, thresholds[tag]);
-        if (severity !== "ok") await addAlert({ tag, param: tag, label: meta.label, value, severity, message: `${tag} / ${meta.label} = ${value} ${meta.unit} — خارج از ${severity === "critical" ? "حد بحرانی" : "حد هشدار"}`, day, shiftKey });
-        await logActivity(shiftKey, "ثبت پارامتر فرآیندی", `${tag} = ${value} — ${day} بازه ${interval + 1}`);
+        await runTx(async (d) => {
+          const existing = (await d.select().from(processReadings).where(and(eq(processReadings.day, day), eq(processReadings.intervalIndex, interval), eq(processReadings.tag, tag))).limit(1))[0];
+          if (existing) {
+            await audit(shiftKey, "process", tag, tag, existing.value, value, d);
+            await d.update(processReadings).set({ value, updatedAt: jalaliNow(), shiftKey }).where(eq(processReadings.id, existing.id));
+          } else {
+            await d.insert(processReadings).values({ day, intervalIndex: interval, tag, value, shiftKey, recordedAt: jalaliNow(), updatedAt: jalaliNow() }).onConflictDoNothing();
+          }
+          if (severity !== "ok") {
+            await addAlert({ tag, param: tag, label: meta.label, value, severity, message: `${tag} / ${meta.label} = ${value} ${meta.unit} — خارج از ${severity === "critical" ? "حد بحرانی" : "حد هشدار"}`, day, shiftKey }, d);
+          } else {
+            await resolveAlerts(tag, tag, day, d);
+          }
+          await logActivity(shiftKey, "ثبت پارامتر فرآیندی", `${tag} = ${value} — ${day} بازه ${interval + 1}`, d);
+        });
         return Response.json({ ok: true });
       }
 
       case "total.set": {
         const value = num(p.value);
-        const existing = (await db.select().from(dailyTotals).where(eq(dailyTotals.day, day)).limit(1))[0];
-        if (existing) {
-          await audit(shiftKey, "total", "TOTAL-FIT", "total", existing.value, value);
-          await db.update(dailyTotals).set({ value, updatedAt: jalaliNow(), shiftKey }).where(eq(dailyTotals.id, existing.id));
-        } else {
-          await db.insert(dailyTotals).values({ day, value, shiftKey, recordedAt: jalaliNow(), updatedAt: jalaliNow() });
-        }
-        await logActivity(shiftKey, "ثبت توتال روزانه", `${day} = ${value} m³`);
+        inRange(value, TOTAL_LIMITS, "توتال روزانه", "m³");
+        await runTx(async (d) => {
+          const existing = (await d.select().from(dailyTotals).where(eq(dailyTotals.day, day)).limit(1))[0];
+          if (existing) {
+            await audit(shiftKey, "total", "TOTAL-FIT", "total", existing.value, value, d);
+            await d.update(dailyTotals).set({ value, updatedAt: jalaliNow(), shiftKey }).where(eq(dailyTotals.id, existing.id));
+          } else {
+            await d.insert(dailyTotals).values({ day, value, shiftKey, recordedAt: jalaliNow(), updatedAt: jalaliNow() });
+          }
+          await logActivity(shiftKey, "ثبت توتال روزانه", `${day} = ${value} m³`, d);
+        });
         return Response.json({ ok: true });
       }
 
@@ -144,28 +214,36 @@ export async function POST(request: Request) {
         const values = (p.values ?? {}) as Record<string, unknown>;
         const cfg = await getAllSettings();
         let saved = 0;
-        for (const [param, raw] of Object.entries(values)) {
-          const meta = MOTOR_PARAMS.find((x) => x.key === param);
-          if (!meta || raw === "" || raw === null || raw === undefined) continue;
-          const value = num(raw);
-          const existing = (await db.select().from(motorReadings).where(and(eq(motorReadings.tag, tag), eq(motorReadings.day, day), eq(motorReadings.intervalIndex, interval), eq(motorReadings.param, param))).limit(1))[0];
-          if (existing) {
-            await audit(shiftKey, "motor", tag, param, existing.value, value);
-            await db.update(motorReadings).set({ value, updatedAt: jalaliNow(), shiftKey }).where(eq(motorReadings.id, existing.id));
-          } else {
-            await db.insert(motorReadings).values({ tag, day, intervalIndex: interval, param, value, shiftKey, recordedAt: jalaliNow(), updatedAt: jalaliNow() });
+        await runTx(async (d) => {
+          for (const [param, raw] of Object.entries(values)) {
+            const meta = MOTOR_PARAMS.find((x) => x.key === param);
+            if (!meta || raw === "" || raw === null || raw === undefined) continue;
+            const value = num(raw);
+            // محدودهٔ فیزیکی بر اساس نوع پارامتر (جریان/دما/یاتاقان/لرزش)
+            inRange(value, MOTOR_TYPE_LIMITS[meta.type] ?? [-1e9, 1e9], `${tag} / ${meta.label}`, meta.unit);
+            const existing = (await d.select().from(motorReadings).where(and(eq(motorReadings.tag, tag), eq(motorReadings.day, day), eq(motorReadings.intervalIndex, interval), eq(motorReadings.param, param))).limit(1))[0];
+            if (existing) {
+              await audit(shiftKey, "motor", tag, param, existing.value, value, d);
+              await d.update(motorReadings).set({ value, updatedAt: jalaliNow(), shiftKey }).where(eq(motorReadings.id, existing.id));
+            } else {
+              await d.insert(motorReadings).values({ tag, day, intervalIndex: interval, param, value, shiftKey, recordedAt: jalaliNow(), updatedAt: jalaliNow() }).onConflictDoNothing();
+            }
+            saved += 1;
+            const limit =
+              meta.type === "vib" ? { warn: cfg.vibWarn, crit: cfg.vibCrit, label: `لرزش ${meta.label}`, unit: "mm/s" }
+              : meta.type === "bearing" ? { warn: cfg.bearingWarn, crit: cfg.bearingCrit, label: `دمای ${meta.label}`, unit: "°C" }
+              : meta.type === "temp" ? { warn: cfg.windingWarn, crit: cfg.windingCrit, label: `دمای سیم‌پیچ ${meta.key}`, unit: "°C" }
+              : { warn: cfg.currentWarn, crit: cfg.currentCrit, label: `جریان ${meta.label}`, unit: "A" };
+            const severity = value > limit.crit ? "critical" : value > limit.warn ? "warning" : "ok";
+            if (severity !== "ok") {
+              await addAlert({ tag, param, label: limit.label, value, severity, message: `${tag} / ${limit.label} = ${value} ${limit.unit} — بالاتر از حد ${severity === "critical" ? "بحرانی" : "هشدار"}`, day, shiftKey }, d);
+            } else {
+              await resolveAlerts(tag, param, day, d);
+            }
           }
-          saved += 1;
-          const limit =
-            meta.type === "vib" ? { warn: cfg.vibWarn, crit: cfg.vibCrit, label: `لرزش ${meta.label}`, unit: "mm/s" }
-            : meta.type === "bearing" ? { warn: cfg.bearingWarn, crit: cfg.bearingCrit, label: `دمای ${meta.label}`, unit: "°C" }
-            : meta.type === "temp" ? { warn: cfg.windingWarn, crit: cfg.windingCrit, label: `دمای سیم‌پیچ ${meta.key}`, unit: "°C" }
-            : { warn: cfg.currentWarn, crit: cfg.currentCrit, label: `جریان ${meta.label}`, unit: "A" };
-          const severity = value > limit.crit ? "critical" : value > limit.warn ? "warning" : "ok";
-          if (severity !== "ok") await addAlert({ tag, param, label: limit.label, value, severity, message: `${tag} / ${limit.label} = ${value} ${limit.unit} — بالاتر از حد ${severity === "critical" ? "بحرانی" : "هشدار"}`, day, shiftKey });
-        }
-        if (!saved) throw new Error("هیچ مقداری برای ثبت وارد نشده است");
-        await logActivity(shiftKey, "ثبت داده موتور", `${tag} — ${saved} پارامتر — ${day} بازه ${interval + 1}`);
+          if (!saved) throw new Error("هیچ مقداری برای ثبت وارد نشده است");
+          await logActivity(shiftKey, "ثبت داده موتور", `${tag} — ${saved} پارامتر — ${day} بازه ${interval + 1}`, d);
+        });
         return Response.json({ ok: true, message: `${saved} مقدار ثبت شد` });
       }
 
@@ -213,14 +291,17 @@ export async function POST(request: Request) {
           const v = optNum(brushRaw[`${ph}${i}`]);
           if (v !== null) brush[`${ph}${i}`] = v;
         }
-        const sid = (await db.insert(motorServices).values({ tag, day, hours, workers, note, brush, at: jalaliNow(), shiftKey, shiftLabel: shift.label }).returning({ id: motorServices.id }))[0].id;
-        await db.update(motors).set({ totalHours: Math.max(hours, row.totalHours), lastServiceHours: hours, state: "off", stateChangedAt: jalaliNow() }).where(eq(motors.tag, tag));
-        await db.insert(motorStateLogs).values({ tag, fromState: row.state, toState: "off", at: jalaliNow(), shiftKey });
-        await db.insert(equipmentReports).values({ tag, kind: "motor_service", reason: `سرویس ماهانه — ساعت ${hours}${note ? ` — ${note}` : ""}`, operator: workers || shift.label, shiftKey, at: jalaliNow() });
-        await db.update(equipment).set({ description: `سرویس ماهانه انجام شد (ساعت ${hours})${note ? ` — ${note}` : ""}`, descriptionAt: jalaliNow(), descriptionBy: workers || shift.label, status: "ready", updatedAt: jalaliNow() }).where(eq(equipment.tag, tag));
-        const latest = await latestMotorRecords(tag);
-        const rid = await createReport({ kind: "motor_service", day, shift, title: `سرویس موتور ${tag} — ${day}`, payload: { serviceId: sid, tag, pumpTag: row.pumpTag, day, hours, workers, note, brush, megger: latest.megger, oil: latest.oil, generatedAt: jalaliNow() } });
-        await logActivity(shiftKey, "ثبت سرویس موتور", `${tag} — ساعت ${hours} — ${workers}`);
+        const rid = await runTx(async (d) => {
+          const sid = (await d.insert(motorServices).values({ tag, day, hours, workers, note, brush, at: jalaliNow(), shiftKey, shiftLabel: shift.label }).returning({ id: motorServices.id }))[0].id;
+          await d.update(motors).set({ totalHours: Math.max(hours, row.totalHours), lastServiceHours: hours, state: "off", stateChangedAt: jalaliNow() }).where(eq(motors.tag, tag));
+          await d.insert(motorStateLogs).values({ tag, fromState: row.state, toState: "off", at: jalaliNow(), shiftKey });
+          await d.insert(equipmentReports).values({ tag, kind: "motor_service", reason: `سرویس ماهانه — ساعت ${hours}${note ? ` — ${note}` : ""}`, operator: workers || shift.label, shiftKey, at: jalaliNow() });
+          await d.update(equipment).set({ description: `سرویس ماهانه انجام شد (ساعت ${hours})${note ? ` — ${note}` : ""}`, descriptionAt: jalaliNow(), descriptionBy: workers || shift.label, status: "ready", updatedAt: jalaliNow() }).where(eq(equipment.tag, tag));
+          const latest = await latestMotorRecords(tag);
+          const reportId = await createReport({ kind: "motor_service", day, shift, title: `سرویس موتور ${tag} — ${day}`, payload: { serviceId: sid, tag, pumpTag: row.pumpTag, day, hours, workers, note, brush, megger: latest.megger, oil: latest.oil, generatedAt: jalaliNow() } }, d);
+          await logActivity(shiftKey, "ثبت سرویس موتور", `${tag} — ساعت ${hours} — ${workers}`, d);
+          return reportId;
+        });
         return Response.json({ ok: true, id: rid, message: "سرویس ثبت و گزارش آن ساخته شد" });
       }
 
@@ -261,12 +342,14 @@ export async function POST(request: Request) {
         const row = (await db.select().from(equipment).where(eq(equipment.tag, tag)).limit(1))[0];
         if (!row) throw new Error("تجهیز پیدا نشد");
         if (status === "in_service" && reason.length < 3) throw new Error("برای «در حال سرویس» توضیحات/دلیل سرویس را بنویسید");
-        await db.update(equipment).set({ status, description: reason || row.description, descriptionAt: reason ? jalaliNow() : row.descriptionAt, descriptionBy: reason ? shift.label : row.descriptionBy, updatedAt: jalaliNow() }).where(eq(equipment.tag, tag));
-        await db.insert(equipmentReports).values({ tag, kind: status === "in_service" ? "service" : "ready", reason: reason || "بازگشت به آماده به کار", operator: shift.label, shiftKey, at: jalaliNow() });
-        if (row.isMotor) {
-          await db.update(motors).set({ state: status === "in_service" ? "service" : "off", stateChangedAt: jalaliNow() }).where(eq(motors.tag, tag));
-        }
-        await logActivity(shiftKey, status === "in_service" ? "تجهیز به حال سرویس رفت" : "تجهیز آماده به کار شد", `${tag} — ${reason}`);
+        await runTx(async (d) => {
+          await d.update(equipment).set({ status, description: reason || row.description, descriptionAt: reason ? jalaliNow() : row.descriptionAt, descriptionBy: reason ? shift.label : row.descriptionBy, updatedAt: jalaliNow() }).where(eq(equipment.tag, tag));
+          await d.insert(equipmentReports).values({ tag, kind: status === "in_service" ? "service" : "ready", reason: reason || "بازگشت به آماده به کار", operator: shift.label, shiftKey, at: jalaliNow() });
+          if (row.isMotor) {
+            await d.update(motors).set({ state: status === "in_service" ? "service" : "off", stateChangedAt: jalaliNow() }).where(eq(motors.tag, tag));
+          }
+          await logActivity(shiftKey, status === "in_service" ? "تجهیز به حال سرویس رفت" : "تجهیز آماده به کار شد", `${tag} — ${reason}`, d);
+        });
         return Response.json({ ok: true });
       }
 
@@ -320,9 +403,23 @@ export async function POST(request: Request) {
       case "catalog.delete": {
         requireAdmin();
         const id = Number(p.id);
+        const row = (await db.select().from(catalogs).where(eq(catalogs.id, id)).limit(1))[0];
+        if (!row) throw new Error("کاتالوگ پیدا نشد");
+        // فایل به «سطل بازیافت» منتقل می‌شود، نه پاک (M5 — قاعدهٔ «هیچ حذف فیزیکی»)
+        if (row.path) {
+          try {
+            const { mkdir, rename } = await import("node:fs/promises");
+            const path = await import("node:path");
+            const trash = path.join(process.env.CATALOG_DIR ?? "files/catalogs", "trash");
+            await mkdir(trash, { recursive: true });
+            await rename(path.join(process.env.CATALOG_DIR ?? "files/catalogs", path.basename(row.path)), path.join(trash, path.basename(row.path)));
+          } catch {
+            /* اگر فایل نبود، حذف رکورد ادامه می‌یابد */
+          }
+        }
         await db.delete(catalogs).where(eq(catalogs.id, id));
-        await logActivity(shiftKey, "حذف کاتالوگ", String(id));
-        return Response.json({ ok: true });
+        await logActivity(shiftKey, "حذف کاتالوگ (به سطل بازیافت)", `${row.name} — ${row.tag}`);
+        return Response.json({ ok: true, message: "کاتالوگ از فهرست برداشته و فایل آن به سطل بازیافت منتقل شد" });
       }
 
       case "pm.template": {
@@ -347,10 +444,13 @@ export async function POST(request: Request) {
         for (const [k, v] of Object.entries(results)) clean[str(k, 200)] = str(v, 300);
         if (!Object.keys(clean).length) throw new Error("حداقل یک آیتم چک‌لیست را تکمیل کنید");
         const rec = { tag, templateName: str(p.templateName, 200), results: clean, workers: str(p.workers, 200), note: str(p.note, 1500), day, at: jalaliNow(), shiftKey };
-        const id = (await db.insert(pmRecords).values(rec).returning({ id: pmRecords.id }))[0].id;
-        await db.insert(equipmentReports).values({ tag, kind: "pm", reason: `PM: ${rec.templateName}${rec.note ? ` — ${rec.note}` : ""}`, operator: rec.workers || shift.label, shiftKey, at: jalaliNow() });
-        const rid = await createReport({ kind: "pm", day, shift, title: `PM ${tag} — ${day}`, payload: { ...rec, pmId: id, name: row.name, category: row.category, generatedAt: jalaliNow() } });
-        await logActivity(shiftKey, "ثبت PM", `${tag} — ${rec.templateName}`);
+        const rid = await runTx(async (d) => {
+          const id = (await d.insert(pmRecords).values(rec).returning({ id: pmRecords.id }))[0].id;
+          await d.insert(equipmentReports).values({ tag, kind: "pm", reason: `PM: ${rec.templateName}${rec.note ? ` — ${rec.note}` : ""}`, operator: rec.workers || shift.label, shiftKey, at: jalaliNow() });
+          const reportId = await createReport({ kind: "pm", day, shift, title: `PM ${tag} — ${day}`, payload: { ...rec, pmId: id, name: row.name, category: row.category, generatedAt: jalaliNow() } }, d);
+          await logActivity(shiftKey, "ثبت PM", `${tag} — ${rec.templateName}`, d);
+          return reportId;
+        });
         return Response.json({ ok: true, id: rid });
       }
 
@@ -367,11 +467,19 @@ export async function POST(request: Request) {
       }
 
       case "note.save": {
-        const text = str(p.text, 4000);
-        const existing = (await db.select().from(operatorNotes).where(and(eq(operatorNotes.day, day), eq(operatorNotes.shiftKey, shiftKey))).limit(1))[0];
-        if (existing) await db.update(operatorNotes).set({ text, updatedAt: jalaliNow() }).where(eq(operatorNotes.id, existing.id));
-        else await db.insert(operatorNotes).values({ day, shiftKey, text, updatedAt: jalaliNow() });
-        await logActivity(shiftKey, "ثبت گزارش دستی اپراتور", day);
+        const raw = String(p.text ?? "");
+        if (raw.length > 4000) throw new Error("متن گزارش حداکثر ۴٬۰۰۰ کاراکتر است؛ لطفاً کوتاه‌تر کنید");
+        const text = raw.trim();
+        await runTx(async (d) => {
+          const existing = (await d.select().from(operatorNotes).where(and(eq(operatorNotes.day, day), eq(operatorNotes.shiftKey, shiftKey))).limit(1))[0];
+          // قفل خوش‌بینانه (H7): اگر تب/دستگاه دیگری متن را عوض کرده، بی‌صدا رویش نوشته نمی‌شود
+          if (existing && typeof p.expected === "string" && p.expected.trim() !== (existing.text ?? "").trim()) {
+            throw new Error("این گزارش در تب یا دستگاه دیگری تغییر کرده است؛ صفحه را تازه کنید و متن خود را دوباره وارد کنید");
+          }
+          if (existing) await d.update(operatorNotes).set({ text, updatedAt: jalaliNow() }).where(eq(operatorNotes.id, existing.id));
+          else await d.insert(operatorNotes).values({ day, shiftKey, text, updatedAt: jalaliNow() });
+          await logActivity(shiftKey, "ثبت گزارش دستی اپراتور", day, d);
+        });
         return Response.json({ ok: true });
       }
 
@@ -525,11 +633,15 @@ export async function POST(request: Request) {
 
       case "backup.create": {
         requireAdmin();
-        const payload = await snapshotAll();
-        const size = Buffer.byteLength(JSON.stringify(payload), "utf8");
-        const row = await db.insert(backups).values({ label: `بک‌آپ دستی ${jalaliNow()}`, createdAt: jalaliNow(), sizeBytes: size, payload }).returning({ id: backups.id });
-        await logActivity(shiftKey, "ساخت بک‌آپ کامل", `${row[0]?.id ?? "-"} — ${(size / 1024).toFixed(1)} KB`);
-        return Response.json({ ok: true, id: row[0]?.id });
+        const inner = await createInternalBackup("بک‌آپ دستی");
+        let file: { file: string; bytes: number } | null = null;
+        try {
+          file = await writeFileBackup("بک‌آپ دستی ادمین");
+        } catch (error) {
+          await logActivity(shiftKey, "خطا در بک‌آپ فایلی", error instanceof Error ? error.message : "نامشخص");
+        }
+        await logActivity(shiftKey, "ساخت بک‌آپ کامل", `${inner.id ?? "-"} — ${((inner.sizeBytes ?? 0) / 1024).toFixed(1)} KB${file ? ` — فایل: ${file.file}` : ""}`);
+        return Response.json({ ok: true, id: inner.id, file: file?.file ?? null });
       }
 
       case "backup.restore": {
@@ -537,11 +649,32 @@ export async function POST(request: Request) {
         const id = Number(p.id);
         const row = (await db.select().from(backups).where(eq(backups.id, id)).limit(1))[0];
         if (!row) throw new Error("بک‌آپ پیدا نشد");
-        const safety = await snapshotAll();
-        await db.insert(backups).values({ label: `نسخه ایمنی قبل از بازیابی ${jalaliNow()}`, createdAt: jalaliNow(), sizeBytes: Buffer.byteLength(JSON.stringify(safety), "utf8"), payload: safety });
+        // نسخهٔ ایمنی قبل از بازیابی (هم داخلی، هم فایل) تا اگر چیزی اشتباه بود برگشت‌پذیر باشد
+        await createInternalBackup("نسخه ایمنی قبل از بازیابی");
+        await writeFileBackup("نسخه ایمنی قبل از بازیابی").catch(() => {});
         await restoreAll(row.payload as Snapshot);
         await logActivity(shiftKey, "بازیابی بک‌آپ", `شناسه ${id}`);
-        return Response.json({ ok: true });
+        return Response.json({ ok: true, message: "بازیابی انجام و شمارش رکوردها تطبیق داده شد" });
+      }
+
+      case "backup.verify": {
+        requireAdmin();
+        const result = await verifyFileBackup(str(p.file, 200));
+        return Response.json({ ok: true, ...result });
+      }
+
+      case "backup.files": {
+        requireAdmin();
+        const files = await listFileBackups();
+        return Response.json({ ok: true, files });
+      }
+
+      case "admin.logout_all": {
+        requireAdmin();
+        const key = str(p.key, 10) || "all";
+        await revokeSessions(key);
+        await logActivity(shiftKey, "ابطال نشست‌ها", key === "all" ? "همهٔ دستگاه‌ها" : `شیفت ${key}`);
+        return Response.json({ ok: true, message: key === "all" ? "همهٔ نشست‌ها باطل شدند؛ ورود دوباره لازم است" : `نشست‌های شیفت ${key} باطل شدند` });
       }
 
       default:
@@ -555,26 +688,5 @@ export async function POST(request: Request) {
       /* ثبت خطای فنی نباید عملیات اصلی را متوقف کند */
     }
     return Response.json({ ok: false, error: message }, { status: 400 });
-  }
-}
-
-type Snapshot = Record<string, unknown[]>;
-const TABLES = {
-  valueAudits, processReadings, dailyTotals, motorReadings, motorStateLogs, motorServices, meggerTests, oilChanges, equipmentReports,
-  pmRecords, pmTemplates, catalogs, alerts, activity, problems, sendQueue, reports, operatorNotes, motors, equipment, channels, shifts, settings,
-};
-
-async function snapshotAll(): Promise<Snapshot> {
-  const out: Snapshot = {};
-  for (const [name, table] of Object.entries(TABLES)) out[name] = await db.select().from(table);
-  return out;
-}
-
-async function restoreAll(snapshot: Snapshot) {
-  for (const [name, table] of Object.entries(TABLES)) {
-    const rows = Array.isArray(snapshot[name]) ? (snapshot[name] as Record<string, unknown>[]) : null;
-    if (!rows) continue;
-    await db.delete(table);
-    if (rows.length) await db.insert(table).values(rows as never);
   }
 }

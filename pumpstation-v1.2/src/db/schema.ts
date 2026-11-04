@@ -6,6 +6,9 @@ import {
   doublePrecision,
   boolean,
   jsonb,
+  bigint,
+  index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 /** کاربران/شیفت‌ها: هر شیفت یک PIN چهاررقمی مشترک (هش‌شده) */
@@ -61,7 +64,10 @@ export const processReadings = pgTable("process_readings", {
   shiftKey: text("shift_key").notNull(),
   recordedAt: text("recorded_at").notNull(),
   updatedAt: text("updated_at").notNull(),
-});
+}, (t) => [
+  index("process_readings_day_idx").on(t.day),
+  uniqueIndex("process_readings_cell_uq").on(t.day, t.intervalIndex, t.tag),
+]);
 
 export const dailyTotals = pgTable("daily_totals", {
   id: serial("id").primaryKey(),
@@ -82,7 +88,11 @@ export const motorReadings = pgTable("motor_readings", {
   shiftKey: text("shift_key").notNull(),
   recordedAt: text("recorded_at").notNull(),
   updatedAt: text("updated_at").notNull(),
-});
+}, (t) => [
+  index("motor_readings_day_idx").on(t.day),
+  index("motor_readings_tag_day_param_idx").on(t.tag, t.day, t.param),
+  uniqueIndex("motor_readings_cell_uq").on(t.tag, t.day, t.intervalIndex, t.param),
+]);
 
 export const motorStateLogs = pgTable("motor_state_logs", {
   id: serial("id").primaryKey(),
@@ -177,6 +187,10 @@ export const catalogs = pgTable("catalogs", {
   mime: text("mime").notNull().default("application/pdf"),
   size: integer("size").notNull().default(0),
   data: text("data").notNull(),
+  /** مسیر فایل روی دیسک (نسخه‌های جدید روی فایل‌سیستم ذخیره می‌شوند، نه داخل دیتابیس) */
+  path: text("path").notNull().default(""),
+  /** هش SHA-256 محتوا برای صحت‌سنجی */
+  sha256: text("sha256").notNull().default(""),
   uploadedAt: text("uploaded_at").notNull(),
   uploadedBy: text("uploaded_by").notNull().default(""),
 });
@@ -196,6 +210,8 @@ export const alerts = pgTable("alerts", {
   actedAt: text("acted_at").default("").notNull(),
   seenShift: text("seen_shift").default("").notNull(),
   actedShift: text("acted_shift").default("").notNull(),
+  /** زمان برطرف‌شدن خودکار (وقتی مقدار به محدودهٔ مجاز برگشت) — هشدار از داشبورد کنار می‌رود */
+  resolvedAt: text("resolved_at").default("").notNull(),
 });
 
 export const activity = pgTable("activity", {
@@ -275,3 +291,14 @@ export const operatorNotes = pgTable("operator_notes", {
   text: text("text").notNull().default(""),
   updatedAt: text("updated_at").notNull(),
 });
+
+/** رویدادهای امنیتی: هر ورود موفق/ناموفق، قفل شدن، خروج از همهٔ دستگاه‌ها */
+export const securityEvents = pgTable("security_events", {
+  id: serial("id").primaryKey(),
+  ts: bigint("ts", { mode: "number" }).notNull(),
+  at: text("at").notNull(),
+  kind: text("kind").notNull(),
+  shiftKey: text("shift_key").notNull().default(""),
+  ip: text("ip").notNull().default(""),
+  detail: text("detail").notNull().default(""),
+}, (t) => [index("security_events_ts_idx").on(t.ts)]);
