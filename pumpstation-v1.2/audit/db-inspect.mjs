@@ -1,0 +1,11 @@
+import { PGlite } from "@electric-sql/pglite";
+const dir = process.argv[2] ?? "/home/user/pumpstation-project/pumpstation-v1.2/.data/pglite";
+const db = new PGlite(dir);
+const q = async (label, sql) => { try { const r = await db.query(sql); console.log(`\n## ${label}`); console.table(r.rows); } catch (e) { console.log(`\n## ${label} — ERROR: ${e.message}`); } };
+await q("process_readings duplicates (day,interval,tag)", `select day, interval_index, tag, count(*) c from process_readings group by 1,2,3 having count(*)>1 order by c desc limit 10`);
+await q("motor_readings duplicates (tag,day,interval,param)", `select tag, day, interval_index, param, count(*) c from motor_readings group by 1,2,3,4 having count(*)>1 order by c desc limit 10`);
+await q("daily_totals duplicates (day)", `select day, count(*) c from daily_totals group by 1 having count(*)>1 limit 10`);
+await q("counts", `select 'process_readings' t, count(*) from process_readings union all select 'motor_readings', count(*) from motor_readings union all select 'alerts', count(*) from alerts union all select 'activity', count(*) from activity union all select 'equipment', count(*) from equipment union all select 'daily_totals', count(*) from daily_totals`);
+await q("invalid jalali days stored", `select day, count(*) from process_readings where day !~ '^1[34][0-9]{2}/[0-1][0-9]/[0-3][0-9]$' group by 1 limit 5`);
+await q("db size", `select pg_size_pretty(pg_database_size(current_database())) s`);
+await db.close();

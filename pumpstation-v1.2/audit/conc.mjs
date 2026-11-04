@@ -1,0 +1,16 @@
+const BASE = "http://127.0.0.1:3000";
+const login = async (k, p) => (await (await fetch(`${BASE}/api/auth`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: k, pin: p }) })).headers.get("set-cookie") || "").split(";")[0];
+const act = (cookie, action, payload) => fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie }, body: JSON.stringify({ action, payload }) }).then((r) => r.json());
+const state = (cookie, q = "") => fetch(`${BASE}/api/state${q}`, { headers: { cookie } }).then((r) => r.json());
+const A = await login("A", "1111");
+const s0 = await state(A);
+console.log("readings before:", s0.counts.readings, "alerts:", s0.counts.alerts);
+const day = "1405/10/01";
+await Promise.all(Array.from({ length: 10 }, (_, i) => act(A, "process.set", { tag: "PIT-004", day, intervalIndex: 3, value: 2 + i })));
+const s1 = await state(A, `?day=${day}&interval=3`);
+console.log("readings after 10 concurrent process.set:", s1.counts.readings, "expected +1, got +" + (s1.counts.readings - s0.counts.readings));
+console.log("alerts after:", s1.counts.alerts, "(alerts per write = flood risk)");
+const m0 = s1.counts.readings;
+await Promise.all(Array.from({ length: 10 }, (_, i) => act(A, "motor.values", { tag: "EM-03", day, intervalIndex: 3, values: { I1: 300 + i } })));
+const s2 = await state(A, `?day=${day}&interval=3`);
+console.log("readings after 10 concurrent motor.values:", s2.counts.readings, "delta=" + (s2.counts.readings - m0), "(expected +1)");
