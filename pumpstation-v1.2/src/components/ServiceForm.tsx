@@ -97,32 +97,36 @@ export function MotorServiceForm({ tag }: { tag: string }) {
 /** تست مگر — فقط ۴ آیتم قفل‌شده + ولتاژ تست */
 export function MeggerForm({ tag }: { tag: string }) {
   const { state, act, busy, closeModal } = useApp();
-  const [f, setF] = useState<Record<string, string>>({ testVoltage: "1000" });
+  const [f, setF] = useState<Record<string, string>>({ testVoltage: "1000", testVoltageRotor: "1000", unit: "MΩ" });
   const set = (k: string, v: string) => setF((x) => ({ ...x, [k]: v }));
   const history = state.meggers.filter((m) => m.tag === tag);
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const id = await act("motor.megger", { tag, ...f, testVoltage: Number(f.testVoltage), day: state.now.day });
+    const id = await act("motor.megger", { tag, ...f, testVoltage: Number(f.testVoltage), testVoltageRotor: Number(f.testVoltageRotor || f.testVoltage), unit: f.unit || "MΩ", day: state.now.day });
     if (id) closeModal();
   }
   return (
     <form onSubmit={submit}>
-      <div className="panel-title" style={{ fontSize: 14, marginBottom: 6 }}>مقاومت عایقی استاتور (MΩ)</div>
+      <div className="panel-title" style={{ fontSize: 14, marginBottom: 6 }}>مقاومت عایقی استاتور ({f.unit || "MΩ"})</div>
       <div className="form-grid">{["statorU", "statorV", "statorW"].map((k, i) => <div className="field" key={k}><label>{["U1", "V1", "W1"][i]}</label><input className="input mono" type="number" step="any" value={f[k] ?? ""} onChange={(e) => set(k, e.target.value)} /></div>)}</div>
-      <div className="panel-title" style={{ fontSize: 14, margin: "10px 0 6px" }}>مقاومت عایقی رتور (MΩ)</div>
+      <div className="panel-title" style={{ fontSize: 14, margin: "10px 0 6px" }}>مقاومت عایقی رتور ({f.unit || "MΩ"})</div>
       <div className="form-grid">{["rotorU", "rotorV", "rotorW"].map((k, i) => <div className="field" key={k}><label>{["U1", "V1", "W1"][i]}</label><input className="input mono" type="number" step="any" value={f[k] ?? ""} onChange={(e) => set(k, e.target.value)} /></div>)}</div>
       <div className="form-grid" style={{ marginTop: 10 }}>
         <div className="field"><label>دمای سیم‌پیچ (°C)</label><input className="input mono" type="number" step="any" value={f.windingTemp ?? ""} onChange={(e) => set("windingTemp", e.target.value)} /></div>
-        <div className="field"><label>ضریب پلاریزاسیون (PI)</label><input className="input mono" type="number" step="any" value={f.pi ?? ""} onChange={(e) => set("pi", e.target.value)} /></div>
-        <div className="field"><label>ولتاژ تست</label><select className="input" value={f.testVoltage} onChange={(e) => set("testVoltage", e.target.value)}>{[500, 1000, 2500, 5000].map((v) => <option key={v} value={v}>{v} V</option>)}</select></div>
-        <div className="field"><label>انجام‌دهندگان</label><input className="input" value={f.workers ?? ""} onChange={(e) => set("workers", e.target.value)} /></div>
+        <div className="field"><label>یکا</label><select className="input" value={f.unit ?? "MΩ"} onChange={(e) => set("unit", e.target.value)}><option value="MΩ">مگااهم (MΩ)</option><option value="GΩ">گیگااهم (GΩ)</option></select></div>
+        <div className="field"><label>ولتاژ تست استاتور</label><select className="input" value={f.testVoltage} onChange={(e) => set("testVoltage", e.target.value)}>{[500, 1000, 2500, 5000].map((v) => <option key={v} value={v}>{v} V</option>)}</select></div>
+        <div className="field"><label>ولتاژ تست رتور</label><select className="input" value={f.testVoltageRotor} onChange={(e) => set("testVoltageRotor", e.target.value)}>{[500, 1000, 2500, 5000].map((v) => <option key={v} value={v}>{v} V</option>)}</select></div>
+      </div>
+      <div className="panel-title" style={{ fontSize: 14, margin: "10px 0 6px" }}>ضریب پلاریزاسیون (PI) هر سیم‌پیچ</div>
+      <div className="form-grid">{["piStatorU", "piStatorV", "piStatorW"].map((k, i) => <div className="field" key={k}><label>{["PI‑U1", "PI‑V1", "PI‑W1"][i]}</label><input className="input mono" type="number" step="any" value={f[k] ?? ""} onChange={(e) => set(k, e.target.value)} /></div>)}
+        <div className="field"><label>PI رتور</label><input className="input mono" type="number" step="any" value={f.piRotor ?? ""} onChange={(e) => set("piRotor", e.target.value)} /></div>
       </div>
       <div className="field"><label>یادداشت</label><textarea value={f.note ?? ""} onChange={(e) => set("note", e.target.value)} style={{ minHeight: 60 }} /></div>
       <div className="row" style={{ justifyContent: "flex-end" }}><button type="button" className="btn ghost" onClick={closeModal}>انصراف</button><button type="submit" className="btn primary" disabled={busy}>ثبت تست مگر</button></div>
       {history.length > 0 && (
         <div className="table-wrap" style={{ marginTop: 12 }}>
-          <table className="data"><thead><tr><th>تاریخ</th><th>U1/V1/W1 استاتور</th><th>U1/V1/W1 رتور</th><th>دما</th><th>PI</th><th>ولتاژ</th></tr></thead>
-            <tbody>{history.map((m) => <tr key={m.id}><td className="mono">{m.day}</td><td className="mono">{m.statorU ?? "—"} / {m.statorV ?? "—"} / {m.statorW ?? "—"}</td><td className="mono">{m.rotorU ?? "—"} / {m.rotorV ?? "—"} / {m.rotorW ?? "—"}</td><td className="mono">{m.windingTemp ?? "—"}</td><td className="mono">{m.pi ?? "—"}</td><td className="mono">{m.testVoltage}</td></tr>)}</tbody></table>
+          <table className="data"><thead><tr><th>تاریخ</th><th>U1/V1/W1 استاتور</th><th>U1/V1/W1 رتور</th><th>دما</th><th>PI استاتور / رتور</th><th>ولتاژ S/R</th></tr></thead>
+            <tbody>{history.map((m) => <tr key={m.id}><td className="mono">{m.day}</td><td className="mono">{m.statorU ?? "—"} / {m.statorV ?? "—"} / {m.statorW ?? "—"}</td><td className="mono">{m.rotorU ?? "—"} / {m.rotorV ?? "—"} / {m.rotorW ?? "—"}</td><td className="mono">{m.windingTemp ?? "—"}</td><td className="mono">{[m.piStatorU, m.piStatorV, m.piStatorW, m.piRotor].some((x) => x !== null && x !== undefined) ? `${m.piStatorU ?? "—"}/${m.piStatorV ?? "—"}/${m.piStatorW ?? "—"} | ${m.piRotor ?? "—"}` : (m.pi ?? "—")}</td><td className="mono">{m.testVoltage}/{m.testVoltageRotor ?? m.testVoltage}</td></tr>)}</tbody></table>
         </div>
       )}
     </form>

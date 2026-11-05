@@ -134,7 +134,7 @@ function MotorService({ d }: { d: Any }) {
       <table><thead><tr><th>فاز</th>{Array.from({ length: 8 }, (_, i) => <th key={i} className="center">برس {i + 1}</th>)}</tr></thead>
         <tbody>{["U", "V", "W"].map((ph) => <tr key={ph}><td className="ltr"><b>{ph}</b></td>{Array.from({ length: 8 }, (_, i) => <td key={i} className="ltr center">{brush[`${ph}${i + 1}`] ?? "—"}</td>)}</tr>)}</tbody></table>
       <h2>آخرین تست مگر</h2>
-      {megger ? <Simple rows={[["تاریخ", v(megger.day)], ["استاتور U1/V1/W1 (MΩ)", `${v(megger.statorU)} / ${v(megger.statorV)} / ${v(megger.statorW)}`], ["رتور U1/V1/W1 (MΩ)", `${v(megger.rotorU)} / ${v(megger.rotorV)} / ${v(megger.rotorW)}`], ["دمای سیم‌پیچ", v(megger.windingTemp)], ["PI", v(megger.pi)], ["ولتاژ تست", `${v(megger.testVoltage)} V`]]} /> : <p className="print-para">ثبت نشده است.</p>}
+      {megger ? <Simple rows={[["تاریخ", v(megger.day)], [`استاتور U1/V1/W1 (${megger.unit || "MΩ"})`, `${v(megger.statorU)} / ${v(megger.statorV)} / ${v(megger.statorW)}`], [`رتور U1/V1/W1 (${megger.unit || "MΩ"})`, `${v(megger.rotorU)} / ${v(megger.rotorV)} / ${v(megger.rotorW)}`], ["دمای سیم‌پیچ", v(megger.windingTemp)], ["PI استاتور / رتور", (megger.piStatorU ?? megger.piStatorV ?? megger.piStatorW ?? megger.piRotor) != null ? `${v(megger.piStatorU)}/${v(megger.piStatorV)}/${v(megger.piStatorW)} | ${v(megger.piRotor)}` : v(megger.pi)], ["ولتاژ تست S/R", `${v(megger.testVoltage)} / ${v(megger.testVoltageRotor ?? megger.testVoltage)} V`]]} /> : <p className="print-para">ثبت نشده است.</p>}
       <h2>آخرین تعویض روغن پمپ</h2>
       {oil ? <Simple rows={[["تاریخ", v(oil.day)], ["ساعت کارکرد", v(oil.hours)], ["یادداشت", v(oil.note)]]} /> : <p className="print-para">ثبت نشده است.</p>}
     </>
@@ -144,14 +144,17 @@ function MotorService({ d }: { d: Any }) {
 function Megger({ d }: { d: Any }) {
   return (
     <>
-      <Simple rows={[["موتور", v(d.tag)], ["تاریخ", v(d.day)], ["ولتاژ تست", `${v(d.testVoltage)} V`], ["انجام‌دهندگان", v(d.workers)]]} />
+      <Simple rows={[["موتور", v(d.tag)], ["تاریخ", v(d.day)], ["ولتاژ تست استاتور", `${v(d.testVoltage)} V`], ["ولتاژ تست رتور", `${v(d.testVoltageRotor ?? d.testVoltage)} V`], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)]]} />
       <h2>نتایج</h2>
       <table><thead><tr><th>آیتم</th><th className="center">U1</th><th className="center">V1</th><th className="center">W1</th></tr></thead>
         <tbody>
-          <tr><td>مقاومت عایقی استاتور (MΩ)</td><td className="ltr center">{v(d.statorU)}</td><td className="ltr center">{v(d.statorV)}</td><td className="ltr center">{v(d.statorW)}</td></tr>
-          <tr><td>مقاومت عایقی رتور (MΩ)</td><td className="ltr center">{v(d.rotorU)}</td><td className="ltr center">{v(d.rotorV)}</td><td className="ltr center">{v(d.rotorW)}</td></tr>
+          <tr><td>مقاومت عایقی استاتور ({String(d.unit || "MΩ")})</td><td className="ltr center">{v(d.statorU)}</td><td className="ltr center">{v(d.statorV)}</td><td className="ltr center">{v(d.statorW)}</td></tr>
+          <tr><td>مقاومت عایقی رتور ({String(d.unit || "MΩ")})</td><td className="ltr center">{v(d.rotorU)}</td><td className="ltr center">{v(d.rotorV)}</td><td className="ltr center">{v(d.rotorW)}</td></tr>
           <tr><td>دمای سیم‌پیچ (°C)</td><td className="ltr center" colSpan={3}>{v(d.windingTemp)}</td></tr>
-          <tr><td>ضریب پلاریزاسیون (PI)</td><td className="ltr center" colSpan={3}>{v(d.pi)}</td></tr>
+          {d.piStatorU != null || d.piStatorV != null || d.piStatorW != null || d.piRotor != null ? (<>
+            <tr><td>PI استاتور (U1/V1/W1)</td><td className="ltr center">{v(d.piStatorU)}</td><td className="ltr center">{v(d.piStatorV)}</td><td className="ltr center">{v(d.piStatorW)}</td></tr>
+            <tr><td>PI رتور</td><td className="ltr center" colSpan={3}>{v(d.piRotor)}</td></tr>
+          </>) : (<tr><td>ضریب پلاریزاسیون (PI)</td><td className="ltr center" colSpan={3}>{v(d.pi)}</td></tr>)}
         </tbody></table>
       {d.note ? <p className="print-para">یادداشت: {String(d.note)}</p> : null}
     </>

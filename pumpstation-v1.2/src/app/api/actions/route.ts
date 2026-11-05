@@ -331,17 +331,21 @@ export async function POST(request: Request) {
         if (!MOTORS.some((m) => m.tag === tag)) throw new Error("موتور نامعتبر است");
         const testVoltage = Number(p.testVoltage ?? 1000);
         if (![500, 1000, 2500, 5000].includes(testVoltage)) throw new Error("ولتاژ تست نامعتبر است");
+        const testVoltageRotor = p.testVoltageRotor === undefined || p.testVoltageRotor === "" || p.testVoltageRotor === null ? testVoltage : Number(p.testVoltageRotor);
+        if (![500, 1000, 2500, 5000].includes(testVoltageRotor)) throw new Error("ولتاژ تست رتور نامعتبر است");
+        const unit = p.unit === "GΩ" ? "GΩ" : "MΩ";
         const rec = {
-          tag, day, testVoltage,
+          tag, day, testVoltage, testVoltageRotor, unit,
           statorU: optNum(p.statorU), statorV: optNum(p.statorV), statorW: optNum(p.statorW),
           rotorU: optNum(p.rotorU), rotorV: optNum(p.rotorV), rotorW: optNum(p.rotorW),
           windingTemp: optNum(p.windingTemp), pi: optNum(p.pi),
-          workers: str(p.workers, 200), note: str(p.note, 1000), at: jalaliNow(), shiftKey,
+          piStatorU: optNum(p.piStatorU), piStatorV: optNum(p.piStatorV), piStatorW: optNum(p.piStatorW), piRotor: optNum(p.piRotor),
+          workers: "", note: str(p.note, 1000), at: jalaliNow(), shiftKey,
         };
-        if ([rec.statorU, rec.statorV, rec.statorW, rec.rotorU, rec.rotorV, rec.rotorW, rec.windingTemp, rec.pi].every((v) => v === null)) throw new Error("حداقل یک مقدار تست را وارد کنید");
+        if ([rec.statorU, rec.statorV, rec.statorW, rec.rotorU, rec.rotorV, rec.rotorW, rec.windingTemp, rec.pi, rec.piStatorU, rec.piStatorV, rec.piStatorW, rec.piRotor].every((v) => v === null)) throw new Error("حداقل یک مقدار تست را وارد کنید");
         const id = (await db.insert(meggerTests).values(rec).returning({ id: meggerTests.id }))[0].id;
-        const rid = await createReport({ kind: "megger", day, shift, title: `تست مگر ${tag} — ${day}`, payload: { ...rec, meggerId: id, generatedAt: jalaliNow() } });
-        await logActivity(shiftKey, "ثبت تست مگر", `${tag} — ${testVoltage} V`);
+        const rid = await createReport({ kind: "megger", day, shift, title: `تست مگر ${tag} — ${day}`, payload: { ...rec, meggerId: id, shiftLabel: `${shift.label} — ${shift.members.join(" و ")}`, generatedAt: jalaliNow() } });
+        await logActivity(shiftKey, "ثبت تست مگر", `${tag} — ${testVoltage}/${testVoltageRotor} V`);
         return Response.json({ ok: true, id: rid });
       }
 

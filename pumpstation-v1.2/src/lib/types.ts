@@ -106,6 +106,12 @@ export type MeggerView = {
   windingTemp: number | null;
   pi: number | null;
   testVoltage: number;
+  testVoltageRotor: number | null;
+  piStatorU: number | null;
+  piStatorV: number | null;
+  piStatorW: number | null;
+  piRotor: number | null;
+  unit: string;
   workers: string;
   note: string;
   at: string;

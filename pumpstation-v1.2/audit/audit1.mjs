@@ -143,6 +143,17 @@ const H = (cookie) => ({ cookie });
   const sameDay = pts.filter((p) => String(p.label ?? "").includes("11") || true).length;
   log("concurrent motor value writes duplicate rows?", pts.length <= 6, `points=${pts.length} for 6 intervals — ${pts.length > 6 ? "DUPLICATES (bug)" : "ok"}`);
 
+  // ---------- H: megger (multi-voltage + per-winding PI + unit) ----------
+  const mg = await act(A, "motor.megger", { tag: "M-01", day, testVoltage: 1000, testVoltageRotor: 500, unit: "GΩ", statorU: 120, statorV: 130, statorW: 125, rotorU: 90, rotorV: 95, rotorW: 92, windingTemp: 35, piStatorU: 2.1, piStatorV: 2.0, piStatorW: 2.2, piRotor: 1.8, note: "audit" });
+  log("megger multi-voltage/PI/unit accepted", mg.status === 200 && mg.body?.ok === true && typeof mg.body?.id === "number", `status=${mg.status} id=${mg.body?.id}`);
+  st = await fetch(`${BASE}/api/state?day=${day}&interval=1`, { headers: H(A) }).then((r) => r.json());
+  const mrow = (st.meggers ?? []).find((m) => m.tag === "M-01");
+  log("megger fields persisted", mrow?.testVoltageRotor === 500 && mrow?.unit === "GΩ" && mrow?.piStatorU === 2.1 && mrow?.piRotor === 1.8, `rotorV=${mrow?.testVoltageRotor} unit=${mrow?.unit} piU=${mrow?.piStatorU} piR=${mrow?.piRotor}`);
+  const mgBad = await act(A, "motor.megger", { tag: "M-01", day, testVoltage: 1000, testVoltageRotor: 9999, statorU: 1 });
+  log("megger invalid rotor voltage rejected", mgBad.status === 400, `status=${mgBad.status}`);
+  const mgLegacy = await act(A, "motor.megger", { tag: "M-02", day, testVoltage: 2500, statorU: 50, pi: 1.5 });
+  log("megger legacy payload (single PI) still works", mgLegacy.status === 200 && mgLegacy.body?.ok === true, `status=${mgLegacy.status}`);
+
   console.log("\n=== summary ===");
   console.log(`total=${out.length} pass=${out.filter((o) => o.pass).length} fail=${out.filter((o) => !o.pass).length}`);
   console.log(JSON.stringify(out.filter((o) => !o.pass).map((o) => o.name), null, 1));
