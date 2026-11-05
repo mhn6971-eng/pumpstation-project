@@ -9,6 +9,17 @@
  */
 import { spawn } from "node:child_process";
 import { resolveBind } from "../src/lib/netbind.ts";
+import { requireLocalSqlite } from "../src/lib/sqlite-cloud.ts";
+
+// پیش‌بررسی مسیر دیتابیس (حالت PGlite): مسیر ابری = توقف پیش از بالا آمدن
+if (!/^postgres(ql)?:\/\//i.test((process.env.DATABASE_URL ?? "").trim())) {
+  try {
+    requireLocalSqlite(process.env.PGLITE_DATA_DIR ?? ".data/pglite");
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+  }
+}
 
 const [mode, ...rest] = process.argv.slice(2);
 if (mode !== "dev" && mode !== "start") {

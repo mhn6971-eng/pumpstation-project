@@ -1,8 +1,9 @@
 /**
- * بازنشانی اضطراری PIN ادمین (وقتی کسی به سامانه دسترسی ندارد)
- *   node scripts/reset-admin-pin.mjs            → PIN ادمین به 9999
- *   node scripts/reset-admin-pin.mjs 1234 A     → PIN دلخواه برای شیفت دلخواه
+ * بازنشانی اضطراری PIN (وقتی کسی به سامانه دسترسی ندارد) — نسخهٔ ۱٫۴٫۱.
  *
+ *   node scripts/reset-admin-pin.mjs --pin 123456 --confirm 123456 [--shift admin]
+ *
+ * بدون --pin و --confirmِ یکسان، هیچ کاری انجام نمی‌شود (PIN پیش‌فرضی در کار نیست).
  * شرط‌ها: سامانه باید خاموش باشد (قفل پوشهٔ داده بررسی می‌شود) و
  * رویداد در دفتر فعالیت ثبت می‌شود تا رد پا بماند.
  */
@@ -10,6 +11,30 @@ import { PGlite } from "@electric-sql/pglite";
 import { randomBytes, scryptSync } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+
+const args = process.argv.slice(2);
+const flag = (name) => {
+  const i = args.findIndex((a) => a === name);
+  return i >= 0 ? (args[i + 1] ?? "").trim() : "";
+};
+
+const pin = flag("--pin");
+const confirm = flag("--confirm");
+const shiftKey = flag("--shift") || "admin";
+
+if (!pin || !confirm) {
+  console.error("استفاده: node scripts/reset-admin-pin.mjs --pin <4تا6 رقم> --confirm <تکرار PIN> [--shift admin]");
+  console.error("بدون --pin و --confirm هیچ کاری انجام نمی‌شود.");
+  process.exit(1);
+}
+if (pin !== confirm) {
+  console.error("PIN و تکرار آن یکسان نیست؛ هیچ کاری انجام نشد.");
+  process.exit(1);
+}
+if (!/^\d{4,6}$/.test(pin)) {
+  console.error("PIN باید چهار تا شش رقم باشد.");
+  process.exit(1);
+}
 
 const dataDir = process.env.PGLITE_DATA_DIR ?? ".data/pglite";
 const lockFile = path.join(path.resolve(dataDir), ".pumpstation.lock");
@@ -29,13 +54,6 @@ if (existsSync(lockFile)) {
   } catch {
     /* ignore */
   }
-}
-
-const pin = (process.argv[2] ?? "9999").trim();
-const shiftKey = (process.argv[3] ?? "admin").trim();
-if (!/^\d{4,6}$/.test(pin)) {
-  console.error("PIN باید چهار تا شش رقم باشد.");
-  process.exit(1);
 }
 
 const salt = randomBytes(16).toString("hex");

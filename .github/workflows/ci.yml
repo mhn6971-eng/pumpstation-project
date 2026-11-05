@@ -58,6 +58,7 @@ jobs:
           node audit/audit3.mjs
           node audit/audit4.mjs
           node audit/audit5.mjs
+          node audit/audit6.mjs
 
       - name: آزمون آینه روی رسانهٔ آزمایشی
         run: |

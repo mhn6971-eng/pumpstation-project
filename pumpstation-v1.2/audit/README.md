@@ -18,6 +18,10 @@ npm run preview            # در ترمینال اول
 node audit/jalali.test.mjs # تاریخ شمسی (بدون نیاز به سرور؛ باید روی /tmp/jal/ کامپایل شود)
 node audit/audit1.mjs      # احراز هویت، مجوزها، تزریق، XSS، نویز
 node audit/audit2.mjs      # بک‌آپ/بازیابی، آپلود، هدرها، حجم بدنه، صف ارسال
+node audit/audit3.mjs      # اعتبارسنجی ورودی‌ها و گزارش‌ها
+node audit/audit4.mjs      # بک‌آپ/بازیابی داخلی و سلامت
+node audit/audit5.mjs      # هم‌خوانی تنظیمات و گزارش کامل
+node audit/audit6.mjs      # ۱٫۴٫۱: روستر، بایند، نگهبان مسیر، ورود گروهی
 node audit/conc.mjs        # نوشتن همزمان و بررسی تکرار رکورد
 node audit/perf.mjs        # زمان پاسخ در حجم دادهٔ فعلی
 node audit/sess.mjs        # نشست، خروج، تغییر PIN، دو تب
@@ -25,7 +29,8 @@ node audit/sess.mjs        # نشست، خروج، تغییر PIN، دو تب
 
 برای دادهٔ انبوه (فقط با سرور خاموش، چون دیتابیس تک‌فرآیندی است):
 ```bash
-node audit/bulk.mjs 730            # یک سال داده روی ۱۴۰۵/۰۸/۱۳
+node audit/bulk.mjs --db /tmp/bulk-test --days 730 --confirm-test   # دادهٔ حجیم TEST (SQL مستقیم)
+node scripts/bulk-import.mjs --file rows.csv --shift A --pin 1011 --confirm-test  # ورود واقعی از مسیر API
 node audit/db-inspect.mjs .data/pglite   # شمارش و بررسی تکرارها
 node audit/probe.mjs               # آزمون سالم‌بودن دیتابیس پس از قطع ناگهانی
 ```

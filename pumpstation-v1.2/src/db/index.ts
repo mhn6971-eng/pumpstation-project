@@ -3,6 +3,7 @@ import { drizzle as drizzlePglite, type PgliteDatabase } from "drizzle-orm/pglit
 import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { acquireDbLock, releaseDbLock } from "@/lib/dblock";
+import { requireLocalSqlite } from "@/lib/sqlite-cloud";
 
 /**
  * دو حالت اجرای دیتابیس — با یک متغیر محیطی انتخاب می‌شود:
@@ -21,6 +22,9 @@ export const usingPostgres = /^postgres(ql)?:\/\//i.test(databaseUrl);
 
 const buildPhase = process.env.NEXT_PHASE === "phase-production-build";
 const dataDir = process.env.PGLITE_DATA_DIR ?? ".data/pglite";
+
+// دیتابیس داخل پوشهٔ ابری (گوگل‌درایو/وان‌درایو/…) = خطر خرابی؛ سرور بالا نمی‌آید
+if (!usingPostgres && !buildPhase) requireLocalSqlite(dataDir);
 
 /**
  * قفل پوشهٔ داده (فقط PGlite): جلوگیری از باز شدن هم‌زمان توسط دو برنامه

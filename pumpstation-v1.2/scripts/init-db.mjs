@@ -9,8 +9,15 @@ import { PGlite } from "@electric-sql/pglite";
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { requireLocalSqlite } from "../src/lib/sqlite-cloud.ts";
 
 const dataDir = process.env.PGLITE_DATA_DIR ?? ".data/pglite";
+try {
+  requireLocalSqlite(dataDir);
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error);
+  process.exit(1);
+}
 await mkdir(dataDir, { recursive: true });
 
 /**

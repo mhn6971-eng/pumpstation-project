@@ -1,14 +1,15 @@
 ========================================================================
 پرامپت نهایی — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-«فاز ۴: امنیت انتقال، آینهٔ بک‌آپ، ورود دوعاملی، مسیر PostgreSQL»
-تاریخ: ۱۴۰۵/۰۸/۱۳   |   نسخهٔ برنامه: 1.4.0   |   مسیر: pumpstation-v1.2/
-کامیت پایانی: 63710d8  (شاخهٔ arena/9a0919c6-pumpstation-project — پوش‌شده به origin)
+«نسخهٔ ۱٫۴٫۱: روستر محلی، بایند امن، نگهبان مسیر ابری، ورود گروهی»
+تاریخ: ۱۴۰۵/۰۸/۱۴   |   نسخهٔ برنامه: 1.4.1   |   مسیر: pumpstation-v1.2/
+کامیت پایانی: COMMIT141  (شاخهٔ arena/9a0919c6-pumpstation-project — پوش‌شده به origin)
 ========================================================================
 
 دو فایل تحویلی این مرحله:
   ۱) همین فایل (docs/PROMPT_FINAL_FA.txt) — پرامپت نهایی و کامل.
   ۲) pumpstation-v1.2/CODE_ALL_FA.txt — کل کد برنامه به‌صورت متن یکپارچه:
-     ۹۴ فایل، ۱۴٬۴۴۷ خط، با فهرست و جداکنندهٔ «── FILE: مسیر ──» پیش از هر فایل.
+     ۱۰۲ فایل، ۱۵٬۳۰۲ خط، با فهرست و جداکنندهٔ «── FILE: مسیر ──» پیش از هر فایل.
+     (تولید قطعی با: node scripts/generate-code-all.mjs)
 
 این فایل، «پرامپت مادر جدید» است: هر چیزی که تا امروز ساخته شده، هر کار امنیتی
 که انجام شده، و هر قدمی که باقی مانده — به‌صورت یک‌جا. اگر این متن را به یک
@@ -38,34 +39,44 @@ PostgreSQL سروری، Tailwind 4. هیچ وابستگی ابری یا خارج
 ------------------------------------------------------------------------
 ریپو: mhn6971-eng/pumpstation-project   شاخه: arena/9a0919c6-pumpstation-project
 پوشهٔ برنامه: pumpstation-v1.2/
-اجرا:   npm run preview     (مهاجرت دیتابیس + سرور روی 0.0.0.0:3000)
+اجرا:   npm run preview     (مهاجرت دیتابیس + سرور فقط روی 127.0.0.1:3000)
+        npm run preview:lan (همان، ولی باز روی شبکهٔ داخلی برای اتاق دوم)
 تولید:  npm run build && npm start
-آزمون:  npm test            (بررسی نوع‌ها + ۱۴۰ سنجهٔ خودکار)
+آزمون:  npm test            (بررسی نوع‌ها + ۱۸۳ سنجهٔ خودکار)
 سلامت: GET /api/health   و   GET /api/health?full=1 (ادمین)
-کدهای ورود پیش‌فرض نمونه: شیفت A=1111، B=2222، C=3333، ادمین=9999
-(این‌ها را پیش از تحویل واقعی عوض کنید: scripts/reset-admin-pin.mjs)
+PINهای آزمایشی نمونه: شیفت A=1011، B=2022، C=3033، ادمین=9009
+(ساختگی‌اند، از data/roster.sample.json. نام و PIN واقعی فقط در فایل محلی
+غیرگیت data/roster.local.json روی دستگاه ایستگاه نوشته می‌شود.)
 
 مسیرهای مهم کد:
   src/lib/       auth, security, sessions, secret, backup, mirror, totp,
                  reporting, domain, jalali, pin, state, audit, archive, log,
-                 errors, version, dblock
+                 errors, version, dblock,
+                 roster, netbind, sqlite-cloud (هر سه از ۱٫۴٫۱)
   src/db/        schema.ts, index.ts (سوییچ PGlite/PostgreSQL), seed.ts
   src/app/api/   auth, actions, catalogs, state, history, totals, backups,
                  mirror, health, export
   src/components/ AppShell, Dashboard, MotorCard/Visual/Detail, ReportsHub,
                  RegistryTab, AdminTab, TwoFactorPanel, MirrorPanel, Login, ui
+  data/          roster.sample.json (نمونهٔ ساختگی)؛ roster.local.json محلی و
+                 غیرگیت (نام و PIN واقعی، فقط روی دستگاه ایستگاه)
   drizzle/       0000 پایه، 0001 hardening، 0002 resilience،
                  0003 two_factor، 0004 mirror_ts
   scripts/       init-db, doctor, reset-admin-pin, mirror-backup, pg-init,
-                 pg-dump, pg-import-json
+                 pg-dump, pg-import-json, serve (اجرا با بایند امن، از ۱٫۴٫۱)،
+                 bulk-import (ورود گروهی CSV از API، از ۱٫۴٫۱)،
+                 generate-code-all (تولید CODE_ALL_FA.txt، از ۱٫۴٫۱)
   audit/         audit1 (امنیت)، audit2 (رفتار)، audit3 (نشست/CSRF/ETag/CSV/بایگانی)،
-                 audit4 (بک‌آپ/بازیابی)، audit5 (دوعاملی/آینه/هدرها/HTTPS/PostgreSQL)
-  deploy/        Caddyfile, nginx.conf
+                 audit4 (بک‌آپ/بازیابی)، audit5 (دوعاملی/آینه/هدرها/HTTPS/PostgreSQL)،
+                 audit6 (۱٫۴٫۱: روستر/بایند/مسیر ابری/ورود گروهی)، bulk (تولید
+                 دادهٔ حجیم TEST، بازنویسی در ۱٫۴٫۱)
+  deploy/        Caddyfile, nginx.conf (هر دو با بازنویسی کامل IP از ۱٫۴٫۱)
   docs/          CHANGELOG_FA, RUNBOOK_FA, SECURITY_FA, DEPLOY_HTTPS_FA,
                  POSTGRES_MIGRATION_FA, HARDENING_v1.2.1_FA, PROJECT_MASTER_FA,
+                 STATION_NETWORK_FA (دو اتاق، از ۱٫۴٫۱)،
                  PROMPT_V1.2_FA, PROMPT_V1.4_FA.txt (نسخهٔ قبلی)،
                  PROMPT_FINAL_FA.txt (همین فایل)
-  CODE_ALL_FA.txt  کل کد برنامه در یک فایل متنی (۹۴ فایل / ۱۴٬۴۴۷ خط)
+  CODE_ALL_FA.txt  کل کد برنامه در یک فایل متنی (۱۰۲ فایل / ۱۵٬۳۰۲ خط)
   .env.example     همهٔ متغیرهای محیطی با توضیح فارسی
   eslint.config.mjs  پیکربندی ESLint (از ۱.۴)
 
@@ -91,6 +102,15 @@ PostgreSQL سروری، Tailwind 4. هیچ وابستگی ابری یا خارج
   (ج) HTTPS: کوکی Secure، HSTS شرطی، نمونهٔ آمادهٔ Caddy/nginx، راهنمای گام‌به‌گام
   (د) مسیر PostgreSQL: سوییچ با DATABASE_URL + init/dump/import + سند مهاجرت
   و یک محور باقی‌مانده که منتظر شماست: فرم کاغذی گزارش روزانه.
+
+نسخهٔ ۱٫۴٫۱ (همین نسخه، ۱۴۰۵/۰۸/۱۴): سخت‌سازی بهره‌برداری از روی بازبینی
+ویرایش ۲. چهار محور: (الف) روستر محلی — نام و PIN واقعی از کد و گیت بیرون
+رفت و فقط در فایل محلی دستگاه است (ب) بایند امن — پیش‌فرض حلقه، LAN فقط با
+پیکربندی صریح، اعتماد به هدر IP فقط پشت پروکسی خودمان، دروازهٔ رنج مجاز
+(ج) نگهبان مسیر ابری — دیتابیس داخل گوگل‌درایو/وان‌درایو/دراپ‌باکس/آی‌کلاد
+بالا نمی‌آید (د) ورود گروهی — ایمپورتر CSV از مسیر رسمی API با کلید یکتایی
+و گزارش + بازنویسی ابزار دادهٔ حجیم تست با نگهبان‌های صریح. آزمون‌ها:
+۱۸۳/۱۸۳ سبز (مجموعهٔ ششم اضافه شد).
 
 ------------------------------------------------------------------------
 ۴) تغییرات فنی فاز ۴ — فهرست دقیق (برای بازبینی و ادامه)
@@ -204,6 +224,49 @@ PostgreSQL سروری، Tailwind 4. هیچ وابستگی ابری یا خارج
   • src/lib/version.ts → 1.4.0؛ کارت نسخه در تب مدیریت به ۱.۴
   • .github/workflows/ci.yml → اجرای audit5 و آزمون اسکریپت آینه روی پوشهٔ موقت
 
+۴-۷) تغییرات نسخهٔ ۱٫۴٫۱
+  روستر محلی:
+  • جدید: src/lib/roster.ts (خواندن و اعتبارسنجی روستر بدون هیچ وابستگی) و
+    data/roster.sample.json (نام‌ها و PINهای ساختگی: A=1011، B=2022، C=3033،
+    ادمین=9009). ترتیب: ROSTER_FILE یا data/roster.local.json اگر هست (خراب =
+    توقف با خطا)، وگرنه نمونه با اخطار بلند. روستر محلی حتماً باید admin
+    داشته باشد. src/db/seed.ts از resolveRoster می‌خواند؛ SHIFT_ROSTER از
+    src/lib/domain.ts حذف شد. .gitignore: ‎*.local.json و _review-edition2/.
+  • جاروی حریم خصوصی: نام واقعی و PIN قدیمی از کد/تست/اسناد زنده/نمونهٔ Flask
+    حذف شد. تاریخچهٔ گیت و خصوصی‌سازی ریپو جداگانه و با تأیید انجام می‌شود.
+  بایند و شبکه:
+  • جدید: src/lib/netbind.ts (resolveBind، trustProxyEnabled، trustedClientIp،
+    تطبیق CIDR، lanAllowed) و scripts/serve.mjs که همهٔ اسکریپت‌های اجرا
+    (dev/preview/start/stackblitz + ‏preview:lan/start:lan) از آن می‌گذرند.
+    پیش‌فرض 127.0.0.1؛ LAN فقط با BIND=lan یا ‎--host همراه با اخطار فایروال.
+  • src/proxy.ts: هدر IP فقط با TRUST_PROXY=1؛ دروازهٔ LAN_ALLOW با کد
+    lan_denied روی API و صفحهٔ اصلی؛ اخطار ترکیب ناقص؛ matcher شامل «/» شد.
+  • src/lib/security.ts: clientIp همان قاعدهٔ اعتماد؛ کش قفل در حالت
+    PostgreSQL چندنمونه‌ای از دیتابیس خوانده می‌شود.
+  • deploy/Caddyfile و nginx.conf: بازنویسی کامل X-Forwarded-For با IP واقعی
+    (نه الحاق). DEPLOY_HTTPS و .env.example: افزودن TRUST_PROXY=1.
+  • جدید: docs/STATION_NETWORK_FA.md — راه‌اندازی دو اتاق (نقشه، جدول تصمیم،
+    فایروال ویندوز، زمان‌بند آینه، عیب‌یابی، نتایج آزمون).
+  نگهبان مسیر و ابزارها:
+  • جدید: src/lib/sqlite-cloud.ts — تشخیص Google Drive/OneDrive/Dropbox/iCloud
+    در بخش‌های مسیر (به «sandbox» گیر نمی‌دهد)؛ requireLocalSqlite با راه فرار
+    PGLITE_ALLOW_CLOUD=1. سیم‌کشی در src/db/index.ts (به‌جز بیلد و PostgreSQL)،
+    پیش‌بررسی serve.mjs (توقف پیش از بالا آمدن) و scripts/init-db.mjs.
+  • scripts/reset-admin-pin.mjs: حذف PIN پیش‌فرض؛ بدون ‎--pin و ‎--confirm
+    یکسان هیچ کاری نمی‌کند (فرم: ‎--pin 123456 ‎--confirm 123456 ‏[--shift]).
+  • جدید: scripts/bulk-import.mjs — ورود CSV (day,interval,scope,tag,param,value)
+    از مسیر رسمی API؛ گروه‌بندی موتورها؛ کلید یکتایی قطعی؛ تحمل ۴۲۹ با
+    Retry-After؛ ‎--dry-run؛ ‎--confirm-test اجباری؛ مقصد پیش‌فرض فقط حلقه؛
+    گزارش با نمونه‌بینی از تاریخچه.
+  • audit/bulk.mjs بازنویسی: فقط ‎--db و ‎--confirm-test صریح، هرگز روی
+    دیتابیس روشن یا مسیر ابری، تاریخ پایان = امروز، زمان واقعی، گزارش.
+  آزمون و نسخه:
+  • جدید: audit/audit6.mjs با ۴۳ سنجه (واحد netbind/roster/sqlite-cloud +
+    جعل هدر + یادداشت متنی + رفتار اسکریپت‌ها)؛ بدون تاریخ ثابت. به
+    test:audit و CI اضافه شد. باگ تاریخ‌محوری audit1 (یادداشت) اصلاح شد.
+  • نسخه به 1.4.1 (package.json و version.ts) + بخش CHANGELOG + بازتولید
+    CODE_ALL_FA.txt با اسکریپت قطعی scripts/generate-code-all.mjs.
+
 ------------------------------------------------------------------------
 ۵) کارهای امنیتی — «قبل» و «بعد» (این بخش را در گزارش‌ها استفاده کنید)
 ------------------------------------------------------------------------
@@ -256,19 +319,50 @@ PostgreSQL سروری، Tailwind 4. هیچ وابستگی ابری یا خارج
         scripts/doctor.mjs --repair، admin.unlock برای رفع قفل ورود،
         احیای دوعاملی شیفت با PIN ادمین (totp.disable) برای گوشی گم‌شده.
 
+۱۰. افشای نام و PIN واقعی در کد (۱٫۴٫۱)
+   قبل: نام واقعی اپراتورها و PINها در SHIFT_ROSTER داخل کد و تاریخچهٔ گیت.
+   بعد: روستر فقط در فایل محلی غیرگیت؛ نمونهٔ ساختگی برای تست؛ فایل محلیِ
+        خراب مانع بالا آمدن می‌شود؛ جاروی نام/PIN از کد و اسناد زنده.
+        ⚠ تاریخچهٔ گیت هنوز نسخه‌های قبلی را دارد؛ پاک‌سازی و خصوصی‌سازی
+        ریپو جداگانه و با تأیید شما انجام می‌شود.
+
+۱۱. باز بودن ناخواسته روی شبکه و جعل IP (۱٫۴٫۱)
+   قبل: اجرای پیش‌فرض روی 0.0.0.0؛ اعتماد بی‌قید به هدر X-Forwarded-For.
+   بعد: پیش‌فرض حلقه؛ LAN فقط صریح؛ اعتماد به هدر فقط با TRUST_PROXY=1؛
+        دروازهٔ رنج مجاز با کد lan_denied؛ بازنویسی کامل IP در Caddy/nginx.
+        ⚠ در اتصال مستقیم (بدون پروکسی) IP واقعی دیده نمی‌شود؛ آنجا کنترل
+        با فایروال سیستم‌عامل است (سند STATION_NETWORK_FA).
+
+۱۲. خرابی دیتابیس داخل فضای ابری (۱٫۴٫۱)
+   قبل: هیچ منعی برای PGLITE_DATA_DIR داخل پوشهٔ همگام‌شونده نبود.
+   بعد: توقف با پیام فارسی پیش از بالا آمدن و پیش از مهاجرت، برای هر چهار
+        سرویس ابری؛ راه فرار آگاهانهٔ PGLITE_ALLOW_CLOUD=1.
+
+۱۳. ورود گروهی خارج از مسیر رسمی (۱٫۴٫۱)
+   قبل: ابزار bulk شکسته (مسیر /tmp/jal، تاریخ ثابت، SQL مستقیم بدون نگهبان).
+   بعد: ایمپورتر CSV از مسیر رسمی API با اعتبارسنجی سرور، کلید یکتایی،
+        تحمل سقف نرخ و گزارش؛ ابزار دادهٔ حجیم فقط برای TEST با نگهبان‌های
+        صریح (--confirm-test، منع دیتابیس روشن و مسیر ابری).
+
 ------------------------------------------------------------------------
 ۶) نتیجهٔ آزمون‌ها و کارایی (قابل استناد)
 ------------------------------------------------------------------------
-آزمون خودکار: ۱۴۰ سنجه، همه سبز (اجرا روی `next build` + `next start`، پورت ۳۱۰۰)
+آزمون خودکار: ۱۸۳ سنجه، همه سبز (اجرا روی `next dev`، پورت ۳۰۰۰)
   audit1  ۲۸/۲۸  امنیت (احراز هویت، CSRF، نرخ، ورودی مخرب، XSS بی‌اثر)
   audit2  ۱۷/۱۷  رفتار (بازه‌ها، ست‌پوینت، اسفند، چرخش شیفت، سقف بدنه)
   audit3  ۳۳/۳۳  نشست/دستگاه‌ها، یکتایی ثبت، CSRF، ETag، بایگانی، CSV
   audit4  ۱۱/۱۱  بک‌آپ و بازیابی از فایل، «ویندوز عوض شد»، تداوم پس از بازیابی
   audit5  ۵۱/۵۱  دوعاملی کامل، آینه (شامل تأیید فیزیکی هش فایل)، هدرها،
                  آمادگی HTTPS، مهاجرت‌ها و حالت دیتابیس
-  + npx tsc --noEmit بدون خطا   + npx next build موفق   + npm audit --omit=dev = ۰
+  audit6  ۴۳/۴۳  ۱٫۴٫۱: روستر (نمونه/محلی/خراب)، بایند و CIDR و رنج مجاز،
+                 نگهبان مسیر ابری، نادیده‌گرفتن هدر جعلی، ورود گروهی (خشک و
+                 واقعی روی دیتابیس TEST)، رفتار اسکریپت‌ها (رد موارد ناامن)
+  + npx tsc --noEmit بدون خطا   + npm audit --omit=dev = ۰
+  + آزمون دستی زنجیرهٔ کامل: بایند حلقه/LAN، رد/قبول رنج با TRUST_PROXY=1،
+    امتناع از بوت روی مسیر ابری، بازنشانی PIN با ‎--confirm، ورود گروهی واقعی
 نکتهٔ روش‌شناسی: TOTP در خودِ آزمون مستقل پیاده شده (base32 + HMAC-SHA1) تا
 کد سرور واقعاً سنجیده شود، نه اینکه همان تابع دوباره صدا زده شود.
+(ارقام کارایی زیر از نسخهٔ ۱٫۴ روی بیلد تولیدی‌اند و در ۱٫۴٫۱ تکرار نشده‌اند.)
 
 کارایی (بیلد تولیدی، ۱۳ آذر ۱۴۰۵):
   SSR صفحهٔ اصلی (شامل کل وضعیت): میانه ۷۵ms (نسخهٔ ۱.۳: ۲۰۹ms)
@@ -290,12 +384,15 @@ PostgreSQL سروری، Tailwind 4. هیچ وابستگی ابری یا خارج
    برای صفحهٔ ورود (public/images/station-hero.jpg).
 ۳. توکن و chat_id کانال بله/ایتا برای ارسال خودکار گزارش‌ها.
 ۴. نصب گواهی/پروکسی روی دستگاه ایستگاه (Caddy یا nginx) طبق
-   docs/DEPLOY_HTTPS_FA.md — بعد از آن COOKIE_SECURE=1 و FORCE_HTTPS=1.
+   docs/DEPLOY_HTTPS_FA.md — بعد از آن COOKIE_SECURE=1 و FORCE_HTTPS=1 و
+   TRUST_PROXY=1 (هر سه).
 ۵. فعال‌سازی عملی دوعاملی برای حساب ادمین روی همان دستگاه + چاپ کدهای پشتیبان.
 ۶. اتصال فلش/درایو آینه و ثبت Task Scheduler روزانه (۲ بامداد).
 ۷. اگر مهاجرت به PostgreSQL تأیید شد: نصب سرور و اجرای سه اسکریپت
    pg-init / pg-import-json / pg-dump طبق docs/POSTGRES_MIGRATION_FA.md.
-۸. تغییر همهٔ PINهای پیش‌فرض (1111/2222/3333/9999) پیش از تحویل واقعی.
+۸. ساخت data/roster.local.json با نام و PIN واقعی روی دستگاه ایستگاه
+   (پیش از بهره‌برداری واقعی)؛ PINهای آزمایشی (1011/2022/3033/9009) فقط
+   برای تست‌اند و هرگز نباید در بهره‌برداری واقعی استفاده شوند.
 
 ------------------------------------------------------------------------
 ۸) تصمیم‌های معماری که باید حفظ شوند (تغییر ندهید بدون دلیل)
@@ -317,7 +414,7 @@ PostgreSQL سروری، Tailwind 4. هیچ وابستگی ابری یا خارج
 ۹) پرامپت پیشنهادی برای جلسهٔ بعد (فاز ۵)
 ------------------------------------------------------------------------
 «فاز ۴ (نسخهٔ ۱.۴) تحویل شد. برای فاز ۵ این موارد را انجام بده، با همان
-روش: حسابرسی خط‌به‌خط، پیاده‌سازی، آزمون (به audit1..audit5 اضافه کن)،
+روش: حسابرسی خط‌به‌خط، پیاده‌سازی، آزمون (به audit1..audit6 اضافه کن)،
 مقایسهٔ قبل/بعد فارسی، سپس به‌روزرسانی CHANGELOG/RUNBOOK/SECURITY و در
 پایان یک فایل پرامپت جدید .txt:
 
@@ -342,11 +439,16 @@ PostgreSQL سروری، Tailwind 4. هیچ وابستگی ابری یا خارج
 ۱۰) پیوست — فرمان‌های سریع
 ------------------------------------------------------------------------
 اجرا/تست
-  npm run preview
-  npm test
-  BASE=http://127.0.0.1:3000 node audit/audit5.mjs
+  npm run preview            # فقط حلقه (127.0.0.1:3000)
+  npm run preview:lan        # باز روی شبکهٔ داخلی (اتاق دوم) + اخطار فایروال
+  npm test                   # typecheck + audit1 تا audit6 (۱۸۳ سنجه)
+  BASE=http://127.0.0.1:3000 node audit/audit6.mjs
   npm run doctor
-  node scripts/reset-admin-pin.mjs
+  node scripts/reset-admin-pin.mjs --pin 123456 --confirm 123456
+
+ورود گروهی (دیتابیس TEST)
+  node scripts/bulk-import.mjs --file rows.csv --dry-run
+  node scripts/bulk-import.mjs --file rows.csv --shift A --pin 1011 --confirm-test
 
 آینه
   node scripts/mirror-backup.mjs                 # کپی آخرین بک‌آپ روی MIRROR_DIR
@@ -363,11 +465,19 @@ PostgreSQL
 HTTPS
   نسخهٔ ۱: deploy/Caddyfile → C:\caddy\Caddyfile → نصب ریشهٔ CA روی اپراتورها
   نسخهٔ ۲: deploy/nginx.conf → C:\nginx\conf\nginx.conf → nginx -t
-  سپس در .env.local:  COOKIE_SECURE=1   FORCE_HTTPS=1
-  و اجرای اپ روی:      npx next start -H 127.0.0.1 -p 3000
+  سپس در .env.local:  COOKIE_SECURE=1   FORCE_HTTPS=1   TRUST_PROXY=1
+  و اجرای اپ روی حلقه: npm run preview   (یا:  npm run build && npm start)
+
+شبکهٔ دو اتاق (جزئیات: docs/STATION_NETWORK_FA.md)
+  حالت پیشنهادی: Caddy روی اتاق ۱ + اپ روی حلقه + TRUST_PROXY=1 +
+  LAN_ALLOW=<رنج اداره> + فایروال ویندوز (۴۴۳ فقط رنج اداره، ۳۰۰۰ بسته)
 
 ========================================================================
-پایان پرامپت نهایی — نسخهٔ ۱.۴ (فاز ۴)
-۱۴۰ سنجهٔ سبز · بیلد سالم · ۰ آسیب‌پذیری وابستگی · ۰ خطای ESLint
+پایان پرامپت نهایی — نسخهٔ ۱٫۴٫۱
+۱۸۳ سنجهٔ سبز · ۰ آسیب‌پذیری وابستگی (npm audit --omit=dev) · typecheck سالم
 کد کامل برنامه در فایل متنی: pumpstation-v1.2/CODE_ALL_FA.txt
+(۱۰۲ فایل / ۱۵٬۳۰۲ خط — تولید با node scripts/generate-code-all.mjs)
+موارد باز: فرم کاغذی (منتظر فایل شما)؛ پاک‌سازی تاریخچهٔ گیت و خصوصی‌سازی
+ریپو (منتظر تأیید شما)؛ بوت روی مسیر ابری با PGLITE_ALLOW_CLOUD=1 ممکن است
+ولی توصیه نمی‌شود.
 ========================================================================

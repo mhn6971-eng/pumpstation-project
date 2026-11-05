@@ -13,7 +13,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "doctor": "node scripts/doctor.mjs",
-    "test:audit": "node audit/audit1.mjs && node audit/audit2.mjs && node audit/audit3.mjs && node audit/audit4.mjs && node audit/audit5.mjs",
+    "test:audit": "node audit/audit1.mjs && node audit/audit2.mjs && node audit/audit3.mjs && node audit/audit4.mjs && node audit/audit5.mjs && node audit/audit6.mjs",
     "test:perf": "node audit/perf.mjs",
     "test": "npm run typecheck && npm run test:audit",
     "db:pg-init": "node scripts/pg-init.mjs",
@@ -43,5 +43,5 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   },
-  "version": "1.4.0"
+  "version": "1.4.1"
 }
