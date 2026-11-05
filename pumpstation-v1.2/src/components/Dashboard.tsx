@@ -123,7 +123,7 @@ export default function Dashboard() {
                 if (next === "service") openModal(`علامت‌گذاری ${m.tag} در حال سرویس`, <MotorServiceStartForm tag={m.tag} />);
                 else void act("motor.state", { tag: m.tag, state: next });
               }}
-              onService={() => openModal(`سرویس ماهانه موتور ${m.tag}`, <MotorServiceForm tag={m.tag} />, { wide: true, sub: "ذغال‌ها، ساعت HMI، انجام‌دهندگان، مگر و روغن" })}
+              onService={() => openModal(`سرویس ماهانه موتور ${m.tag}`, <MotorServiceForm tag={m.tag} />, { wide: true, sub: "ذغال‌ها، ساعت HMI، مگر و روغن" })}
               onChart={() => openModal(`نمودار ${m.tag}`, <ChartModal scope="motor" tag={m.tag} param="T10" />, { wide: true })}
             />
           ))}

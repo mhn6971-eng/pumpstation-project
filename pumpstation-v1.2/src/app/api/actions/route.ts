@@ -304,7 +304,7 @@ export async function POST(request: Request) {
         const row = (await db.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
         if (!row) throw new Error("موتور پیدا نشد");
         const hours = p.hours === undefined || p.hours === "" ? row.totalHours : num(p.hours);
-        const workers = str(p.workers, 200);
+        const workers = "";
         const note = str(p.note, 1500);
         const brushRaw = (p.brush ?? {}) as Record<string, unknown>;
         const brush: Record<string, number> = {};
@@ -318,9 +318,9 @@ export async function POST(request: Request) {
           await d.insert(motorStateLogs).values({ tag, fromState: row.state, toState: "off", at: jalaliNow(), shiftKey });
           await d.insert(equipmentReports).values({ tag, kind: "motor_service", reason: `سرویس ماهانه — ساعت ${hours}${note ? ` — ${note}` : ""}`, operator: workers || shift.label, shiftKey, at: jalaliNow() });
           await d.update(equipment).set({ description: `سرویس ماهانه انجام شد (ساعت ${hours})${note ? ` — ${note}` : ""}`, descriptionAt: jalaliNow(), descriptionBy: workers || shift.label, status: "ready", updatedAt: jalaliNow() }).where(eq(equipment.tag, tag));
-          const latest = await latestMotorRecords(tag);
-          const reportId = await createReport({ kind: "motor_service", day, shift, title: `سرویس موتور ${tag} — ${day}`, payload: { serviceId: sid, tag, pumpTag: row.pumpTag, day, hours, workers, note, brush, megger: latest.megger, oil: latest.oil, generatedAt: jalaliNow() } }, d);
-          await logActivity(shiftKey, "ثبت سرویس موتور", `${tag} — ساعت ${hours} — ${workers}`, d);
+          const latest = await latestMotorRecords(tag, d);
+          const reportId = await createReport({ kind: "motor_service", day, shift, title: `سرویس موتور ${tag} — ${day}`, payload: { serviceId: sid, tag, pumpTag: row.pumpTag, day, hours, shiftLabel: `${shift.label} — ${shift.members.join(" و ")}`, note, brush, megger: latest.megger, oil: latest.oil, generatedAt: jalaliNow() } }, d);
+          await logActivity(shiftKey, "ثبت سرویس موتور", `${tag} — ساعت ${hours}`, d);
           return reportId;
         });
         return Response.json({ ok: true, id: rid, message: "سرویس ثبت و گزارش آن ساخته شد" });

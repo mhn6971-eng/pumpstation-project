@@ -1012,8 +1012,8 @@ button, input, select, textarea { font-size: inherit; }
 
 .aux-tag {
   font-family: var(--num);
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 800;
   color: var(--accent);
 }
 

@@ -129,7 +129,7 @@ function MotorService({ d }: { d: Any }) {
   const oil = d.oil as Any | null;
   return (
     <>
-      <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(d.pumpTag)}`], ["تاریخ سرویس", v(d.day)], ["ساعت HMI هنگام سرویس", v(d.hours)], ["انجام‌دهندگان", v(d.workers)], ["یادداشت", v(d.note)]]} />
+      <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(d.pumpTag)}`], ["تاریخ سرویس", v(d.day)], ["ساعت HMI هنگام سرویس", v(d.hours)], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)], ["یادداشت", v(d.note)]]} />
       <h2>قرائت ذغال‌ها (میلی‌متر)</h2>
       <table><thead><tr><th>فاز</th>{Array.from({ length: 8 }, (_, i) => <th key={i} className="center">برس {i + 1}</th>)}</tr></thead>
         <tbody>{["U", "V", "W"].map((ph) => <tr key={ph}><td className="ltr"><b>{ph}</b></td>{Array.from({ length: 8 }, (_, i) => <td key={i} className="ltr center">{brush[`${ph}${i + 1}`] ?? "—"}</td>)}</tr>)}</tbody></table>

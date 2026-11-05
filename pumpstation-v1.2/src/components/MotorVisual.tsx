@@ -6,10 +6,10 @@
  * پمپ آبی با پروانهٔ سفید، خروجی عمودی با فلنج و مکش افقی، روی ریل مشترک.
  * رنگ‌ها از متغیرهای کارت (حالت خاموش/سرویس/زرد/قرمز) می‌آیند.
  */
-export default function MotorVisual({ tag, on, hot, smoke }: { tag: string; pumpTag: string; on: boolean; hot: boolean; smoke: boolean }) {
+export default function MotorVisual({ tag, pumpTag, on, hot, smoke }: { tag: string; pumpTag: string; on: boolean; hot: boolean; smoke: boolean }) {
   const id = tag.replace(/[^a-z0-9]/gi, "");
   return (
-    <svg viewBox="0 0 360 200" role="img" aria-label={`شماتیک موتور ${tag}`}>
+    <svg viewBox="0 0 360 200" role="img" aria-label={`شماتیک موتور ${tag} و پمپ ${pumpTag}`}>
       <defs>
         <linearGradient id={`mb-${id}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="var(--m-light)" />
@@ -92,6 +92,11 @@ export default function MotorVisual({ tag, on, hot, smoke }: { tag: string; pump
             <circle cx="270" cy="112" r="6.5" fill="#e0f2fe" stroke="var(--p-line)" strokeWidth="1" />
           </g>
           <circle className="glow-ring" cx="270" cy="112" r="54" fill="none" stroke="var(--glow)" strokeWidth="3.5" filter={`url(#glow-${id})`} />
+          {/* پلاک تگ پمپ */}
+          <rect x="243" y="139" width="54" height="17" rx="3" fill="#0f172a" stroke="#020617" strokeWidth="0.8" />
+          <text x="270" y="151.5" textAnchor="middle" fontFamily="monospace" fontSize="10.5" fontWeight="700" fill="#7dd3fc" letterSpacing="0.5">
+            {pumpTag}
+          </text>
         </g>
 
         {/* امواج حرارت */}

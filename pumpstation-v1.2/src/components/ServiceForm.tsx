@@ -11,7 +11,6 @@ export function MotorServiceForm({ tag }: { tag: string }) {
   const { state, act, busy, closeModal, openModal } = useApp();
   const motor = state.motors.find((m) => m.tag === tag);
   const [hours, setHours] = useState(motor ? String(motor.totalHours) : "");
-  const [workers, setWorkers] = useState("");
   const [note, setNote] = useState("");
   const [brush, setBrush] = useState<Record<string, string>>({});
   const history = state.motorServices.filter((s) => s.tag === tag);
@@ -20,7 +19,7 @@ export function MotorServiceForm({ tag }: { tag: string }) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const id = await act("motor.service", { tag, hours, workers, note, brush, day: state.now.day });
+    const id = await act("motor.service", { tag, hours, note, brush, day: state.now.day });
     if (id) {
       closeModal();
       if (typeof id === "number") window.open(`/report/${id}`, "_blank");
@@ -35,8 +34,6 @@ export function MotorServiceForm({ tag }: { tag: string }) {
         <div className="field"><label>تاریخ سرویس</label><input className="input" value={state.now.day} readOnly /></div>
         <div className="field"><label>شیفت ثبت‌کننده</label><input className="input" value={`${state.shift.label} — ${state.shift.members.join(" و ")}`} readOnly /></div>
       </div>
-      <div className="field"><label>چه کسانی سرویس را انجام دادند؟ (متن آزاد)</label><input className="input" value={workers} onChange={(e) => setWorkers(e.target.value)} placeholder="نام افراد سرویس‌کار" /></div>
-
       <div>
         <div className="panel-title" style={{ fontSize: 14, marginBottom: 6 }}><Icon name="bolt" size={14} /> قرائت ذغال‌ها (۸ برس برای هر فاز — میلی‌متر)</div>
         <div className="table-wrap">
@@ -77,13 +74,13 @@ export function MotorServiceForm({ tag }: { tag: string }) {
           <div className="panel-title" style={{ fontSize: 14, marginBottom: 6 }}>سرویس‌های قبلی {tag}</div>
           <div className="table-wrap">
             <table className="data">
-              <thead><tr><th>تاریخ</th><th>ساعت HMI</th><th>انجام‌دهندگان</th><th>شیفت</th><th>یادداشت</th><th>گزارش</th></tr></thead>
+              <thead><tr><th>تاریخ</th><th>ساعت HMI</th><th>شیفت</th><th>یادداشت</th><th>گزارش</th></tr></thead>
               <tbody>
                 {history.map((s) => {
                   const rep = state.reports.find((r) => r.kind === "motor_service" && r.day === s.day && r.title.includes(tag));
                   return (
                     <tr key={s.id}>
-                      <td className="mono">{s.day}</td><td className="mono">{s.hours}</td><td>{s.workers || "—"}</td><td>{s.shiftLabel || s.shiftKey}</td><td className="small">{s.note || "—"}</td>
+                      <td className="mono">{s.day}</td><td className="mono">{s.hours}</td><td>{s.shiftLabel || s.shiftKey}</td><td className="small">{s.note || "—"}</td>
                       <td>{rep ? <button type="button" className="btn tiny" onClick={() => window.open(`/report/${rep.id}`, "_blank")}>PDF</button> : "—"}</td>
                     </tr>
                   );

@@ -115,11 +115,11 @@ export async function buildRegistryPayload(tags: string[] | null, category: stri
   };
 }
 
-export async function latestMotorRecords(tag: string) {
+export async function latestMotorRecords(tag: string, d: typeof db = db) {
   const [service, megger, oil] = await Promise.all([
-    db.select().from(motorServices).where(eq(motorServices.tag, tag)).orderBy(desc(motorServices.id)).limit(1),
-    db.select().from(meggerTests).where(eq(meggerTests.tag, tag)).orderBy(desc(meggerTests.id)).limit(1),
-    db.select().from(oilChanges).where(eq(oilChanges.tag, tag)).orderBy(desc(oilChanges.id)).limit(1),
+    d.select().from(motorServices).where(eq(motorServices.tag, tag)).orderBy(desc(motorServices.id)).limit(1),
+    d.select().from(meggerTests).where(eq(meggerTests.tag, tag)).orderBy(desc(meggerTests.id)).limit(1),
+    d.select().from(oilChanges).where(eq(oilChanges.tag, tag)).orderBy(desc(oilChanges.id)).limit(1),
   ]);
   return { service: service[0] ?? null, megger: megger[0] ?? null, oil: oil[0] ?? null };
 }

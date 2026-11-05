@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useApp } from "./context";
 import { MOTOR_PARAM_GROUPS } from "@/lib/domain";
 import { Icon } from "./ui";
-import { MotorServiceForm, MeggerForm, OilForm } from "./ServiceForm";
+import { MeggerForm, OilForm } from "./ServiceForm";
 import ChartModal from "./ChartModal";
 
 export default function MotorDetail({ tag }: { tag: string }) {
@@ -16,6 +16,8 @@ export default function MotorDetail({ tag }: { tag: string }) {
   if (!motor) return <div className="empty">موتور پیدا نشد.</div>;
 
   const serviceHistory = state.motorServices.filter((s) => s.tag === tag);
+  // نوار هشدار جزئیات هم فقط «تازه‌ها» را نشان می‌دهد؛ دیده/اقدام‌شده فقط در سربرگ هشدارها
+  const liveAlerts = state.alerts.filter((a) => a.tag === tag && !a.seenAt && !a.actedAt);
 
   async function save() {
     const values = Object.fromEntries(Object.entries(form).filter(([, v]) => v !== ""));
@@ -44,9 +46,6 @@ export default function MotorDetail({ tag }: { tag: string }) {
           <button type="button" className="btn tiny" onClick={() => openModal(`نمودار ${tag}`, <ChartModal scope="motor" tag={tag} param="T10" />, { wide: true })}>
             <Icon name="chart" size={12} /> نمودار و مقایسه
           </button>
-          <button type="button" className="btn tiny warn" onClick={() => openModal(`سرویس ماهانه ${tag}`, <MotorServiceForm tag={tag} />, { wide: true })}>
-            <Icon name="wrench" size={12} /> ثبت سرویس
-          </button>
           <button type="button" className="btn tiny" onClick={() => openModal(`تست مگر ${tag}`, <MeggerForm tag={tag} />)}>تست مگر</button>
           <button type="button" className="btn tiny" onClick={() => openModal(`تعویض روغن ${tag}`, <OilForm tag={tag} />)}>تعویض روغن</button>
         </div>
@@ -71,10 +70,10 @@ export default function MotorDetail({ tag }: { tag: string }) {
         </div>
       </div>
 
-      {motor.alerts.length > 0 && (
+      {liveAlerts.length > 0 && (
         <div className="alert-strip" style={{ marginBottom: 0 }}>
-          {motor.alerts.map((a, i) => (
-            <div key={`${a.param}-${i}`} className={`alert-item ${a.severity}`}>
+          {liveAlerts.map((a) => (
+            <div key={a.id} className={`alert-item ${a.severity}`}>
               <Icon name="alert" size={14} />
               <span className="msg">{a.message}</span>
             </div>
