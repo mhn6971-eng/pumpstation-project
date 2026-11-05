@@ -1,7 +1,8 @@
 import { eq, inArray, sql } from "drizzle-orm";
-import { db } from "@/db";
+import { db, usingPostgres } from "@/db";
 import { authLocks, securityEvents } from "@/db/schema";
 import { jalaliNow } from "@/lib/jalali";
+import { trustedClientIp, trustProxyEnabled } from "./netbind";
 
 /** سقف حجم بدنهٔ درخواست‌های API (۲۵۶ کیلوبایت) */
 export const MAX_BODY_BYTES = 256 * 1024;
@@ -26,7 +27,9 @@ const lockCache = new Map<string, { fails: number; firstFailAt: number; lockedUn
 type LockRow = { scope: string; fails: number; firstFailAt: number; lockedUntil: number; updatedAt: number };
 
 async function readLock(scope: string): Promise<LockRow> {
-  const cached = lockCache.get(scope);
+  // حالت Postgres (چند نمونه‌ای): کش حافظه بین نمونه‌ها ناهم‌خوان می‌ماند، پس همیشه از دیتابیس
+  const useCache = !usingPostgres;
+  const cached = useCache ? lockCache.get(scope) : undefined;
   if (cached) return { scope, ...cached, updatedAt: 0 };
   const row = (await db.select().from(authLocks).where(eq(authLocks.scope, scope)).limit(1))[0];
   const value = {
@@ -36,7 +39,7 @@ async function readLock(scope: string): Promise<LockRow> {
     lockedUntil: Number(row?.lockedUntil ?? 0),
     updatedAt: Number(row?.updatedAt ?? 0),
   };
-  lockCache.set(scope, { fails: value.fails, firstFailAt: value.firstFailAt, lockedUntil: value.lockedUntil });
+  if (useCache) lockCache.set(scope, { fails: value.fails, firstFailAt: value.firstFailAt, lockedUntil: value.lockedUntil });
   return value;
 }
 
@@ -74,12 +77,9 @@ async function bump(scope: string, limit: number, lockMs: number) {
 }
 
 export function clientIp(request: Request) {
-  const h = request.headers;
-  return (
-    h.get("x-real-ip")?.trim() ||
-    h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    "local"
-  );
+  // هدرهای IP فقط پشت پروکسی مشخص (TRUST_PROXY=1)؛ در حالت مستقیم "local"
+  // تا هدر جعلی، نشست و سقف نرخ را مسموم نکند.
+  return trustedClientIp(request.headers, trustProxyEnabled());
 }
 
 export function clientAgent(request: Request) {

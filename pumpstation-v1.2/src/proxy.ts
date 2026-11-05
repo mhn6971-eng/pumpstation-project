@@ -1,11 +1,20 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
+import { lanAllowed, trustProxyEnabled, trustedClientIp } from "./lib/netbind";
 
 /** سقف حجم بدنه برای همهٔ مسیرهای API — پیش از خواندن بدنه رد می‌شود */
 const MAX_BODY_BYTES = 256 * 1024;
 
 /** سقف درخواست هر IP در دقیقه (ضدسیل ساده و ارزان) */
 const IP_LIMIT = 600;
+// اخطار پیکربندی شبکه: فقط یک‌بار در هر فرایند (LAN_ALLOW بدون پروکسیِ مورداعتماد قابل اعمال نیست)
+declare global {
+  var __psNetWarnedLAN: boolean | undefined;
+}
+if ((process.env.LAN_ALLOW ?? "").trim() && !trustProxyEnabled() && !globalThis.__psNetWarnedLAN) {
+  globalThis.__psNetWarnedLAN = true;
+  console.warn("[net] اخطار: LAN_ALLOW تنظیم شده ولی TRUST_PROXY=1 نیست؛ در اتصال مستقیم، IP واقعی دیده نمی‌شود و فهرست مجاز اعمال نمی‌گردد (کنترل با فایروال سیستم‌عامل است).");
+}
 const IP_WINDOW_MS = 60_000;
 const buckets = new Map<string, { count: number; resetAt: number }>();
 
@@ -15,11 +24,9 @@ const PROTECTED = [/^\/totals(\/|$)/, /^\/report(\/|$)/];
 const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 function ipOf(request: NextRequest) {
-  return (
-    request.headers.get("x-real-ip")?.trim() ||
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    "local"
-  );
+  // هدرهای IP فقط پشت پروکسی مشخص (TRUST_PROXY=1) خوانده می‌شوند؛ در حالت
+  // مستقیم، هدرِ جعلی نادیده گرفته می‌شود تا سقف نرخ و نشست مسموم نشود.
+  return trustedClientIp(request.headers, trustProxyEnabled());
 }
 
 function hostOf(request: NextRequest) {
@@ -75,6 +82,29 @@ export default function proxy(request: NextRequest) {
   const headers = new Headers(request.headers);
   headers.set("x-request-id", requestId);
 
+  // دروازهٔ رنج مجاز شبکه (فقط اگر LAN_ALLOW تنظیم شده باشد)
+  const lanAllow = (process.env.LAN_ALLOW ?? "").trim();
+  if (lanAllow) {
+    let ok = true;
+    try {
+      ok = lanAllowed(ipOf(request), lanAllow);
+    } catch {
+      ok = false;
+    }
+    if (!ok) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json(
+          { ok: false, error: "اتصال از این شبکه مجاز نیست", code: "lan_denied", requestId },
+          { status: 403, headers: { "x-request-id": requestId } },
+        );
+      }
+      return new NextResponse("اتصال از این شبکه مجاز نیست", {
+        status: 403,
+        headers: { "x-request-id": requestId },
+      });
+    }
+  }
+
   if (pathname.startsWith("/api/")) {
     // ضدسیل: درخواست‌های بیش از حد از یک IP
     const retry = rateLimited(ipOf(request));
@@ -111,5 +141,5 @@ export default function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/:path*", "/totals/:path*", "/totals", "/report/:path*"],
+  matcher: ["/api/:path*", "/totals/:path*", "/totals", "/report/:path*", "/"],
 };

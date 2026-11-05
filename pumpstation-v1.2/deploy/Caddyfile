@@ -29,6 +29,8 @@ https://pumpstation.local, https://192.168.1.50 {
 	# پراکسی به اپ Next.js روی همان ماشین
 	reverse_proxy 127.0.0.1:3000 {
 		header_up X-Forwarded-Proto https
+		# بازنویسی کامل (نه الحاق): هدر جعلیِ کلاینت هرگز به اپ نمی‌رسد
+		header_up X-Forwarded-For {remote_host}
 		header_up X-Real-IP {remote_host}
 		header_up X-Request-Id {http.request.uuid}
 		# سرور محلی است؛ انتقال فشرده لازم نیست
@@ -63,6 +65,7 @@ https://pumpstation.local, https://192.168.1.50 {
 #	encode zstd gzip
 #	reverse_proxy 127.0.0.1:3000 {
 #		header_up X-Forwarded-Proto https
+#		header_up X-Forwarded-For {remote_host}
 #		header_up X-Real-IP {remote_host}
 #	}
 #	header Strict-Transport-Security "max-age=31536000; includeSubDomains"

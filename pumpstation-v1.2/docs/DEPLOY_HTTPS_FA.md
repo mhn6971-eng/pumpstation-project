@@ -45,8 +45,11 @@ Caddy گواهی را خودش می‌سازد و تمدید/چرخش را هم 
    ```
    COOKIE_SECURE=1
    FORCE_HTTPS=1
+   TRUST_PROXY=1
    ```
-   و سرویس اپ را ری‌استارت کنید (هدر HSTS فقط با این دو پرچم فرستاده می‌شود).
+   و سرویس اپ را ری‌استارت کنید (هدر HSTS فقط با این پرچم‌ها فرستاده می‌شود؛
+   `TRUST_PROXY=1` یعنی «هدر IP را فقط از همین پروکسیِ خودمان قبول کن» —
+   بدون آن، هدرهای IP نادیده گرفته می‌شوند).
 6. آزمون:
    ```powershell
    curl.exe -I https://192.168.1.50
@@ -70,7 +73,7 @@ Caddy گواهی را خودش می‌سازد و تمدید/چرخش را هم 
 2. کپی [`deploy/nginx.conf`](../deploy/nginx.conf) در `C:\nginx\conf\nginx.conf` و
    اصلاح `server_name` و مسیر گواهی.
 3. `nginx -t` سپس `nginx -s reload` (یا ثبت به‌عنوان سرویس با `nssm`).
-4. همان مرحلهٔ ۵ و ۶ سناریوی قبل (`COOKIE_SECURE=1` + آزمون).
+4. همان مرحلهٔ ۵ و ۶ سناریوی قبل (`COOKIE_SECURE=1` + ‏`TRUST_PROXY=1` + آزمون).
 
 > در `nginx.conf` هدر `X-Forwarded-Proto https` ست شده است. سامانه از همین هدر
 > برای «secure» کردن کوکی هم استفاده می‌کند؛ ولی `COOKIE_SECURE=1` را هم صریح
@@ -86,7 +89,7 @@ Caddy گواهی را خودش می‌سازد و تمدید/چرخش را هم 
 | کوکی `HttpOnly` + `SameSite=Lax` | همان | از ۱.۲ فعال، بدون تغییر |
 | هدر HSTS | `next.config.ts` | فقط با `COOKIE_SECURE=1` یا `FORCE_HTTPS=1` |
 | CSP / nosniff / frame-options | `next.config.ts` | از ۱.۲ فعال |
-| محدودیت نرخ بر اساس IP واقعی | `src/proxy.ts` | `x-real-ip` یا اولین `x-forwarded-for` |
+| محدودیت نرخ بر اساس IP واقعی | `src/proxy.ts` | `x-real-ip` یا اولین `x-forwarded-for` — فقط با `TRUST_PROXY=1` |
 | توکن CSRF برای درخواست‌های تغییردهنده | `src/proxy.ts` | همان‌طور که بود |
 
 ---
