@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "next dev",
     "preview": "node scripts/init-db.mjs && next dev -H 0.0.0.0 -p 3000",
+    "stackblitz": "node scripts/init-db.mjs && node node_modules/next/dist/bin/next dev --webpack -H 0.0.0.0 -p 3000",
     "db:init": "node scripts/init-db.mjs",
     "build": "next build",
     "start": "next start",

@@ -1,0 +1,9 @@
+{
+  "name": "pumpstation-project",
+  "private": true,
+  "description": "Root helper so one-click cloud IDEs (StackBlitz) install and run the app inside pumpstation-v1.2/",
+  "scripts": {
+    "postinstall": "cd pumpstation-v1.2 && npm install --no-audit --no-fund",
+    "start": "cd pumpstation-v1.2 && npm run stackblitz"
+  }
+}
