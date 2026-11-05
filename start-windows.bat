@@ -10,7 +10,7 @@ if not exist node_modules (
 )
 
 echo Starting... then open in your browser:  http://localhost:3000
-echo Login:  admin  /  9999
+echo Login:  admin  /  9009   (test PIN; shifts: A=1011 B=2022 C=3033)
 echo (Keep this window open while using the program.)
 echo.
 npm run preview
