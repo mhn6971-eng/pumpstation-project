@@ -49,7 +49,7 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
           <div className="hero-machine">
             {/* لوگوی رسمی شرکت — عین فایل ارسالی کارفرما */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo.jpg" alt={ORG_NAME} style={{ height: 96, width: "auto", background: "#fff", borderRadius: 10, padding: 6 }} />
+            <img src="/brand/logo.jpg" alt={ORG_NAME} style={{ height: 64, width: "auto", background: "#fff", borderRadius: 8, padding: 4 }} />
           </div>
           <div>
             <h2>{APP_NAME}</h2>

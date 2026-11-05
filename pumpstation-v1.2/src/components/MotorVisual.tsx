@@ -1,5 +1,7 @@
 "use client";
 
+import { MOTOR_POWER_KW } from "@/lib/domain";
+
 /**
  * شماتیک فلت ست کوپل‌شده (مطابق تصویر مرجع کارفرما):
  * الکتروموتور خاکستری با فین‌های افقی، جعبه ترمینال و پلاک تگ + کوپلینگ +
@@ -9,7 +11,7 @@
 export default function MotorVisual({ tag, pumpTag, on, hot, smoke }: { tag: string; pumpTag: string; on: boolean; hot: boolean; smoke: boolean }) {
   const id = tag.replace(/[^a-z0-9]/gi, "");
   return (
-    <svg viewBox="0 0 360 200" role="img" aria-label={`شماتیک موتور ${tag} و پمپ ${pumpTag}`}>
+    <svg viewBox="0 0 360 200" role="img" aria-label={`شماتیک موتور ${tag} و پمپ ${pumpTag} — ${MOTOR_POWER_KW} کیلووات`}>
       <defs>
         <linearGradient id={`mb-${id}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="var(--m-light)" />
@@ -53,9 +55,12 @@ export default function MotorVisual({ tag, pumpTag, on, hot, smoke }: { tag: str
           <rect x="102" y="132" width="62" height="0" fill="none" />
           <rect x="60" y="132" width="0" height="0" fill="none" />
           <rect x="98" y="96" width="0" height="0" fill="none" />
-          <rect x="104" y="122" width="58" height="19" rx="3" fill="#0f172a" stroke="#020617" strokeWidth="0.8" />
-          <text x="133" y="136" textAnchor="middle" fontFamily="monospace" fontSize="10.5" fontWeight="700" fill="#7dd3fc" letterSpacing="0.5">
+          <rect x="93" y="117" width="80" height="31" rx="3" fill="#0f172a" stroke="#020617" strokeWidth="0.8" />
+          <text x="133" y="130" textAnchor="middle" fontFamily="monospace" fontSize="10.5" fontWeight="700" fill="#7dd3fc" letterSpacing="0.5">
             {tag}
+          </text>
+          <text x="133" y="143" textAnchor="middle" fontSize="9" fontWeight="700" fill="#bae6fd">
+            {MOTOR_POWER_KW} کیلووات
           </text>
           {/* محور خروجی */}
           <rect x="174" y="112" width="10" height="12" rx="1.5" fill="#9aa5b1" />

@@ -80,7 +80,6 @@ export default function RegistryTab() {
                   <td>
                     <div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
                       <button type="button" className="btn tiny" onClick={() => openModal(`${e.tag} — پرونده تجهیز`, <EquipmentDetail tag={e.tag} />, { wide: true, sub: e.name })}>پرونده</button>
-                      <button type="button" className="btn tiny" onClick={() => openModal(`نگهداشت / PM — ${e.tag}`, <PmForm tag={e.tag} />, { wide: true, sub: e.name })}>نگهداشت/PM</button>
                       <StatusToggle status={e.status} disabled={busy} onPick={(mode) => openModal(`${mode === "ready" ? "آماده به کار" : "در حال سرویس"} — ${e.tag}`, <EquipmentServiceForm tag={e.tag} name={e.name} defaultMode={mode} />)} />
                     </div>
                   </td>
@@ -98,13 +97,12 @@ export default function RegistryTab() {
 
 /** پروندهٔ تجهیز: شناسنامه + کاتالوگ + تاریخچه + ویرایش/حذف (ادمین) */
 export function EquipmentDetail({ tag }: { tag: string }) {
-  const { state, act, busy, isAdmin, openModal, closeModal, refresh, toast } = useApp();
+  const { state, act, busy, isAdmin, openModal, closeModal, refresh, toast, goTab } = useApp();
   const e = state.equipment.find((x) => x.tag === tag);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
   if (!e) return <div className="empty">تجهیز پیدا نشد.</div>;
   const logs = state.serviceLogs.filter((s) => s.tag === tag);
-  const pm = state.pmRecords.filter((r) => r.tag === tag);
 
   async function upload(file: File) {
     setUploading(true);
@@ -175,12 +173,9 @@ export function EquipmentDetail({ tag }: { tag: string }) {
         )}
       </div>
 
-      <div>
-        <div className="panel-title" style={{ fontSize: 14, marginBottom: 6 }}>تاریخچهٔ PM</div>
-        {pm.length === 0 ? <div className="empty">PM ثبت نشده است.</div> : (
-          <div className="table-wrap"><table className="data"><thead><tr><th>تاریخ</th><th>قالب</th><th>انجام‌دهندگان</th><th>شیفت</th><th>یادداشت</th><th>PDF</th></tr></thead>
-            <tbody>{pm.map((r) => { const rep = state.reports.find((x) => x.kind === "pm" && x.day === r.day && x.title.includes(tag)); return <tr key={r.id}><td className="mono">{r.day}</td><td>{r.templateName}</td><td>{r.workers || "—"}</td><td>{r.shiftKey}</td><td className="small">{r.note || "—"}</td><td>{rep ? <button type="button" className="btn tiny" onClick={() => window.open(`/report/${rep.id}`, "_blank")}>PDF</button> : "—"}</td></tr>; })}</tbody></table></div>
-        )}
+      <div className="spread">
+        <div className="small muted">نگهداشت پیشگیرانه (PM) این تجهیز در سربرگ «نگهداشت» مدیریت می‌شود.</div>
+        <button type="button" className="btn tiny" onClick={() => { closeModal(); goTab("pm"); }}>رفتن به سربرگ نگهداشت</button>
       </div>
 
       <div>

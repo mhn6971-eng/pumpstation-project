@@ -5,7 +5,7 @@ import { reports } from "@/db/schema";
 import { getSessionUser } from "@/lib/auth";
 import { ensureSeed } from "@/db/seed";
 import PrintBar from "@/components/PrintBar";
-import { APP_NAME, APP_SUBTITLE, ORG_NAME } from "@/lib/domain";
+import { APP_NAME, APP_SUBTITLE, ORG_NAME, pumpTagOf } from "@/lib/domain";
 import { REPORT_KINDS } from "@/lib/reporting";
 
 export const dynamic = "force-dynamic";
@@ -50,7 +50,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         {row.kind === "aux" && <Aux d={d} />}
         {row.kind === "motor_service" && <MotorService d={d} />}
         {row.kind === "megger" && <Megger d={d} />}
-        {row.kind === "oil" && <Simple rows={[["تگ", v(d.tag)], ["تاریخ", v(d.day)], ["ساعت کارکرد", v(d.hours)], ["یادداشت", v(d.note)]]} />}
+        {row.kind === "oil" && <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(pumpTagOf(String(d.tag ?? "")))}`], ["تاریخ", v(d.day)], ["ساعت کارکرد", v(d.hours)], ["یادداشت", v(d.note)]]} />}
         {row.kind === "pm" && <Pm d={d} />}
         {row.kind === "registry" && <Registry d={d} />}
         {row.kind === "trend" && <Trend d={d} />}
@@ -130,7 +130,7 @@ function MotorService({ d }: { d: Any }) {
   const oil = d.oil as Any | null;
   return (
     <>
-      <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(d.pumpTag)}`], ["تاریخ سرویس", v(d.day)], ["ساعت HMI هنگام سرویس", v(d.hours)], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)], ["یادداشت", v(d.note)]]} />
+      <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(d.pumpTag ?? pumpTagOf(String(d.tag ?? "")))}`], ["تاریخ سرویس", v(d.day)], ["ساعت HMI هنگام سرویس", v(d.hours)], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)], ["یادداشت", v(d.note)]]} />
       <h2>قرائت ذغال‌ها (میلی‌متر)</h2>
       <table><thead><tr><th>فاز</th>{Array.from({ length: 8 }, (_, i) => <th key={i} className="center">برس {i + 1}</th>)}</tr></thead>
         <tbody>{["U", "V", "W"].map((ph) => <tr key={ph}><td className="ltr"><b>{ph}</b></td>{Array.from({ length: 8 }, (_, i) => <td key={i} className="ltr center">{brush[`${ph}${i + 1}`] ?? "—"}</td>)}</tr>)}</tbody></table>
@@ -145,7 +145,7 @@ function MotorService({ d }: { d: Any }) {
 function Megger({ d }: { d: Any }) {
   return (
     <>
-      <Simple rows={[["موتور", v(d.tag)], ["تاریخ", v(d.day)], ["ولتاژ تست استاتور", `${v(d.testVoltage)} V`], ["ولتاژ تست رتور", `${v(d.testVoltageRotor ?? d.testVoltage)} V`], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)]]} />
+      <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(pumpTagOf(String(d.tag ?? "")))}`], ["تاریخ", v(d.day)], ["ولتاژ تست استاتور", `${v(d.testVoltage)} V`], ["ولتاژ تست رتور", `${v(d.testVoltageRotor ?? d.testVoltage)} V`], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)]]} />
       <h2>نتایج</h2>
       <table><thead><tr><th>آیتم</th><th className="center">U1</th><th className="center">V1</th><th className="center">W1</th></tr></thead>
         <tbody>

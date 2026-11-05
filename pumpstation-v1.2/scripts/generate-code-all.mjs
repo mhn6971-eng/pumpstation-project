@@ -31,6 +31,7 @@ const SECTIONS = [
     "src/lib/jalali.ts", "src/lib/domain.ts", "src/lib/state.ts", "src/lib/reporting.ts",
     "src/lib/backup.ts", "src/lib/mirror.ts", "src/lib/archive.ts",
     "src/lib/roster.ts", "src/lib/netbind.ts", "src/lib/sqlite-cloud.ts",
+    "src/lib/bot.ts",
   ] },
   { title: "مسیرهای API (src/app/api)", files: [
     "src/app/api/auth/route.ts", "src/app/api/actions/route.ts", "src/app/api/state/route.ts",

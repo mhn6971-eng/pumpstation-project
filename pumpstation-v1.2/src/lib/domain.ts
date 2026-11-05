@@ -30,6 +30,16 @@ export const MOTORS = [
   { tag: "M-08", pumpTag: "P-08" },
 ];
 
+/** توان نامی موتورهای اصلی ایستگاه (کیلووات) — روی پلاک شماتیک و گزارش‌ها. */
+export const MOTOR_POWER_KW = 1800;
+
+/** تگ پمپ متناظر یک موتور (مثلاً M-01 ←→ P-01)؛ برای تگ نامعتبر همان ورودی برمی‌گردد. */
+export function pumpTagOf(motorTag: string): string {
+  const hit = MOTORS.find((m) => m.tag === motorTag);
+  if (hit) return hit.pumpTag;
+  return motorTag.startsWith("M-") ? motorTag.replace(/^M-/, "P-") : motorTag;
+}
+
 export const PROCESS_PARAMS = [
   { tag: "PIT-001", label: "فشار تونل / مکش", unit: "bar", warnMin: null, warnMax: null, critMin: null, critMax: null },
   { tag: "PIT-002", label: "فشار خط رانش", unit: "bar", warnMin: 18, warnMax: 24, critMin: 16, critMax: 26 },

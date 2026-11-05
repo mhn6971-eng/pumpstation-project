@@ -48,7 +48,10 @@ export default function AdminTab() {
         <MirrorPanel />
       </div>
 
-      <SetpointsPanel />
+      <Panel title="ست‌پوینت‌ها" icon="gauge" hint="همهٔ ست‌پوینت‌های موتور/سرویس و پارامترهای فرآیندی، یک‌جا">
+        <div className="note">آستانه‌های هشدار موتورها و پارامترهای فرآیندی در یک صفحهٔ جدا باز می‌شود؛ ذخیره، اعمال فوری روی داشبورد و هشدارها دارد.</div>
+        <button type="button" className="btn primary" onClick={() => openModal("تنظیمات ست‌پوینت", <SetpointsPanel />, { wide: true, sub: "آستانه‌های هشدار" })}><Icon name="gauge" size={14} /> باز کردن تنظیمات ست‌پوینت</button>
+      </Panel>
 
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(340px,1fr))" }}>
         <ChannelsPanel />
@@ -464,7 +467,10 @@ function ChannelsPanel() {
             </div>
             <div className="spread">
               <label className="row small" style={{ gap: 5 }}><input type="checkbox" checked={f.enabled} onChange={(e) => setForms({ ...forms, [c.key]: { ...f, enabled: e.target.checked } })} /> فعال</label>
-              <button type="button" className="btn tiny primary" disabled={busy} onClick={() => act("admin.channel", { key: c.key, ...f })}>ذخیره کانال</button>
+              <div className="row" style={{ gap: 6 }}>
+                <button type="button" className="btn tiny" disabled={busy || !c.enabled || !c.hasToken} title="ارسال یک پیام تستی به همین کانال" onClick={() => { if (window.confirm("یک پیام تستی به این کانال ارسال شود؟")) void act("channel.test", { key: c.key }); }}>تست اتصال</button>
+                <button type="button" className="btn tiny primary" disabled={busy} onClick={() => act("admin.channel", { key: c.key, ...f })}>ذخیره کانال</button>
+              </div>
             </div>
           </div>
         );

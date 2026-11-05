@@ -43,6 +43,7 @@ import { bodyTooLarge, clearLoginLock, logSecurityEvent, rateLimitedResponse, to
 import { effectiveShift, getProcessThresholds, logActivity, thresholdSeverity } from "@/lib/state";
 import { buildOperationalPayload, buildRegistryPayload, buildTrendPayload, createReport, latestMotorRecords, normalizeRange, REPORT_KINDS } from "@/lib/reporting";
 import { addDaysToDay, isValidJalaliDay, jalaliNow, operationalDay } from "@/lib/jalali";
+import { sendBotText } from "@/lib/bot";
 import { CATEGORIES, MOTORS, MOTOR_PARAMS, MOTOR_TYPE_LIMITS, MOTOR_STATE_FA, PROCESS_LIMITS, PROCESS_PARAMS, TOTAL_LIMITS, limitError, type Settings } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
@@ -110,9 +111,7 @@ async function trySend(reportId: number, channelKey: string, shiftKey: string) {
   }
   try {
     const text = `${report?.title ?? "گزارش"}\n${report?.operators ?? ""}\nزمان: ${jalaliNow()}\nسامانه پایش ایستگاه پمپاژ زیرزمینی — تونل انتقال آب گلاب`;
-    const url = ch.provider === "eitaa" ? `https://eitaayar.ir/api/${ch.token}/sendMessage` : `https://tapi.bale.ai/bot${ch.token}/sendMessage`;
-    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: ch.chatId, text }), signal: AbortSignal.timeout(15000) });
-    if (!res.ok) throw new Error(`پاسخ ${res.status}`);
+    await sendBotText({ provider: ch.provider === "eitaa" ? "eitaa" : "bale", token: ch.token, chatId: ch.chatId, text });
     await db.update(sendQueue).set({ status: "sent", attempts: 1, sentAt: jalaliNow() }).where(eq(sendQueue.id, qid));
     return { queued: true, sent: true, message: "گزارش ارسال شد" };
   } catch (error) {
@@ -569,9 +568,7 @@ export async function POST(request: Request) {
           if (!ch?.enabled || !ch.token) continue;
           const report = (await db.select().from(reports).where(eq(reports.id, item.reportId)).limit(1))[0];
           try {
-            const url = ch.provider === "eitaa" ? `https://eitaayar.ir/api/${ch.token}/sendMessage` : `https://tapi.bale.ai/bot${ch.token}/sendMessage`;
-            const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: ch.chatId, text: `${report?.title ?? ""}\n${report?.operators ?? ""}` }), signal: AbortSignal.timeout(15000) });
-            if (!res.ok) throw new Error(`پاسخ ${res.status}`);
+            await sendBotText({ provider: ch.provider === "eitaa" ? "eitaa" : "bale", token: ch.token, chatId: ch.chatId, text: `${report?.title ?? ""}\n${report?.operators ?? ""}` });
             await db.update(sendQueue).set({ status: "sent", attempts: item.attempts + 1, sentAt: jalaliNow(), lastError: "" }).where(eq(sendQueue.id, item.id));
             sent += 1;
           } catch (error) {
@@ -597,6 +594,22 @@ export async function POST(request: Request) {
         await db.update(channels).set({ provider: str(p.provider, 10) === "eitaa" ? "eitaa" : "bale", chatId: str(p.chatId, 100), token: token || existing?.token || "", enabled: p.enabled === true }).where(eq(channels.key, key));
         await logActivity(shiftKey, "ویرایش کانال ارسال", key);
         return Response.json({ ok: true });
+      }
+
+      case "channel.test": {
+        requireAdmin();
+        const key = str(p.key, 20);
+        if (!["daily", "backup"].includes(key)) throw new Error("کانال نامعتبر است");
+        const ch = (await db.select().from(channels).where(eq(channels.key, key)).limit(1))[0];
+        if (!ch?.enabled) throw new Error("کانال فعال نیست؛ ابتدا آن را فعال و ذخیره کنید");
+        if (!ch.token || !ch.chatId) throw new Error("توکن یا شناسه کانال خالی است؛ ابتدا ذخیره کنید");
+        try {
+          await sendBotText({ provider: ch.provider === "eitaa" ? "eitaa" : "bale", token: ch.token, chatId: ch.chatId, text: `✅ اتصال سالم است\nزمان: ${jalaliNow()}\nسامانه پایش ایستگاه پمپاژ زیرزمینی — تونل انتقال آب گلاب` });
+        } catch (error) {
+          throw new Error(`ارسال تستی ناموفق بود (${error instanceof Error ? error.message : "خطای شبکه"})`);
+        }
+        await logActivity(shiftKey, "تست اتصال کانال ارسال", key);
+        return Response.json({ ok: true, message: "پیام تستی ارسال شد؛ کانال را بررسی کنید" });
       }
 
       case "admin.settings": {

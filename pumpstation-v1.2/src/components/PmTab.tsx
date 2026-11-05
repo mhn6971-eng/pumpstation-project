@@ -3,23 +3,39 @@
 import { useState } from "react";
 import { useApp } from "./context";
 import { Panel } from "./ui";
+import { PmForm } from "./RegistryTab";
 
 /** سربرگ نگهداشت دوره‌ای (PM): قالب‌ها + تاریخچهٔ همهٔ تجهیزات */
 export default function PmTab() {
   const { state, goTab } = useApp();
   const [tag, setTag] = useState("");
+  const [eqTag, setEqTag] = useState("");
   const [openTpl, setOpenTpl] = useState<number | null>(null);
 
   const tags = Array.from(new Set(state.pmRecords.map((r) => r.tag))).sort();
   const history = state.pmRecords.filter((r) => !tag || r.tag === tag);
   const cats = Array.from(new Set(state.pmTemplates.map((t) => t.category)));
+  const equipTags = [...state.equipment].sort((a, b) => a.tag.localeCompare(b.tag));
 
   return (
     <div className="grid">
+      <Panel title="ثبت PM تازه" icon="plus" hint="تجهیز را انتخاب کنید و فرم PM همان‌جا باز می‌شود">
+        <div className="field" style={{ maxWidth: 340, marginBottom: 10 }}>
+          <label>تجهیز</label>
+          <select className="input" value={eqTag} onChange={(e) => setEqTag(e.target.value)}>
+            <option value="">— انتخاب تجهیز —</option>
+            {equipTags.map((e) => (
+              <option key={e.tag} value={e.tag}>{e.tag} — {e.name}</option>
+            ))}
+          </select>
+        </div>
+        {eqTag ? <PmForm key={eqTag} tag={eqTag} /> : <div className="empty">برای ثبت PM تازه، ابتدا یک تجهیز انتخاب کنید.</div>}
+      </Panel>
+
       <Panel
         title="تاریخچهٔ PM همهٔ تجهیزات"
         icon="wrench"
-        hint="ثبت PM تازه از سربرگ لیست تجهیزات، روی همان تجهیز انجام می‌شود"
+        hint="ثبت PM تازه از پنل بالا انجام می‌شود"
         actions={
           <button type="button" className="btn tiny" onClick={() => goTab("registry")}>
             رفتن به لیست تجهیزات

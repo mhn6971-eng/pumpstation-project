@@ -54,27 +54,27 @@ export default function AuxTab() {
           </div>
         </div>
 
-        <div className="aux-grid">
-          {aux.map((e) => (
-            <article key={e.tag} className={`aux-card ${e.status === "in_service" ? "service" : ""}`}>
-              <div className="aux-top">
-                <div>
-                  <div className="aux-tag">{e.tag}</div>
-                  <div className="aux-name">{e.name}</div>
-                  <div className="small muted" style={{ marginTop: 2 }}>محل نصب: {e.location || "—"}</div>
-                </div>
-                <StatusPill status={e.status} statusFa={e.statusFa} />
-              </div>
-              <div className="aux-desc">
-                {e.description || <span className="muted">توضیح سرویس ثبت نشده است.</span>}
-                {e.descriptionAt && <span className="meta">زمان ثبت توضیح: {e.descriptionAt}</span>}
-              </div>
-              <div className="aux-actions" style={{ flexDirection: "column", alignItems: "stretch" }}>
-                <StatusToggle status={e.status} disabled={busy} onPick={(mode) => openModal(`${mode === "ready" ? "آماده به کار" : "در حال سرویس"} — ${e.tag}`, <EquipmentServiceForm tag={e.tag} name={e.name} defaultMode={mode} />)} />
-                <button type="button" className="btn tiny ghost" disabled={busy} onClick={() => openModal(`گزارش سرویس ${e.tag}`, <EquipmentServiceForm tag={e.tag} name={e.name} defaultMode="report" />)}><Icon name="file" size={12} /> ثبت گزارش سرویس (بدون تغییر وضعیت)</button>
-              </div>
-            </article>
-          ))}
+        <div className="table-wrap" style={{ maxHeight: 640 }}>
+          <table className="data">
+            <thead><tr><th>تگ</th><th>تجهیز</th><th>محل نصب</th><th>وضعیت</th><th>آخرین توضیحات</th><th>اقدام</th></tr></thead>
+            <tbody>
+              {aux.map((e) => (
+                <tr key={e.tag}>
+                  <td className="mono" style={{ color: "var(--accent)", fontWeight: 700, whiteSpace: "nowrap" }}>{e.tag}</td>
+                  <td>{e.name}</td>
+                  <td className="small muted">{e.location || "—"}</td>
+                  <td><StatusPill status={e.status} statusFa={e.statusFa} /></td>
+                  <td className="small" style={{ maxWidth: 300 }}>{e.description || <span className="muted">توضیح سرویس ثبت نشده است.</span>}{e.descriptionAt && <span className="small muted"> ({e.descriptionAt})</span>}</td>
+                  <td>
+                    <div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
+                      <StatusToggle status={e.status} disabled={busy} onPick={(mode) => openModal(`${mode === "ready" ? "آماده به کار" : "در حال سرویس"} — ${e.tag}`, <EquipmentServiceForm tag={e.tag} name={e.name} defaultMode={mode} />)} />
+                      <button type="button" className="btn tiny ghost" disabled={busy} onClick={() => openModal(`گزارش سرویس ${e.tag}`, <EquipmentServiceForm tag={e.tag} name={e.name} defaultMode="report" />)}><Icon name="file" size={12} /> گزارش</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
         {aux.length === 0 && <div className="empty">تجهیزی با این مشخصات پیدا نشد.</div>}
       </Panel>

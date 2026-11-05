@@ -1,7 +1,7 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.2   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 85f5310
-تاریخ تولید: 2026-11-05   |   102 فایل   |   15,381 خط
+نسخهٔ برنامه: 1.4.3   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 7ed4cf3
+تاریخ تولید: 2026-11-05   |   103 فایل   |   15,484 خط
 ==============================================================================
 
 این فایل، «نسخهٔ خوانا»ی کل کد برنامه است؛ هر فایل کامل و بدون حذف درج شده و
@@ -49,7 +49,7 @@
      src/lib/security.ts                                  173 خط
      src/lib/audit.ts                                     63 خط
      src/lib/jalali.ts                                    221 خط
-     src/lib/domain.ts                                    336 خط
+     src/lib/domain.ts                                    346 خط
      src/lib/state.ts                                     264 خط
      src/lib/reporting.ts                                 207 خط
      src/lib/backup.ts                                    244 خط
@@ -58,10 +58,11 @@
      src/lib/roster.ts                                    94 خط
      src/lib/netbind.ts                                   95 خط
      src/lib/sqlite-cloud.ts                              41 خط
+     src/lib/bot.ts                                       35 خط
 
   ۴) مسیرهای API (src/app/api)
      src/app/api/auth/route.ts                            147 خط
-     src/app/api/actions/route.ts                         959 خط
+     src/app/api/actions/route.ts                         972 خط
      src/app/api/state/route.ts                           48 خط
      src/app/api/history/route.ts                         31 خط
      src/app/api/totals/route.ts                          48 خط
@@ -87,14 +88,14 @@
   ۶) رابط کاربری (src/components)
      src/components/context.tsx                           31 خط
      src/components/ui.tsx                                134 خط
-     src/components/AppShell.tsx                          412 خط
+     src/components/AppShell.tsx                          413 خط
      src/components/Login.tsx                             124 خط
      src/components/Dashboard.tsx                         165 خط
      src/components/MotorCard.tsx                         107 خط
-     src/components/MotorVisual.tsx                       118 خط
+     src/components/MotorVisual.tsx                       123 خط
      src/components/MotorDetail.tsx                       195 خط
      src/components/AuxTab.tsx                            97 خط
-     src/components/RegistryTab.tsx                       257 خط
+     src/components/RegistryTab.tsx                       252 خط
      src/components/ServiceForm.tsx                       196 خط
      src/components/ReportsTab.tsx                        220 خط
      src/components/ReportsHub.tsx                        102 خط
@@ -103,7 +104,7 @@
      src/components/AlertsTab.tsx                         49 خط
      src/components/ProblemsTab.tsx                       27 خط
      src/components/TrainingTab.tsx                       102 خط
-     src/components/AdminTab.tsx                          755 خط
+     src/components/AdminTab.tsx                          761 خط
      src/components/TwoFactorPanel.tsx                    284 خط
      src/components/MirrorPanel.tsx                       137 خط
 
@@ -124,7 +125,7 @@
      audit/audit3.mjs                                     199 خط
      audit/audit4.mjs                                     91 خط
      audit/audit5.mjs                                     302 خط
-     audit/audit6.mjs                                     144 خط
+     audit/audit6.mjs                                     182 خط
      audit/bulk.mjs                                       108 خط
      audit/perf.mjs                                       27 خط
      audit/conc.mjs                                       17 خط
@@ -187,7 +188,7 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   },
-  "version": "1.4.2"
+  "version": "1.4.3"
 }
 
 ── FILE: next.config.ts  (43 خط) ──
@@ -1754,7 +1755,7 @@ CREATE INDEX IF NOT EXISTS "backup_mirror_at_idx" ON "backup_mirror_runs" ("ts")
 ── FILE: src/lib/version.ts  (4 خط) ──
 
 /** نسخهٔ سامانه — در /api/health و تب ادمین نمایش داده می‌شود */
-export const APP_VERSION = process.env.APP_VERSION ?? "1.4.2";
+export const APP_VERSION = process.env.APP_VERSION ?? "1.4.3";
 export const APP_NAME = "سامانه پایش ایستگاه پمپاژ زیرزمینی — تونل انتقال آب گلاب";
 
 ── FILE: src/lib/errors.ts  (77 خط) ──
@@ -3158,7 +3159,7 @@ export function monthDaysOf(jy: number, jm: number) {
   return jalaaliMonthLength(jy, jm);
 }
 
-── FILE: src/lib/domain.ts  (336 خط) ──
+── FILE: src/lib/domain.ts  (346 خط) ──
 
 import SAMPLE_ROSTER_FILE from "../../data/roster.sample.json";
 
@@ -3191,6 +3192,16 @@ export const MOTORS = [
   { tag: "M-07", pumpTag: "P-07" },
   { tag: "M-08", pumpTag: "P-08" },
 ];
+
+/** توان نامی موتورهای اصلی ایستگاه (کیلووات) — روی پلاک شماتیک و گزارش‌ها. */
+export const MOTOR_POWER_KW = 1800;
+
+/** تگ پمپ متناظر یک موتور (مثلاً M-01 ←→ P-01)؛ برای تگ نامعتبر همان ورودی برمی‌گردد. */
+export function pumpTagOf(motorTag: string): string {
+  const hit = MOTORS.find((m) => m.tag === motorTag);
+  if (hit) return hit.pumpTag;
+  return motorTag.startsWith("M-") ? motorTag.replace(/^M-/, "P-") : motorTag;
+}
 
 export const PROCESS_PARAMS = [
   { tag: "PIT-001", label: "فشار تونل / مکش", unit: "bar", warnMin: null, warnMax: null, critMin: null, critMax: null },
@@ -4874,6 +4885,43 @@ export function requireLocalSqlite(dataDir: string, env?: Record<string, string 
   }
 }
 
+── FILE: src/lib/bot.ts  (35 خط) ──
+
+/**
+ * ارسال متن به پیام‌رسان‌های بله / ایتا (هر دو سازگار با API ربات تلگرام).
+ * عمداً بدون هیچ وابستگی داخلی است تا هم در سرور (route) و هم در
+ * تست‌ها (audit6 با سرور mock محلی) قابل استفاده باشد.
+ * متغیرهای محیطی BALE_API_BASE و EITAA_API_BASE فقط برای تست محلی‌اند؛
+ * در ایستگاه واقعی همیشه همان پیش‌فرض‌ها (tapi.bale.ai و eitaayar.ir) به کار می‌روند.
+ */
+export type BotProvider = "bale" | "eitaa";
+
+export function botApiBase(provider: BotProvider): string {
+  if (provider === "eitaa") return (process.env.EITAA_API_BASE ?? "https://eitaayar.ir/api").replace(/\/$/, "");
+  return (process.env.BALE_API_BASE ?? "https://tapi.bale.ai").replace(/\/$/, "");
+}
+
+export function botSendUrl(provider: BotProvider, token: string): string {
+  const base = botApiBase(provider);
+  return provider === "eitaa" ? `${base}/${token}/sendMessage` : `${base}/bot${token}/sendMessage`;
+}
+
+export async function sendBotText(opts: {
+  provider: BotProvider;
+  token: string;
+  chatId: string;
+  text: string;
+  timeoutMs?: number;
+}): Promise<void> {
+  const res = await fetch(botSendUrl(opts.provider, opts.token), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: opts.chatId, text: opts.text }),
+    signal: AbortSignal.timeout(opts.timeoutMs ?? 15000),
+  });
+  if (!res.ok) throw new Error(`پاسخ ${res.status}`);
+}
+
 ##############################################################################
 #  ۴) مسیرهای API (src/app/api)
 ##############################################################################
@@ -5027,7 +5075,7 @@ export async function DELETE(request: Request) {
   }
 }
 
-── FILE: src/app/api/actions/route.ts  (959 خط) ──
+── FILE: src/app/api/actions/route.ts  (972 خط) ──
 
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -5074,6 +5122,7 @@ import { bodyTooLarge, clearLoginLock, logSecurityEvent, rateLimitedResponse, to
 import { effectiveShift, getProcessThresholds, logActivity, thresholdSeverity } from "@/lib/state";
 import { buildOperationalPayload, buildRegistryPayload, buildTrendPayload, createReport, latestMotorRecords, normalizeRange, REPORT_KINDS } from "@/lib/reporting";
 import { addDaysToDay, isValidJalaliDay, jalaliNow, operationalDay } from "@/lib/jalali";
+import { sendBotText } from "@/lib/bot";
 import { CATEGORIES, MOTORS, MOTOR_PARAMS, MOTOR_TYPE_LIMITS, MOTOR_STATE_FA, PROCESS_LIMITS, PROCESS_PARAMS, TOTAL_LIMITS, limitError, type Settings } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
@@ -5141,9 +5190,7 @@ async function trySend(reportId: number, channelKey: string, shiftKey: string) {
   }
   try {
     const text = `${report?.title ?? "گزارش"}\n${report?.operators ?? ""}\nزمان: ${jalaliNow()}\nسامانه پایش ایستگاه پمپاژ زیرزمینی — تونل انتقال آب گلاب`;
-    const url = ch.provider === "eitaa" ? `https://eitaayar.ir/api/${ch.token}/sendMessage` : `https://tapi.bale.ai/bot${ch.token}/sendMessage`;
-    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: ch.chatId, text }), signal: AbortSignal.timeout(15000) });
-    if (!res.ok) throw new Error(`پاسخ ${res.status}`);
+    await sendBotText({ provider: ch.provider === "eitaa" ? "eitaa" : "bale", token: ch.token, chatId: ch.chatId, text });
     await db.update(sendQueue).set({ status: "sent", attempts: 1, sentAt: jalaliNow() }).where(eq(sendQueue.id, qid));
     return { queued: true, sent: true, message: "گزارش ارسال شد" };
   } catch (error) {
@@ -5600,9 +5647,7 @@ export async function POST(request: Request) {
           if (!ch?.enabled || !ch.token) continue;
           const report = (await db.select().from(reports).where(eq(reports.id, item.reportId)).limit(1))[0];
           try {
-            const url = ch.provider === "eitaa" ? `https://eitaayar.ir/api/${ch.token}/sendMessage` : `https://tapi.bale.ai/bot${ch.token}/sendMessage`;
-            const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chat_id: ch.chatId, text: `${report?.title ?? ""}\n${report?.operators ?? ""}` }), signal: AbortSignal.timeout(15000) });
-            if (!res.ok) throw new Error(`پاسخ ${res.status}`);
+            await sendBotText({ provider: ch.provider === "eitaa" ? "eitaa" : "bale", token: ch.token, chatId: ch.chatId, text: `${report?.title ?? ""}\n${report?.operators ?? ""}` });
             await db.update(sendQueue).set({ status: "sent", attempts: item.attempts + 1, sentAt: jalaliNow(), lastError: "" }).where(eq(sendQueue.id, item.id));
             sent += 1;
           } catch (error) {
@@ -5628,6 +5673,22 @@ export async function POST(request: Request) {
         await db.update(channels).set({ provider: str(p.provider, 10) === "eitaa" ? "eitaa" : "bale", chatId: str(p.chatId, 100), token: token || existing?.token || "", enabled: p.enabled === true }).where(eq(channels.key, key));
         await logActivity(shiftKey, "ویرایش کانال ارسال", key);
         return Response.json({ ok: true });
+      }
+
+      case "channel.test": {
+        requireAdmin();
+        const key = str(p.key, 20);
+        if (!["daily", "backup"].includes(key)) throw new Error("کانال نامعتبر است");
+        const ch = (await db.select().from(channels).where(eq(channels.key, key)).limit(1))[0];
+        if (!ch?.enabled) throw new Error("کانال فعال نیست؛ ابتدا آن را فعال و ذخیره کنید");
+        if (!ch.token || !ch.chatId) throw new Error("توکن یا شناسه کانال خالی است؛ ابتدا ذخیره کنید");
+        try {
+          await sendBotText({ provider: ch.provider === "eitaa" ? "eitaa" : "bale", token: ch.token, chatId: ch.chatId, text: `✅ اتصال سالم است\nزمان: ${jalaliNow()}\nسامانه پایش ایستگاه پمپاژ زیرزمینی — تونل انتقال آب گلاب` });
+        } catch (error) {
+          throw new Error(`ارسال تستی ناموفق بود (${error instanceof Error ? error.message : "خطای شبکه"})`);
+        }
+        await logActivity(shiftKey, "تست اتصال کانال ارسال", key);
+        return Response.json({ ok: true, message: "پیام تستی ارسال شد؛ کانال را بررسی کنید" });
       }
 
       case "admin.settings": {
@@ -6681,7 +6742,7 @@ import { reports } from "@/db/schema";
 import { getSessionUser } from "@/lib/auth";
 import { ensureSeed } from "@/db/seed";
 import PrintBar from "@/components/PrintBar";
-import { APP_NAME, APP_SUBTITLE, ORG_NAME } from "@/lib/domain";
+import { APP_NAME, APP_SUBTITLE, ORG_NAME, pumpTagOf } from "@/lib/domain";
 import { REPORT_KINDS } from "@/lib/reporting";
 
 export const dynamic = "force-dynamic";
@@ -6726,7 +6787,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         {row.kind === "aux" && <Aux d={d} />}
         {row.kind === "motor_service" && <MotorService d={d} />}
         {row.kind === "megger" && <Megger d={d} />}
-        {row.kind === "oil" && <Simple rows={[["تگ", v(d.tag)], ["تاریخ", v(d.day)], ["ساعت کارکرد", v(d.hours)], ["یادداشت", v(d.note)]]} />}
+        {row.kind === "oil" && <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(pumpTagOf(String(d.tag ?? "")))}`], ["تاریخ", v(d.day)], ["ساعت کارکرد", v(d.hours)], ["یادداشت", v(d.note)]]} />}
         {row.kind === "pm" && <Pm d={d} />}
         {row.kind === "registry" && <Registry d={d} />}
         {row.kind === "trend" && <Trend d={d} />}
@@ -6806,7 +6867,7 @@ function MotorService({ d }: { d: Any }) {
   const oil = d.oil as Any | null;
   return (
     <>
-      <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(d.pumpTag)}`], ["تاریخ سرویس", v(d.day)], ["ساعت HMI هنگام سرویس", v(d.hours)], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)], ["یادداشت", v(d.note)]]} />
+      <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(d.pumpTag ?? pumpTagOf(String(d.tag ?? "")))}`], ["تاریخ سرویس", v(d.day)], ["ساعت HMI هنگام سرویس", v(d.hours)], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)], ["یادداشت", v(d.note)]]} />
       <h2>قرائت ذغال‌ها (میلی‌متر)</h2>
       <table><thead><tr><th>فاز</th>{Array.from({ length: 8 }, (_, i) => <th key={i} className="center">برس {i + 1}</th>)}</tr></thead>
         <tbody>{["U", "V", "W"].map((ph) => <tr key={ph}><td className="ltr"><b>{ph}</b></td>{Array.from({ length: 8 }, (_, i) => <td key={i} className="ltr center">{brush[`${ph}${i + 1}`] ?? "—"}</td>)}</tr>)}</tbody></table>
@@ -6821,7 +6882,7 @@ function MotorService({ d }: { d: Any }) {
 function Megger({ d }: { d: Any }) {
   return (
     <>
-      <Simple rows={[["موتور", v(d.tag)], ["تاریخ", v(d.day)], ["ولتاژ تست استاتور", `${v(d.testVoltage)} V`], ["ولتاژ تست رتور", `${v(d.testVoltageRotor ?? d.testVoltage)} V`], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)]]} />
+      <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(pumpTagOf(String(d.tag ?? "")))}`], ["تاریخ", v(d.day)], ["ولتاژ تست استاتور", `${v(d.testVoltage)} V`], ["ولتاژ تست رتور", `${v(d.testVoltageRotor ?? d.testVoltage)} V`], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)]]} />
       <h2>نتایج</h2>
       <table><thead><tr><th>آیتم</th><th className="center">U1</th><th className="center">V1</th><th className="center">W1</th></tr></thead>
         <tbody>
@@ -9533,7 +9594,7 @@ export function Spinner({ label = "در حال دریافت…" }: { label?: str
   );
 }
 
-── FILE: src/components/AppShell.tsx  (412 خط) ──
+── FILE: src/components/AppShell.tsx  (413 خط) ──
 
 "use client";
 
@@ -9842,6 +9903,7 @@ export default function AppShell({ initial }: { initial: AppState }) {
 
   const activeAlerts = state.alerts.filter((a) => !a.actedAt);
   const criticalCount = activeAlerts.filter((a) => a.severity === "critical").length;
+  const unseenCrit = activeAlerts.filter((a) => a.severity === "critical" && !a.seenAt).length;
   const topModal = stack[stack.length - 1];
 
   return (
@@ -9909,7 +9971,7 @@ export default function AppShell({ initial }: { initial: AppState }) {
           ))}
         </nav>
 
-        {criticalCount > 0 && tab !== "dashboard" && tab !== "alerts" && (
+        {criticalCount > 0 && ((unseenCrit > 0 && tab !== "dashboard" && tab !== "alerts") || tab === "alerts") && (
           <button type="button" className="alert-item critical" style={{ width: "100%", textAlign: "start", cursor: "pointer", marginBottom: 12 }} onClick={() => goTab("dashboard")}>
             <Icon name="alert" size={16} />
             <span className="msg">{criticalCount} هشدار بحرانی فعال وجود دارد.</span>
@@ -10000,7 +10062,7 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
           <div className="hero-machine">
             {/* لوگوی رسمی شرکت — عین فایل ارسالی کارفرما */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo.jpg" alt={ORG_NAME} style={{ height: 96, width: "auto", background: "#fff", borderRadius: 10, padding: 6 }} />
+            <img src="/brand/logo.jpg" alt={ORG_NAME} style={{ height: 64, width: "auto", background: "#fff", borderRadius: 8, padding: 4 }} />
           </div>
           <div>
             <h2>{APP_NAME}</h2>
@@ -10349,9 +10411,11 @@ export default function MotorCard({
   );
 }
 
-── FILE: src/components/MotorVisual.tsx  (118 خط) ──
+── FILE: src/components/MotorVisual.tsx  (123 خط) ──
 
 "use client";
+
+import { MOTOR_POWER_KW } from "@/lib/domain";
 
 /**
  * شماتیک فلت ست کوپل‌شده (مطابق تصویر مرجع کارفرما):
@@ -10362,7 +10426,7 @@ export default function MotorCard({
 export default function MotorVisual({ tag, pumpTag, on, hot, smoke }: { tag: string; pumpTag: string; on: boolean; hot: boolean; smoke: boolean }) {
   const id = tag.replace(/[^a-z0-9]/gi, "");
   return (
-    <svg viewBox="0 0 360 200" role="img" aria-label={`شماتیک موتور ${tag} و پمپ ${pumpTag}`}>
+    <svg viewBox="0 0 360 200" role="img" aria-label={`شماتیک موتور ${tag} و پمپ ${pumpTag} — ${MOTOR_POWER_KW} کیلووات`}>
       <defs>
         <linearGradient id={`mb-${id}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="var(--m-light)" />
@@ -10406,9 +10470,12 @@ export default function MotorVisual({ tag, pumpTag, on, hot, smoke }: { tag: str
           <rect x="102" y="132" width="62" height="0" fill="none" />
           <rect x="60" y="132" width="0" height="0" fill="none" />
           <rect x="98" y="96" width="0" height="0" fill="none" />
-          <rect x="104" y="122" width="58" height="19" rx="3" fill="#0f172a" stroke="#020617" strokeWidth="0.8" />
-          <text x="133" y="136" textAnchor="middle" fontFamily="monospace" fontSize="10.5" fontWeight="700" fill="#7dd3fc" letterSpacing="0.5">
+          <rect x="93" y="117" width="80" height="31" rx="3" fill="#0f172a" stroke="#020617" strokeWidth="0.8" />
+          <text x="133" y="130" textAnchor="middle" fontFamily="monospace" fontSize="10.5" fontWeight="700" fill="#7dd3fc" letterSpacing="0.5">
             {tag}
+          </text>
+          <text x="133" y="143" textAnchor="middle" fontSize="9" fontWeight="700" fill="#bae6fd">
+            {MOTOR_POWER_KW} کیلووات
           </text>
           {/* محور خروجی */}
           <rect x="174" y="112" width="10" height="12" rx="1.5" fill="#9aa5b1" />
@@ -10724,27 +10791,27 @@ export default function AuxTab() {
           </div>
         </div>
 
-        <div className="aux-grid">
-          {aux.map((e) => (
-            <article key={e.tag} className={`aux-card ${e.status === "in_service" ? "service" : ""}`}>
-              <div className="aux-top">
-                <div>
-                  <div className="aux-tag">{e.tag}</div>
-                  <div className="aux-name">{e.name}</div>
-                  <div className="small muted" style={{ marginTop: 2 }}>محل نصب: {e.location || "—"}</div>
-                </div>
-                <StatusPill status={e.status} statusFa={e.statusFa} />
-              </div>
-              <div className="aux-desc">
-                {e.description || <span className="muted">توضیح سرویس ثبت نشده است.</span>}
-                {e.descriptionAt && <span className="meta">زمان ثبت توضیح: {e.descriptionAt}</span>}
-              </div>
-              <div className="aux-actions" style={{ flexDirection: "column", alignItems: "stretch" }}>
-                <StatusToggle status={e.status} disabled={busy} onPick={(mode) => openModal(`${mode === "ready" ? "آماده به کار" : "در حال سرویس"} — ${e.tag}`, <EquipmentServiceForm tag={e.tag} name={e.name} defaultMode={mode} />)} />
-                <button type="button" className="btn tiny ghost" disabled={busy} onClick={() => openModal(`گزارش سرویس ${e.tag}`, <EquipmentServiceForm tag={e.tag} name={e.name} defaultMode="report" />)}><Icon name="file" size={12} /> ثبت گزارش سرویس (بدون تغییر وضعیت)</button>
-              </div>
-            </article>
-          ))}
+        <div className="table-wrap" style={{ maxHeight: 640 }}>
+          <table className="data">
+            <thead><tr><th>تگ</th><th>تجهیز</th><th>محل نصب</th><th>وضعیت</th><th>آخرین توضیحات</th><th>اقدام</th></tr></thead>
+            <tbody>
+              {aux.map((e) => (
+                <tr key={e.tag}>
+                  <td className="mono" style={{ color: "var(--accent)", fontWeight: 700, whiteSpace: "nowrap" }}>{e.tag}</td>
+                  <td>{e.name}</td>
+                  <td className="small muted">{e.location || "—"}</td>
+                  <td><StatusPill status={e.status} statusFa={e.statusFa} /></td>
+                  <td className="small" style={{ maxWidth: 300 }}>{e.description || <span className="muted">توضیح سرویس ثبت نشده است.</span>}{e.descriptionAt && <span className="small muted"> ({e.descriptionAt})</span>}</td>
+                  <td>
+                    <div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
+                      <StatusToggle status={e.status} disabled={busy} onPick={(mode) => openModal(`${mode === "ready" ? "آماده به کار" : "در حال سرویس"} — ${e.tag}`, <EquipmentServiceForm tag={e.tag} name={e.name} defaultMode={mode} />)} />
+                      <button type="button" className="btn tiny ghost" disabled={busy} onClick={() => openModal(`گزارش سرویس ${e.tag}`, <EquipmentServiceForm tag={e.tag} name={e.name} defaultMode="report" />)}><Icon name="file" size={12} /> گزارش</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
         {aux.length === 0 && <div className="empty">تجهیزی با این مشخصات پیدا نشد.</div>}
       </Panel>
@@ -10765,7 +10832,7 @@ export default function AuxTab() {
   );
 }
 
-── FILE: src/components/RegistryTab.tsx  (257 خط) ──
+── FILE: src/components/RegistryTab.tsx  (252 خط) ──
 
 "use client";
 
@@ -10849,7 +10916,6 @@ export default function RegistryTab() {
                   <td>
                     <div className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
                       <button type="button" className="btn tiny" onClick={() => openModal(`${e.tag} — پرونده تجهیز`, <EquipmentDetail tag={e.tag} />, { wide: true, sub: e.name })}>پرونده</button>
-                      <button type="button" className="btn tiny" onClick={() => openModal(`نگهداشت / PM — ${e.tag}`, <PmForm tag={e.tag} />, { wide: true, sub: e.name })}>نگهداشت/PM</button>
                       <StatusToggle status={e.status} disabled={busy} onPick={(mode) => openModal(`${mode === "ready" ? "آماده به کار" : "در حال سرویس"} — ${e.tag}`, <EquipmentServiceForm tag={e.tag} name={e.name} defaultMode={mode} />)} />
                     </div>
                   </td>
@@ -10867,13 +10933,12 @@ export default function RegistryTab() {
 
 /** پروندهٔ تجهیز: شناسنامه + کاتالوگ + تاریخچه + ویرایش/حذف (ادمین) */
 export function EquipmentDetail({ tag }: { tag: string }) {
-  const { state, act, busy, isAdmin, openModal, closeModal, refresh, toast } = useApp();
+  const { state, act, busy, isAdmin, openModal, closeModal, refresh, toast, goTab } = useApp();
   const e = state.equipment.find((x) => x.tag === tag);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
   if (!e) return <div className="empty">تجهیز پیدا نشد.</div>;
   const logs = state.serviceLogs.filter((s) => s.tag === tag);
-  const pm = state.pmRecords.filter((r) => r.tag === tag);
 
   async function upload(file: File) {
     setUploading(true);
@@ -10944,12 +11009,9 @@ export function EquipmentDetail({ tag }: { tag: string }) {
         )}
       </div>
 
-      <div>
-        <div className="panel-title" style={{ fontSize: 14, marginBottom: 6 }}>تاریخچهٔ PM</div>
-        {pm.length === 0 ? <div className="empty">PM ثبت نشده است.</div> : (
-          <div className="table-wrap"><table className="data"><thead><tr><th>تاریخ</th><th>قالب</th><th>انجام‌دهندگان</th><th>شیفت</th><th>یادداشت</th><th>PDF</th></tr></thead>
-            <tbody>{pm.map((r) => { const rep = state.reports.find((x) => x.kind === "pm" && x.day === r.day && x.title.includes(tag)); return <tr key={r.id}><td className="mono">{r.day}</td><td>{r.templateName}</td><td>{r.workers || "—"}</td><td>{r.shiftKey}</td><td className="small">{r.note || "—"}</td><td>{rep ? <button type="button" className="btn tiny" onClick={() => window.open(`/report/${rep.id}`, "_blank")}>PDF</button> : "—"}</td></tr>; })}</tbody></table></div>
-        )}
+      <div className="spread">
+        <div className="small muted">نگهداشت پیشگیرانه (PM) این تجهیز در سربرگ «نگهداشت» مدیریت می‌شود.</div>
+        <button type="button" className="btn tiny" onClick={() => { closeModal(); goTab("pm"); }}>رفتن به سربرگ نگهداشت</button>
       </div>
 
       <div>
@@ -12025,7 +12087,7 @@ export default function TrainingTab() {
   );
 }
 
-── FILE: src/components/AdminTab.tsx  (755 خط) ──
+── FILE: src/components/AdminTab.tsx  (761 خط) ──
 
 "use client";
 
@@ -12077,7 +12139,10 @@ export default function AdminTab() {
         <MirrorPanel />
       </div>
 
-      <SetpointsPanel />
+      <Panel title="ست‌پوینت‌ها" icon="gauge" hint="همهٔ ست‌پوینت‌های موتور/سرویس و پارامترهای فرآیندی، یک‌جا">
+        <div className="note">آستانه‌های هشدار موتورها و پارامترهای فرآیندی در یک صفحهٔ جدا باز می‌شود؛ ذخیره، اعمال فوری روی داشبورد و هشدارها دارد.</div>
+        <button type="button" className="btn primary" onClick={() => openModal("تنظیمات ست‌پوینت", <SetpointsPanel />, { wide: true, sub: "آستانه‌های هشدار" })}><Icon name="gauge" size={14} /> باز کردن تنظیمات ست‌پوینت</button>
+      </Panel>
 
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(340px,1fr))" }}>
         <ChannelsPanel />
@@ -12493,7 +12558,10 @@ function ChannelsPanel() {
             </div>
             <div className="spread">
               <label className="row small" style={{ gap: 5 }}><input type="checkbox" checked={f.enabled} onChange={(e) => setForms({ ...forms, [c.key]: { ...f, enabled: e.target.checked } })} /> فعال</label>
-              <button type="button" className="btn tiny primary" disabled={busy} onClick={() => act("admin.channel", { key: c.key, ...f })}>ذخیره کانال</button>
+              <div className="row" style={{ gap: 6 }}>
+                <button type="button" className="btn tiny" disabled={busy || !c.enabled || !c.hasToken} title="ارسال یک پیام تستی به همین کانال" onClick={() => { if (window.confirm("یک پیام تستی به این کانال ارسال شود؟")) void act("channel.test", { key: c.key }); }}>تست اتصال</button>
+                <button type="button" className="btn tiny primary" disabled={busy} onClick={() => act("admin.channel", { key: c.key, ...f })}>ذخیره کانال</button>
+              </div>
             </div>
           </div>
         );
@@ -15215,7 +15283,7 @@ main().catch((error) => {
   process.exit(1);
 });
 
-── FILE: audit/audit6.mjs  (144 خط) ──
+── FILE: audit/audit6.mjs  (182 خط) ──
 
 /**
  * audit6 — آزمون‌های نسخهٔ ۱٫۴٫۱ (روستر محلی، بایند شبکه، نگهبان مسیر، ورود گروهی).
@@ -15227,6 +15295,8 @@ import { writeFileSync } from "node:fs";
 import { resolveBind, trustProxyEnabled, trustedClientIp, parseIpv4, ipInCidr, parseAllowList, lanAllowed } from "../src/lib/netbind.ts";
 import { validateRoster, loadRosterFile, resolveRoster } from "../src/lib/roster.ts";
 import { detectCloudPath, requireLocalSqlite } from "../src/lib/sqlite-cloud.ts";
+import { createServer } from "node:http";
+import { botApiBase, botSendUrl, sendBotText } from "../src/lib/bot.ts";
 
 const BASE = "http://127.0.0.1:3000";
 const results = [];
@@ -15353,6 +15423,42 @@ const serveBadBind = await run(["scripts/serve.mjs", "dev"], { BIND: "nonsense" 
 t("serve.mjs invalid BIND exits 1", serveBadBind.code === 1 && serveBadBind.stderr.includes("BIND"));
 const serveCloud = await run(["scripts/serve.mjs", "dev"], { PGLITE_DATA_DIR: "/tmp/OneDrive-x/ps" });
 t("serve.mjs cloud path exits 1", serveCloud.code === 1 && serveCloud.stderr.includes("OneDrive"));
+
+// ---------- و) ربات بله/ایتا (mock محلی، بدون اینترنت) ----------
+t("bot bale url", botSendUrl("bale", "TOK") === "https://tapi.bale.ai/botTOK/sendMessage");
+t("bot eitaa url", botSendUrl("eitaa", "TOK") === "https://eitaayar.ir/api/TOK/sendMessage");
+const mockHits = [];
+const mock = createServer((req, res) => {
+  let body = "";
+  req.on("data", (c) => { body += c; });
+  req.on("end", () => {
+    mockHits.push({ url: req.url, body });
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true }));
+  });
+});
+await new Promise((r) => mock.listen(0, "127.0.0.1", r));
+process.env.BALE_API_BASE = `http://127.0.0.1:${mock.address().port}`;
+t("bot base override", botApiBase("bale") === process.env.BALE_API_BASE);
+await sendBotText({ provider: "bale", token: "T1", chatId: "-100", text: "سلام" });
+const hitBody = JSON.parse(mockHits[0].body);
+t("bot post path+payload", mockHits.length === 1 && mockHits[0].url === "/botT1/sendMessage" && hitBody.chat_id === "-100" && hitBody.text === "سلام");
+mock.close();
+const slow = createServer(() => {});
+await new Promise((r) => slow.listen(0, "127.0.0.1", r));
+process.env.BALE_API_BASE = `http://127.0.0.1:${slow.address().port}`;
+let timedOut = false;
+try { await sendBotText({ provider: "bale", token: "T", chatId: "1", text: "x", timeoutMs: 300 }); } catch { timedOut = true; }
+t("bot timeout aborts", timedOut);
+slow.close();
+const errSrv = createServer((req, res) => { res.writeHead(500); res.end("boom"); });
+await new Promise((r) => errSrv.listen(0, "127.0.0.1", r));
+process.env.BALE_API_BASE = `http://127.0.0.1:${errSrv.address().port}`;
+let httpErr = "";
+try { await sendBotText({ provider: "bale", token: "T", chatId: "1", text: "x" }); } catch (e) { httpErr = e instanceof Error ? e.message : ""; }
+t("bot http error surfaces", httpErr.includes("پاسخ 500"));
+errSrv.close();
+delete process.env.BALE_API_BASE;
 
 // ---------- جمع‌بندی ----------
 const pass = results.filter((r) => r.ok).length;

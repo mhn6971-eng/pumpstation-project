@@ -305,6 +305,7 @@ export default function AppShell({ initial }: { initial: AppState }) {
 
   const activeAlerts = state.alerts.filter((a) => !a.actedAt);
   const criticalCount = activeAlerts.filter((a) => a.severity === "critical").length;
+  const unseenCrit = activeAlerts.filter((a) => a.severity === "critical" && !a.seenAt).length;
   const topModal = stack[stack.length - 1];
 
   return (
@@ -372,7 +373,7 @@ export default function AppShell({ initial }: { initial: AppState }) {
           ))}
         </nav>
 
-        {criticalCount > 0 && tab !== "dashboard" && tab !== "alerts" && (
+        {criticalCount > 0 && ((unseenCrit > 0 && tab !== "dashboard" && tab !== "alerts") || tab === "alerts") && (
           <button type="button" className="alert-item critical" style={{ width: "100%", textAlign: "start", cursor: "pointer", marginBottom: 12 }} onClick={() => goTab("dashboard")}>
             <Icon name="alert" size={16} />
             <span className="msg">{criticalCount} هشدار بحرانی فعال وجود دارد.</span>

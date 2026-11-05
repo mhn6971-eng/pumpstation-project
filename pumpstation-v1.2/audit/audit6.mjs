@@ -8,6 +8,8 @@ import { writeFileSync } from "node:fs";
 import { resolveBind, trustProxyEnabled, trustedClientIp, parseIpv4, ipInCidr, parseAllowList, lanAllowed } from "../src/lib/netbind.ts";
 import { validateRoster, loadRosterFile, resolveRoster } from "../src/lib/roster.ts";
 import { detectCloudPath, requireLocalSqlite } from "../src/lib/sqlite-cloud.ts";
+import { createServer } from "node:http";
+import { botApiBase, botSendUrl, sendBotText } from "../src/lib/bot.ts";
 
 const BASE = "http://127.0.0.1:3000";
 const results = [];
@@ -134,6 +136,42 @@ const serveBadBind = await run(["scripts/serve.mjs", "dev"], { BIND: "nonsense" 
 t("serve.mjs invalid BIND exits 1", serveBadBind.code === 1 && serveBadBind.stderr.includes("BIND"));
 const serveCloud = await run(["scripts/serve.mjs", "dev"], { PGLITE_DATA_DIR: "/tmp/OneDrive-x/ps" });
 t("serve.mjs cloud path exits 1", serveCloud.code === 1 && serveCloud.stderr.includes("OneDrive"));
+
+// ---------- و) ربات بله/ایتا (mock محلی، بدون اینترنت) ----------
+t("bot bale url", botSendUrl("bale", "TOK") === "https://tapi.bale.ai/botTOK/sendMessage");
+t("bot eitaa url", botSendUrl("eitaa", "TOK") === "https://eitaayar.ir/api/TOK/sendMessage");
+const mockHits = [];
+const mock = createServer((req, res) => {
+  let body = "";
+  req.on("data", (c) => { body += c; });
+  req.on("end", () => {
+    mockHits.push({ url: req.url, body });
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true }));
+  });
+});
+await new Promise((r) => mock.listen(0, "127.0.0.1", r));
+process.env.BALE_API_BASE = `http://127.0.0.1:${mock.address().port}`;
+t("bot base override", botApiBase("bale") === process.env.BALE_API_BASE);
+await sendBotText({ provider: "bale", token: "T1", chatId: "-100", text: "سلام" });
+const hitBody = JSON.parse(mockHits[0].body);
+t("bot post path+payload", mockHits.length === 1 && mockHits[0].url === "/botT1/sendMessage" && hitBody.chat_id === "-100" && hitBody.text === "سلام");
+mock.close();
+const slow = createServer(() => {});
+await new Promise((r) => slow.listen(0, "127.0.0.1", r));
+process.env.BALE_API_BASE = `http://127.0.0.1:${slow.address().port}`;
+let timedOut = false;
+try { await sendBotText({ provider: "bale", token: "T", chatId: "1", text: "x", timeoutMs: 300 }); } catch { timedOut = true; }
+t("bot timeout aborts", timedOut);
+slow.close();
+const errSrv = createServer((req, res) => { res.writeHead(500); res.end("boom"); });
+await new Promise((r) => errSrv.listen(0, "127.0.0.1", r));
+process.env.BALE_API_BASE = `http://127.0.0.1:${errSrv.address().port}`;
+let httpErr = "";
+try { await sendBotText({ provider: "bale", token: "T", chatId: "1", text: "x" }); } catch (e) { httpErr = e instanceof Error ? e.message : ""; }
+t("bot http error surfaces", httpErr.includes("پاسخ 500"));
+errSrv.close();
+delete process.env.BALE_API_BASE;
 
 // ---------- جمع‌بندی ----------
 const pass = results.filter((r) => r.ok).length;
