@@ -54,7 +54,7 @@ PostgreSQL سروری، Tailwind 4. هیچ وابستگی ابری یا خارج
 اجرا:   npm run preview     (مهاجرت دیتابیس + سرور فقط روی 127.0.0.1:3000)
         npm run preview:lan (همان، ولی باز روی شبکهٔ داخلی برای اتاق دوم)
 تولید:  npm run build && npm start
-  npm test                   # typecheck + audit1 تا audit6 (۲۱۶ سنجه: ۱۶۵ PASS + ۵۱ ✓؛ پشت‌سرهم اجرا نشود، محدودیت نرخ)
+آزمون:  npm test                   # typecheck + audit1 تا audit6 (۲۱۶ سنجه: ۱۶۵ PASS + ۵۱ ✓؛ پشت‌سرهم اجرا نشود، محدودیت نرخ)
 سلامت: GET /api/health   و   GET /api/health?full=1 (ادمین)
 PINهای آزمایشی نمونه: شیفت A=1011، B=2022، C=3033، ادمین=9009
 (ساختگی‌اند، از data/roster.sample.json. نام و PIN واقعی فقط در فایل محلی
