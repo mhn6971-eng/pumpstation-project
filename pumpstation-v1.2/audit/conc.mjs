@@ -2,7 +2,7 @@ const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 const login = async (k, p) => (await (await fetch(`${BASE}/api/auth`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: k, pin: p }) })).headers.get("set-cookie") || "").split(";")[0];
 const act = (cookie, action, payload) => fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie }, body: JSON.stringify({ action, payload }) }).then((r) => r.json());
 const state = (cookie, q = "") => fetch(`${BASE}/api/state${q}`, { headers: { cookie } }).then((r) => r.json());
-const A = await login("A", "1111");
+const A = await login("A", "1011");
 const s0 = await state(A);
 console.log("readings before:", s0.counts.readings, "alerts:", s0.counts.alerts);
 const day = "1405/10/01";

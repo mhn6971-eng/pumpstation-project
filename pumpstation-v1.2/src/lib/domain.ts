@@ -1,19 +1,23 @@
+import SAMPLE_ROSTER_FILE from "../../data/roster.sample.json";
+
 export type EquipmentStatus = "ready" | "in_service";
 export type MotorState = "on" | "off" | "service";
 export type Severity = "ok" | "warning" | "critical";
 
-export const SHIFT_ROSTER: {
+/**
+ * روستر نمونهٔ ساختگی (نام‌ها و PINها واقعی نیستند) — فقط برای تست و توسعه.
+ * نام واقعی اپراتورها و PIN واقعی در `data/roster.local.json` روی دستگاه
+ * ایستگاه است و هرگز در کد و گیت نمی‌آید (src/lib/roster.ts).
+ */
+export type RosterEntry = {
   key: string;
   label: string;
   role: "operator" | "admin";
   pin: string;
   members: string[];
-}[] = [
-  { key: "A", label: "شیفت A", role: "operator", pin: "1111", members: ["سعید شریفی", "یزدان صفری"] },
-  { key: "B", label: "شیفت B", role: "operator", pin: "2222", members: ["جواد کاظمی", "حسین طیبانی"] },
-  { key: "C", label: "شیفت C", role: "operator", pin: "3333", members: ["محسن نقی‌پور", "یوسف نادری"] },
-  { key: "admin", label: "ادمین", role: "admin", pin: "9999", members: ["ادمین سیستم"] },
-];
+};
+
+export const SAMPLE_ROSTER: RosterEntry[] = (SAMPLE_ROSTER_FILE as unknown as { roster: RosterEntry[] }).roster;
 
 export const MOTORS = [
   { tag: "M-01", pumpTag: "P-01" },

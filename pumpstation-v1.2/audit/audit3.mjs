@@ -38,13 +38,13 @@ async function act(cookie, action, payload = {}, headers = {}) {
   log("health has no secrets", !JSON.stringify(body).includes("secret"));
 }
 
-const admin = await login("admin", "9999");
+const admin = await login("admin", "9009");
 // تست‌های قبلی ممکن است قفل ورود گذاشته باشند؛ ادمین آن را برمی‌دارد
 if (admin.cookie) {
   const unlock = await act(admin.cookie, "admin.unlock", { key: "all" });
   log("admin can clear login locks", unlock.body.ok === true, `cleared=${unlock.body.cleared}`);
 }
-const opA = await login("A", "1111");
+const opA = await login("A", "1011");
 log("admin login", admin.status === 200 && admin.cookie, `status=${admin.status}`);
 log("operator login", opA.status === 200 && opA.cookie);
 
@@ -60,7 +60,7 @@ log("operator login", opA.status === 200 && opA.cookie);
   const list = await act(admin.cookie, "session.list", { shifts: true });
   log("session.list", Array.isArray(list.body.sessions) && list.body.sessions.length > 0, `count=${list.body.sessions?.length}`);
   // یک نشست اختصاصی برای شیفت C می‌سازیم تا ابطال تک‌نشست را دقیق بسنجیم
-  const victim = await login("C", "3333");
+  const victim = await login("C", "3033");
   const me = await fetch(`${BASE}/api/auth`, { headers: { cookie: victim.cookie } }).then((r) => r.json());
   const fresh = await act(admin.cookie, "session.list", { shifts: true });
   const target = fresh.body.sessions.find((s) => s.id.startsWith(me.sessionId ?? "-"));
@@ -73,7 +73,7 @@ log("operator login", opA.status === 200 && opA.cookie);
     log("session.revoke", false, "نشست هدف پیدا نشد");
   }
 
-  const third = await login("B", "2222");
+  const third = await login("B", "2022");
   const before = await fetch(`${BASE}/api/state`, { headers: { cookie: third.cookie } }).then((r) => r.status);
   const revokeOthers = await act(admin.cookie, "session.revoke_others", { key: "B" });
   const after = await fetch(`${BASE}/api/state`, { headers: { cookie: third.cookie } }).then((r) => r.status);

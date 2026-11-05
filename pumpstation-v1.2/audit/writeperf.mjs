@@ -1,5 +1,5 @@
 const BASE = "http://127.0.0.1:3000";
-const r = await fetch(`${BASE}/api/auth`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: "C", pin: "3333" }) });
+const r = await fetch(`${BASE}/api/auth`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: "C", pin: "3033" }) });
 const cookie = (r.headers.get("set-cookie") || "").split(";")[0];
 const ts = [];
 for (let i = 0; i < 10; i++) {

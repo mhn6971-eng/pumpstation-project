@@ -39,7 +39,7 @@ const H = (cookie) => ({ cookie });
   log("brute-force throttling (per IP)", firstLock > 0 && firstLock <= 5, `قفل از تلاش ${firstLock} ام فعال شد (${perAttempt.toFixed(1)}ms/attempt) — ادامهٔ حدس بی‌فایده است`);
 
   // legitimate user from another IP is not affected by the attacker's lock
-  const legitOtherIp = await post({ key: "A", pin: "1111" }, { "x-forwarded-for": "10.1.1.1" });
+  const legitOtherIp = await post({ key: "A", pin: "1011" }, { "x-forwarded-for": "10.1.1.1" });
   log("other IP not locked out by attacker", legitOtherIp.status === 200, `status=${legitOtherIp.status}`);
 
   // global shift lock after 20 failures from rotating IPs
@@ -52,17 +52,17 @@ const H = (cookie) => ({ cookie });
 
   // پاک‌سازی قفل‌های ایجادشده در تست‌های حدس PIN تا مجموعهٔ بعدی سالم بماند
   {
-    const adm = await login("admin", "9999");
+    const adm = await login("admin", "9009");
     if (adm.cookie) {
       await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie }, body: JSON.stringify({ action: "admin.unlock", payload: { key: "all" } }) });
     }
   }
 
-  const okA = await login("A", "1111");
+  const okA = await login("A", "1011");
   log("valid PIN accepted", okA.status === 200 && okA.cookie.includes("ps_session"), `status=${okA.status}`);
   const A = okA.cookie;
 
-  const admin = await login("admin", "9999");
+  const admin = await login("admin", "9009");
   // تست‌های قبلی ممکن است قفل ورود گذاشته باشند؛ ادمین آن را برمی‌دارد
   await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: admin.cookie }, body: JSON.stringify({ action: "admin.unlock", payload: { key: "all" } }) });
   const ADM = admin.cookie;
@@ -117,11 +117,13 @@ const H = (cookie) => ({ cookie });
   const negative = await act(A, "total.set", { value: -5000, day: "1405/08/13" });
   log("negative total rejected", negative.status === 400, `status=${negative.status} ${negative.body?.ok ? "ACCEPTED (bug)" : "error=" + negative.body?.error}`);
   // قفل خوش‌بینانه: متن فعلی را می‌خوانیم تا ثبت با تعارض رد نشود
+  // (یادداشت state همیشه مال «امروز» است، پس روز تست هم امروز است تا تاریخ‌محور نشود)
   const cur = await fetch(`${BASE}/api/state`, { headers: H(A) }).then((r) => r.json());
-  const xss = await act(A, "note.save", { text: '<script>alert(1)</script><img src=x onerror=alert(1)>', day: "1405/08/13", expected: cur.note ?? "" });
+  const noteDay = cur.now?.day ?? "1405/08/13";
+  const xss = await act(A, "note.save", { text: '<script>alert(1)</script><img src=x onerror=alert(1)>', day: noteDay, expected: cur.note ?? "" });
   const stateAfter = await fetch(`${BASE}/api/state`, { headers: H(A) }).then((r) => r.json());
   log("XSS payload stored as inert text", stateAfter.note.includes("<script>") && xss.body?.ok, `stored raw, rendered by React escaping. len=${stateAfter.note.length}`);
-  const longNote = await act(A, "note.save", { text: "ا".repeat(10000), day: "1405/08/13", expected: '<script>alert(1)</script><img src=x onerror=alert(1)>' });
+  const longNote = await act(A, "note.save", { text: "ا".repeat(10000), day: noteDay, expected: '<script>alert(1)</script><img src=x onerror=alert(1)>' });
   const st2 = await fetch(`${BASE}/api/state`, { headers: H(A) }).then((r) => r.json());
   log("over-long note truncated silently", st2.note.length <= 4000, `saved length=${st2.note.length} (silently truncated, no warning)`);
 

@@ -33,7 +33,7 @@ async function act(cookie, action, payload = {}) {
 
 const state = (cookie) => fetch(`${BASE}/api/state`, { headers: { cookie } }).then((r) => r.json());
 
-const admin = await login("admin", "9999");
+const admin = await login("admin", "9009");
 await act(admin.cookie, "admin.unlock", { key: "all" });
 
 /* ۱) وضعیت پایه و نسخهٔ ایمنی */

@@ -7,7 +7,7 @@ const time = async (label, fn, n = 3) => {
   console.log(`${label}: min=${ts[0]}ms median=${ts[Math.floor(n / 2)]}ms max=${ts[n - 1]}ms`);
   return ts[Math.floor(n / 2)];
 };
-const A = await login("A", "1111");
+const A = await login("A", "1011");
 const H = { headers: { cookie: A } };
 await time("GET / (SSR + full state)", () => fetch(BASE + "/", H).then((r) => r.text()));
 await time("GET /api/state", () => fetch(BASE + "/api/state", H).then((r) => r.json()));

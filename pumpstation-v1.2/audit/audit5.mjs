@@ -12,7 +12,7 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 
 const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
-const ADMIN_PIN = process.env.ADMIN_PIN ?? "9999";
+const ADMIN_PIN = process.env.ADMIN_PIN ?? "9009";
 
 let pass = 0;
 const failures = [];
@@ -173,7 +173,7 @@ async function main() {
 
   // شیفت دیگر همچنان فقط با PIN وارد می‌شود (دوعاملی فقط برای ادمین فعال است)
   cookie = "";
-  const other = await login("A", "1111");
+  const other = await login("A", "1011");
   check("شیفت بدون دوعاملی با PIN وارد می‌شود", other.res.status === 200, String(other.res.status));
   await act("admin.unlock", { key: "all" });
 

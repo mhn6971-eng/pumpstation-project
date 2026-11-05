@@ -160,7 +160,7 @@ node scripts/doctor.mjs --repair   # بازسازی از آخرین بک‌آپ
   اکشن `admin.unlock` با `{ "key": "all" }`.
 - اگر PIN ادمین فراموش شده و کس دیگری دسترسی ندارد:
   ```bash
-  node scripts/reset-admin-pin.mjs        # PIN ادمین را به 9999 برمی‌گرداند
+  node scripts/reset-admin-pin.mjs --pin 123456 --confirm 123456   # همراه با تکرار PIN؛ بدون --confirm هیچ کاری نمی‌کند
   ```
   (پس از اجرا، بلافاصله از داخل سامانه PIN را عوض کنید.)
 

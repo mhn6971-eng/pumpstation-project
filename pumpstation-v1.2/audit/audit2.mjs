@@ -12,8 +12,8 @@ const act = async (cookie, action, payload) => {
 const state = (cookie, q = "") => fetch(`${BASE}/api/state${q}`, { headers: { cookie } }).then((r) => r.json());
 
 (async () => {
-  const A = await login("A", "1111");
-  const ADM = await login("admin", "9999");
+  const A = await login("A", "1011");
+  const ADM = await login("admin", "9009");
   await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: ADM.cookie }, body: JSON.stringify({ action: "admin.unlock", payload: { key: "all" } }) });
   const day = "1405/08/14";
 
@@ -44,7 +44,7 @@ const state = (cookie, q = "") => fetch(`${BASE}/api/state${q}`, { headers: { co
   // ---- report authorization (object level) ----
   const rep = await fetch(`${BASE}/report/${post3.body?.id ?? 1}`, { headers: { cookie: A } });
   log("report page opens for operator", rep.status === 200, `status=${rep.status}`);
-  const B = await login("B", "2222");
+  const B = await login("B", "2022");
   const repB = await fetch(`${BASE}/report/${post3.body?.id ?? 1}`, { headers: { cookie: B } });
   log("other shift can read report by id", repB.status === 200, `status=${repB.status} — reports are not scoped per shift (by design?)`);
 

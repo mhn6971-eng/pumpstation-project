@@ -7,3 +7,6 @@ next-env.d.ts
 tsconfig.tsbuildinfo
 .audit/
 files/catalogs/
+
+# فایل‌های محلی دستگاه (نام واقعی اپراتورها و PIN واقعی فقط این‌جاست؛ هرگز کامیت نشود)
+*.local.json

@@ -14,7 +14,6 @@ import {
   channels,
 } from "@/db/schema";
 import {
-  SHIFT_ROSTER,
   DEFAULT_SETTINGS,
   MOTORS,
   MOTOR_PARAMS,
@@ -25,6 +24,7 @@ import {
   PM_TEMPLATE_SEED,
   type Settings,
 } from "@/lib/domain";
+import { resolveRoster } from "@/lib/roster";
 import { jelaliSeedDays, padSeedValue } from "@/lib/seed-helpers";
 import { jalaliNow, operationalDay } from "@/lib/jalali";
 import { hashPin } from "@/lib/pin";
@@ -70,8 +70,11 @@ async function runSeed() {
   const op = operationalDay();
   const hour = op.hour;
 
+  // روستر از فایل محلی (واقعی) یا نمونهٔ ساختگی خوانده می‌شود؛ نام و PIN واقعی در کد نیست
+  const { roster, source } = resolveRoster();
+  console.log(`[seed] shifts roster source: ${source}`);
   await db.insert(shifts).values(
-    SHIFT_ROSTER.map((s) => ({
+    roster.map((s) => ({
       key: s.key,
       label: s.label,
       role: s.role,
