@@ -5,7 +5,7 @@
     "dev": "node scripts/serve.mjs dev",
     "preview": "node scripts/init-db.mjs && node scripts/serve.mjs dev",
     "preview:lan": "node scripts/init-db.mjs && node scripts/serve.mjs dev --host lan",
-    "stackblitz": "node scripts/init-db.mjs && node scripts/serve.mjs dev --webpack --host lan",
+    "stackblitz": "node scripts/init-db.mjs && node node_modules/next/dist/bin/next dev -H 0.0.0.0 -p 3000 --webpack",
     "db:init": "node scripts/init-db.mjs",
     "db:migrate": "node scripts/init-db.mjs",
     "build": "next build",
