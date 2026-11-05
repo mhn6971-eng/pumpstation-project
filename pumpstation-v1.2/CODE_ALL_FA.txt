@@ -1,7 +1,7 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.1   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 3d0ee3e
-تاریخ تولید: 2026-11-05   |   102 فایل   |   15,302 خط
+نسخهٔ برنامه: 1.4.2   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 85f5310
+تاریخ تولید: 2026-11-05   |   102 فایل   |   15,381 خط
 ==============================================================================
 
 این فایل، «نسخهٔ خوانا»ی کل کد برنامه است؛ هر فایل کامل و بدون حذف درج شده و
@@ -25,7 +25,7 @@
 
   ۲) دیتابیس و مهاجرت‌ها
      src/db/index.ts                                      101 خط
-     src/db/schema.ts                                     455 خط
+     src/db/schema.ts                                     461 خط
      src/db/seed.ts                                       269 خط
      src/lib/seed-helpers.ts                              12 خط
      data/roster.sample.json                              10 خط
@@ -38,7 +38,7 @@
   ۳) کتابخانهٔ منطق (src/lib)
      src/lib/version.ts                                   4 خط
      src/lib/errors.ts                                    77 خط
-     src/lib/types.ts                                     149 خط
+     src/lib/types.ts                                     155 خط
      src/lib/log.ts                                       103 خط
      src/lib/dblock.ts                                    64 خط
      src/lib/pin.ts                                       20 خط
@@ -51,7 +51,7 @@
      src/lib/jalali.ts                                    221 خط
      src/lib/domain.ts                                    336 خط
      src/lib/state.ts                                     264 خط
-     src/lib/reporting.ts                                 203 خط
+     src/lib/reporting.ts                                 207 خط
      src/lib/backup.ts                                    244 خط
      src/lib/mirror.ts                                    245 خط
      src/lib/archive.ts                                   172 خط
@@ -61,7 +61,7 @@
 
   ۴) مسیرهای API (src/app/api)
      src/app/api/auth/route.ts                            147 خط
-     src/app/api/actions/route.ts                         955 خط
+     src/app/api/actions/route.ts                         959 خط
      src/app/api/state/route.ts                           48 خط
      src/app/api/history/route.ts                         31 خط
      src/app/api/totals/route.ts                          48 خط
@@ -77,9 +77,9 @@
      src/app/error.tsx                                    26 خط
      src/app/loading.tsx                                  11 خط
      src/app/not-found.tsx                                14 خط
-     src/app/report/[id]/page.tsx                         228 خط
+     src/app/report/[id]/page.tsx                         232 خط
      src/app/totals/page.tsx                              81 خط
-     src/app/globals.css                                  2123 خط
+     src/app/globals.css                                  2154 خط
      src/proxy.ts                                         146 خط
      src/instrumentation.ts                               32 خط
      src/instrumentation.node.ts                          31 خط
@@ -87,23 +87,23 @@
   ۶) رابط کاربری (src/components)
      src/components/context.tsx                           31 خط
      src/components/ui.tsx                                134 خط
-     src/components/AppShell.tsx                          400 خط
-     src/components/Login.tsx                             123 خط
+     src/components/AppShell.tsx                          412 خط
+     src/components/Login.tsx                             124 خط
      src/components/Dashboard.tsx                         165 خط
      src/components/MotorCard.tsx                         107 خط
-     src/components/MotorVisual.tsx                       113 خط
-     src/components/MotorDetail.tsx                       196 خط
+     src/components/MotorVisual.tsx                       118 خط
+     src/components/MotorDetail.tsx                       195 خط
      src/components/AuxTab.tsx                            97 خط
      src/components/RegistryTab.tsx                       257 خط
-     src/components/ServiceForm.tsx                       195 خط
-     src/components/ReportsTab.tsx                        219 خط
+     src/components/ServiceForm.tsx                       196 خط
+     src/components/ReportsTab.tsx                        220 خط
      src/components/ReportsHub.tsx                        102 خط
      src/components/ChartModal.tsx                        269 خط
      src/components/PrintBar.tsx                          20 خط
      src/components/AlertsTab.tsx                         49 خط
      src/components/ProblemsTab.tsx                       27 خط
      src/components/TrainingTab.tsx                       102 خط
-     src/components/AdminTab.tsx                          761 خط
+     src/components/AdminTab.tsx                          755 خط
      src/components/TwoFactorPanel.tsx                    284 خط
      src/components/MirrorPanel.tsx                       137 خط
 
@@ -119,7 +119,7 @@
      scripts/bulk-import.mjs                              206 خط
 
   ۸) آزمون‌های خودکار (audit)
-     audit/audit1.mjs                                     150 خط
+     audit/audit1.mjs                                     161 خط
      audit/audit2.mjs                                     97 خط
      audit/audit3.mjs                                     199 خط
      audit/audit4.mjs                                     91 خط
@@ -187,7 +187,7 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   },
-  "version": "1.4.1"
+  "version": "1.4.2"
 }
 
 ── FILE: next.config.ts  (43 خط) ──
@@ -482,7 +482,7 @@ export const client = {
 
 export default db;
 
-── FILE: src/db/schema.ts  (455 خط) ──
+── FILE: src/db/schema.ts  (461 خط) ──
 
 import {
   pgTable,
@@ -626,6 +626,12 @@ export const meggerTests = pgTable("megger_tests", {
   windingTemp: doublePrecision("winding_temp"),
   pi: doublePrecision("pi"),
   testVoltage: integer("test_voltage").notNull().default(1000),
+  testVoltageRotor: integer("test_voltage_rotor"),
+  piStatorU: doublePrecision("pi_stator_u"),
+  piStatorV: doublePrecision("pi_stator_v"),
+  piStatorW: doublePrecision("pi_stator_w"),
+  piRotor: doublePrecision("pi_rotor"),
+  unit: text("unit").notNull().default("MΩ"),
   workers: text("workers").default("").notNull(),
   note: text("note").default("").notNull(),
   at: text("at").notNull(),
@@ -1748,7 +1754,7 @@ CREATE INDEX IF NOT EXISTS "backup_mirror_at_idx" ON "backup_mirror_runs" ("ts")
 ── FILE: src/lib/version.ts  (4 خط) ──
 
 /** نسخهٔ سامانه — در /api/health و تب ادمین نمایش داده می‌شود */
-export const APP_VERSION = process.env.APP_VERSION ?? "1.4.1";
+export const APP_VERSION = process.env.APP_VERSION ?? "1.4.2";
 export const APP_NAME = "سامانه پایش ایستگاه پمپاژ زیرزمینی — تونل انتقال آب گلاب";
 
 ── FILE: src/lib/errors.ts  (77 خط) ──
@@ -1830,7 +1836,7 @@ export function jsonResponse(data: unknown, init: { status?: number; requestId?:
   return Response.json(data, { status: init.status ?? 200, headers });
 }
 
-── FILE: src/lib/types.ts  (149 خط) ──
+── FILE: src/lib/types.ts  (155 خط) ──
 
 import type { Settings, Severity, MotorState } from "./domain";
 
@@ -1940,6 +1946,12 @@ export type MeggerView = {
   windingTemp: number | null;
   pi: number | null;
   testVoltage: number;
+  testVoltageRotor: number | null;
+  piStatorU: number | null;
+  piStatorV: number | null;
+  piStatorW: number | null;
+  piRotor: number | null;
+  unit: string;
   workers: string;
   note: string;
   at: string;
@@ -3750,7 +3762,7 @@ export async function logActivity(shiftKey: string, action: string, detail = "",
   await appendActivity(d, shiftKey, action, detail);
 }
 
-── FILE: src/lib/reporting.ts  (203 خط) ──
+── FILE: src/lib/reporting.ts  (207 خط) ──
 
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { db } from "@/db";
@@ -3788,13 +3800,17 @@ type ShiftLike = { key: string; label: string; members: string[] };
 
 export async function buildOperationalPayload(kind: "daily" | "aux", day: string, shift: ShiftLike) {
   const op = operationalDay();
-  const processRows = await db.select().from(processReadingsAll).where(eq(processReadingsAll.day, day));
-  const total = (await db.select().from(dailyTotals).where(eq(dailyTotals.day, day)).limit(1))[0];
-  const motorRows = await db.select().from(motors);
-  const equipmentRows = await db.select().from(equipment).where(eq(equipment.deletedAt, ""));
-  const serviceRows = await db.select().from(equipmentReports).orderBy(desc(equipmentReports.id)).limit(200);
-  const note = (await db.select().from(operatorNotes).where(eq(operatorNotes.day, day)).orderBy(desc(operatorNotes.id)).limit(1))[0];
-  const thresholds = await getProcessThresholds();
+  const [processRows, totalRows, motorRows, equipmentRows, serviceRows, noteRows, thresholds] = await Promise.all([
+    db.select().from(processReadingsAll).where(eq(processReadingsAll.day, day)),
+    db.select().from(dailyTotals).where(eq(dailyTotals.day, day)).limit(1),
+    db.select().from(motors),
+    db.select().from(equipment).where(eq(equipment.deletedAt, "")),
+    db.select().from(equipmentReports).orderBy(desc(equipmentReports.id)).limit(200),
+    db.select().from(operatorNotes).where(eq(operatorNotes.day, day)).orderBy(desc(operatorNotes.id)).limit(1),
+    getProcessThresholds(),
+  ]);
+  const total = totalRows[0];
+  const note = noteRows[0];
 
   const process = PROCESS_PARAMS.map((p) => {
     const rows = processRows.filter((r) => r.tag === p.tag).sort((a, b) => b.intervalIndex - a.intervalIndex);
@@ -3869,11 +3885,11 @@ export async function buildRegistryPayload(tags: string[] | null, category: stri
   };
 }
 
-export async function latestMotorRecords(tag: string) {
+export async function latestMotorRecords(tag: string, d: typeof db = db) {
   const [service, megger, oil] = await Promise.all([
-    db.select().from(motorServices).where(eq(motorServices.tag, tag)).orderBy(desc(motorServices.id)).limit(1),
-    db.select().from(meggerTests).where(eq(meggerTests.tag, tag)).orderBy(desc(meggerTests.id)).limit(1),
-    db.select().from(oilChanges).where(eq(oilChanges.tag, tag)).orderBy(desc(oilChanges.id)).limit(1),
+    d.select().from(motorServices).where(eq(motorServices.tag, tag)).orderBy(desc(motorServices.id)).limit(1),
+    d.select().from(meggerTests).where(eq(meggerTests.tag, tag)).orderBy(desc(meggerTests.id)).limit(1),
+    d.select().from(oilChanges).where(eq(oilChanges.tag, tag)).orderBy(desc(oilChanges.id)).limit(1),
   ]);
   return { service: service[0] ?? null, megger: megger[0] ?? null, oil: oil[0] ?? null };
 }
@@ -5011,7 +5027,7 @@ export async function DELETE(request: Request) {
   }
 }
 
-── FILE: src/app/api/actions/route.ts  (955 خط) ──
+── FILE: src/app/api/actions/route.ts  (959 خط) ──
 
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -5319,7 +5335,7 @@ export async function POST(request: Request) {
         const row = (await db.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
         if (!row) throw new Error("موتور پیدا نشد");
         const hours = p.hours === undefined || p.hours === "" ? row.totalHours : num(p.hours);
-        const workers = str(p.workers, 200);
+        const workers = "";
         const note = str(p.note, 1500);
         const brushRaw = (p.brush ?? {}) as Record<string, unknown>;
         const brush: Record<string, number> = {};
@@ -5333,9 +5349,9 @@ export async function POST(request: Request) {
           await d.insert(motorStateLogs).values({ tag, fromState: row.state, toState: "off", at: jalaliNow(), shiftKey });
           await d.insert(equipmentReports).values({ tag, kind: "motor_service", reason: `سرویس ماهانه — ساعت ${hours}${note ? ` — ${note}` : ""}`, operator: workers || shift.label, shiftKey, at: jalaliNow() });
           await d.update(equipment).set({ description: `سرویس ماهانه انجام شد (ساعت ${hours})${note ? ` — ${note}` : ""}`, descriptionAt: jalaliNow(), descriptionBy: workers || shift.label, status: "ready", updatedAt: jalaliNow() }).where(eq(equipment.tag, tag));
-          const latest = await latestMotorRecords(tag);
-          const reportId = await createReport({ kind: "motor_service", day, shift, title: `سرویس موتور ${tag} — ${day}`, payload: { serviceId: sid, tag, pumpTag: row.pumpTag, day, hours, workers, note, brush, megger: latest.megger, oil: latest.oil, generatedAt: jalaliNow() } }, d);
-          await logActivity(shiftKey, "ثبت سرویس موتور", `${tag} — ساعت ${hours} — ${workers}`, d);
+          const latest = await latestMotorRecords(tag, d);
+          const reportId = await createReport({ kind: "motor_service", day, shift, title: `سرویس موتور ${tag} — ${day}`, payload: { serviceId: sid, tag, pumpTag: row.pumpTag, day, hours, shiftLabel: `${shift.label} — ${shift.members.join(" و ")}`, note, brush, megger: latest.megger, oil: latest.oil, generatedAt: jalaliNow() } }, d);
+          await logActivity(shiftKey, "ثبت سرویس موتور", `${tag} — ساعت ${hours}`, d);
           return reportId;
         });
         return Response.json({ ok: true, id: rid, message: "سرویس ثبت و گزارش آن ساخته شد" });
@@ -5346,17 +5362,21 @@ export async function POST(request: Request) {
         if (!MOTORS.some((m) => m.tag === tag)) throw new Error("موتور نامعتبر است");
         const testVoltage = Number(p.testVoltage ?? 1000);
         if (![500, 1000, 2500, 5000].includes(testVoltage)) throw new Error("ولتاژ تست نامعتبر است");
+        const testVoltageRotor = p.testVoltageRotor === undefined || p.testVoltageRotor === "" || p.testVoltageRotor === null ? testVoltage : Number(p.testVoltageRotor);
+        if (![500, 1000, 2500, 5000].includes(testVoltageRotor)) throw new Error("ولتاژ تست رتور نامعتبر است");
+        const unit = p.unit === "GΩ" ? "GΩ" : "MΩ";
         const rec = {
-          tag, day, testVoltage,
+          tag, day, testVoltage, testVoltageRotor, unit,
           statorU: optNum(p.statorU), statorV: optNum(p.statorV), statorW: optNum(p.statorW),
           rotorU: optNum(p.rotorU), rotorV: optNum(p.rotorV), rotorW: optNum(p.rotorW),
           windingTemp: optNum(p.windingTemp), pi: optNum(p.pi),
-          workers: str(p.workers, 200), note: str(p.note, 1000), at: jalaliNow(), shiftKey,
+          piStatorU: optNum(p.piStatorU), piStatorV: optNum(p.piStatorV), piStatorW: optNum(p.piStatorW), piRotor: optNum(p.piRotor),
+          workers: "", note: str(p.note, 1000), at: jalaliNow(), shiftKey,
         };
-        if ([rec.statorU, rec.statorV, rec.statorW, rec.rotorU, rec.rotorV, rec.rotorW, rec.windingTemp, rec.pi].every((v) => v === null)) throw new Error("حداقل یک مقدار تست را وارد کنید");
+        if ([rec.statorU, rec.statorV, rec.statorW, rec.rotorU, rec.rotorV, rec.rotorW, rec.windingTemp, rec.pi, rec.piStatorU, rec.piStatorV, rec.piStatorW, rec.piRotor].every((v) => v === null)) throw new Error("حداقل یک مقدار تست را وارد کنید");
         const id = (await db.insert(meggerTests).values(rec).returning({ id: meggerTests.id }))[0].id;
-        const rid = await createReport({ kind: "megger", day, shift, title: `تست مگر ${tag} — ${day}`, payload: { ...rec, meggerId: id, generatedAt: jalaliNow() } });
-        await logActivity(shiftKey, "ثبت تست مگر", `${tag} — ${testVoltage} V`);
+        const rid = await createReport({ kind: "megger", day, shift, title: `تست مگر ${tag} — ${day}`, payload: { ...rec, meggerId: id, shiftLabel: `${shift.label} — ${shift.members.join(" و ")}`, generatedAt: jalaliNow() } });
+        await logActivity(shiftKey, "ثبت تست مگر", `${tag} — ${testVoltage}/${testVoltageRotor} V`);
         return Response.json({ ok: true, id: rid });
       }
 
@@ -6652,7 +6672,7 @@ export default function NotFound() {
   );
 }
 
-── FILE: src/app/report/[id]/page.tsx  (228 خط) ──
+── FILE: src/app/report/[id]/page.tsx  (232 خط) ──
 
 import { notFound, redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
@@ -6690,7 +6710,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
             <div className="print-sub">{APP_NAME} — {APP_SUBTITLE}</div>
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/logo.svg" alt={ORG_NAME} style={{ height: 46 }} />
+          <img src="/brand/logo.jpg" alt={ORG_NAME} style={{ height: 64, width: "auto" }} />
         </header>
 
         <h1 className="print-title">{REPORT_KINDS[row.kind] ?? row.title}</h1>
@@ -6765,11 +6785,12 @@ function Daily({ d }: { d: Any }) {
 function Aux({ d }: { d: Any }) {
   const equipment = (d.equipment as Any[]) ?? [];
   const svc = (d.serviceReports as Any[]) ?? [];
+  const tone = (t: string) => (t.includes("آماده") ? "st-ok" : t.includes("سرویس") ? "st-warn" : "");
   return (
     <>
       <h2>وضعیت تجهیزات جانبی</h2>
       <table><thead><tr><th style={{ width: 80 }}>تگ</th><th>تجهیز</th><th style={{ width: 100 }}>وضعیت</th><th>توضیحات / دلیل سرویس</th><th style={{ width: 120 }}>زمان ثبت</th></tr></thead>
-        <tbody>{equipment.map((e) => <tr key={String(e.tag)}><td className="ltr">{v(e.tag)}{e.safetyCritical ? " *" : ""}</td><td>{v(e.name)}</td><td>{v(e.statusFa)}</td><td className="small">{v(e.description)}</td><td className="ltr small">{v(e.descriptionAt)}</td></tr>)}</tbody></table>
+        <tbody>{equipment.map((e) => <tr key={String(e.tag)}><td className="ltr">{v(e.tag)}{e.safetyCritical ? " *" : ""}</td><td>{v(e.name)}</td><td><span className={`st ${tone(String(e.statusFa ?? ""))}`}>{v(e.statusFa)}</span></td><td className="small">{v(e.description)}</td><td className="ltr small">{v(e.descriptionAt)}</td></tr>)}</tbody></table>
       <p className="print-note">* تجهیز حیاتی ایمنی</p>
       <h2>گزارش‌های سرویس امروز</h2>
       {svc.length === 0 ? <p className="print-para">گزارشی ثبت نشده است.</p> : (
@@ -6785,12 +6806,12 @@ function MotorService({ d }: { d: Any }) {
   const oil = d.oil as Any | null;
   return (
     <>
-      <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(d.pumpTag)}`], ["تاریخ سرویس", v(d.day)], ["ساعت HMI هنگام سرویس", v(d.hours)], ["انجام‌دهندگان", v(d.workers)], ["یادداشت", v(d.note)]]} />
+      <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(d.pumpTag)}`], ["تاریخ سرویس", v(d.day)], ["ساعت HMI هنگام سرویس", v(d.hours)], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)], ["یادداشت", v(d.note)]]} />
       <h2>قرائت ذغال‌ها (میلی‌متر)</h2>
       <table><thead><tr><th>فاز</th>{Array.from({ length: 8 }, (_, i) => <th key={i} className="center">برس {i + 1}</th>)}</tr></thead>
         <tbody>{["U", "V", "W"].map((ph) => <tr key={ph}><td className="ltr"><b>{ph}</b></td>{Array.from({ length: 8 }, (_, i) => <td key={i} className="ltr center">{brush[`${ph}${i + 1}`] ?? "—"}</td>)}</tr>)}</tbody></table>
       <h2>آخرین تست مگر</h2>
-      {megger ? <Simple rows={[["تاریخ", v(megger.day)], ["استاتور U1/V1/W1 (MΩ)", `${v(megger.statorU)} / ${v(megger.statorV)} / ${v(megger.statorW)}`], ["رتور U1/V1/W1 (MΩ)", `${v(megger.rotorU)} / ${v(megger.rotorV)} / ${v(megger.rotorW)}`], ["دمای سیم‌پیچ", v(megger.windingTemp)], ["PI", v(megger.pi)], ["ولتاژ تست", `${v(megger.testVoltage)} V`]]} /> : <p className="print-para">ثبت نشده است.</p>}
+      {megger ? <Simple rows={[["تاریخ", v(megger.day)], [`استاتور U1/V1/W1 (${megger.unit || "MΩ"})`, `${v(megger.statorU)} / ${v(megger.statorV)} / ${v(megger.statorW)}`], [`رتور U1/V1/W1 (${megger.unit || "MΩ"})`, `${v(megger.rotorU)} / ${v(megger.rotorV)} / ${v(megger.rotorW)}`], ["دمای سیم‌پیچ", v(megger.windingTemp)], ["PI استاتور / رتور", (megger.piStatorU ?? megger.piStatorV ?? megger.piStatorW ?? megger.piRotor) != null ? `${v(megger.piStatorU)}/${v(megger.piStatorV)}/${v(megger.piStatorW)} | ${v(megger.piRotor)}` : v(megger.pi)], ["ولتاژ تست S/R", `${v(megger.testVoltage)} / ${v(megger.testVoltageRotor ?? megger.testVoltage)} V`]]} /> : <p className="print-para">ثبت نشده است.</p>}
       <h2>آخرین تعویض روغن پمپ</h2>
       {oil ? <Simple rows={[["تاریخ", v(oil.day)], ["ساعت کارکرد", v(oil.hours)], ["یادداشت", v(oil.note)]]} /> : <p className="print-para">ثبت نشده است.</p>}
     </>
@@ -6800,14 +6821,17 @@ function MotorService({ d }: { d: Any }) {
 function Megger({ d }: { d: Any }) {
   return (
     <>
-      <Simple rows={[["موتور", v(d.tag)], ["تاریخ", v(d.day)], ["ولتاژ تست", `${v(d.testVoltage)} V`], ["انجام‌دهندگان", v(d.workers)]]} />
+      <Simple rows={[["موتور", v(d.tag)], ["تاریخ", v(d.day)], ["ولتاژ تست استاتور", `${v(d.testVoltage)} V`], ["ولتاژ تست رتور", `${v(d.testVoltageRotor ?? d.testVoltage)} V`], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)]]} />
       <h2>نتایج</h2>
       <table><thead><tr><th>آیتم</th><th className="center">U1</th><th className="center">V1</th><th className="center">W1</th></tr></thead>
         <tbody>
-          <tr><td>مقاومت عایقی استاتور (MΩ)</td><td className="ltr center">{v(d.statorU)}</td><td className="ltr center">{v(d.statorV)}</td><td className="ltr center">{v(d.statorW)}</td></tr>
-          <tr><td>مقاومت عایقی رتور (MΩ)</td><td className="ltr center">{v(d.rotorU)}</td><td className="ltr center">{v(d.rotorV)}</td><td className="ltr center">{v(d.rotorW)}</td></tr>
+          <tr><td>مقاومت عایقی استاتور ({String(d.unit || "MΩ")})</td><td className="ltr center">{v(d.statorU)}</td><td className="ltr center">{v(d.statorV)}</td><td className="ltr center">{v(d.statorW)}</td></tr>
+          <tr><td>مقاومت عایقی رتور ({String(d.unit || "MΩ")})</td><td className="ltr center">{v(d.rotorU)}</td><td className="ltr center">{v(d.rotorV)}</td><td className="ltr center">{v(d.rotorW)}</td></tr>
           <tr><td>دمای سیم‌پیچ (°C)</td><td className="ltr center" colSpan={3}>{v(d.windingTemp)}</td></tr>
-          <tr><td>ضریب پلاریزاسیون (PI)</td><td className="ltr center" colSpan={3}>{v(d.pi)}</td></tr>
+          {d.piStatorU != null || d.piStatorV != null || d.piStatorW != null || d.piRotor != null ? (<>
+            <tr><td>PI استاتور (U1/V1/W1)</td><td className="ltr center">{v(d.piStatorU)}</td><td className="ltr center">{v(d.piStatorV)}</td><td className="ltr center">{v(d.piStatorW)}</td></tr>
+            <tr><td>PI رتور</td><td className="ltr center" colSpan={3}>{v(d.piRotor)}</td></tr>
+          </>) : (<tr><td>ضریب پلاریزاسیون (PI)</td><td className="ltr center" colSpan={3}>{v(d.pi)}</td></tr>)}
         </tbody></table>
       {d.note ? <p className="print-para">یادداشت: {String(d.note)}</p> : null}
     </>
@@ -6939,7 +6963,7 @@ export default async function TotalsPage({ searchParams }: { searchParams: Promi
             <div className="print-sub">{APP_NAME} — {APP_SUBTITLE}</div>
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/logo.svg" alt={ORG_NAME} style={{ height: 46 }} />
+          <img src="/brand/logo.jpg" alt={ORG_NAME} style={{ height: 64, width: "auto" }} />
         </header>
         <h1 className="print-title">توتال ماهانه دبی (m³) — {PERSIAN_MONTHS[month - 1]} {year}</h1>
         <div className="print-meta">
@@ -6965,7 +6989,7 @@ export default async function TotalsPage({ searchParams }: { searchParams: Promi
   );
 }
 
-── FILE: src/app/globals.css  (2123 خط) ──
+── FILE: src/app/globals.css  (2154 خط) ──
 
 @import "tailwindcss";
 
@@ -7981,8 +8005,8 @@ button, input, select, textarea { font-size: inherit; }
 
 .aux-tag {
   font-family: var(--num);
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 800;
   color: var(--accent);
 }
 
@@ -8292,7 +8316,7 @@ textarea.input {
   color: #fff;
   background:
     linear-gradient(180deg, rgba(5, 20, 40, 0.25) 0%, rgba(5, 20, 40, 0.55) 55%, rgba(5, 20, 40, 0.92) 100%),
-    url("/images/station-hero.jpg") center / cover no-repeat;
+    url("/images/pump-hall.jpg") center / cover no-repeat;
   border-inline-end: 1px solid var(--line-soft);
   min-height: 520px;
   display: flex;
@@ -8510,7 +8534,7 @@ textarea.input {
   filter: grayscale(0.85) opacity(0.72);
 }
 
-/* در سرویس: موتور و پمپ زرد + آچار چشمک‌زن */
+/* در سرویس: موتور و پمپ زرد + آچار چشمک‌زن + کج شدن بدنه */
 .motor-card.motor-service {
   --m-light: #fde68a;
   --m-dark: #d99a06;
@@ -8520,6 +8544,12 @@ textarea.input {
   --p-dark: #d97706;
   --p-line: #92400e;
   --c-body: #d97706;
+}
+.motor-card.motor-service .machine {
+  transform: rotate(-5deg);
+}
+.motor-card.motor-service .wrench-icon {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
 }
 
 /* ۷۰ تا ۹۰٪: زرد شدن موتور + لرزش خفیف */
@@ -8992,6 +9022,31 @@ textarea.input {
 }
 
 .print-sheet tbody tr:nth-child(even) td {
+  background: #f2f6fb;
+}
+
+.print-sheet .st {
+  display: inline-block;
+  border: 1px solid #94a3b8;
+  border-radius: 999px;
+  padding: 1px 10px;
+  font-size: 11.5px;
+  white-space: nowrap;
+  background: #fff;
+}
+
+.print-sheet .st-ok {
+  border-color: #15803d;
+  color: #14532d;
+}
+
+.print-sheet .st-warn {
+  border-color: #b45309;
+  color: #92400e;
+  background: #fffbeb;
+}
+
+.print-sheet tbody tr:nth-child(even) td {
   background: #f4f8fb;
 }
 
@@ -9350,7 +9405,7 @@ import type { CSSProperties, ReactNode } from "react";
 
 export function Logo({ size = 30 }: { size?: number }) {
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src="/brand/logo.svg" alt="آب منطقه‌ای اصفهان" style={{ height: size, width: "auto", display: "block" }} />;
+  return <img src="/brand/logo.jpg" alt="آب منطقه‌ای اصفهان" style={{ height: size, width: "auto", display: "block", background: "#fff", borderRadius: 6, padding: 2 }} />;
 }
 
 export function LogoMark({ size = 30 }: { size?: number }) {
@@ -9478,7 +9533,7 @@ export function Spinner({ label = "در حال دریافت…" }: { label?: str
   );
 }
 
-── FILE: src/components/AppShell.tsx  (400 خط) ──
+── FILE: src/components/AppShell.tsx  (412 خط) ──
 
 "use client";
 
@@ -9490,6 +9545,7 @@ import { Icon, Logo } from "./ui";
 import Dashboard from "./Dashboard";
 import AuxTab from "./AuxTab";
 import RegistryTab from "./RegistryTab";
+import PmTab from "./PmTab";
 import ReportsHub from "./ReportsHub";
 import AlertsTab from "./AlertsTab";
 import TrainingTab from "./TrainingTab";
@@ -9535,6 +9591,7 @@ const TABS = [
   { key: "dashboard", label: "داشبورد" },
   { key: "aux", label: "پایش تجهیزات جانبی" },
   { key: "registry", label: "لیست تجهیزات" },
+  { key: "pm", label: "نگهداشت (PM)" },
   { key: "reports", label: "گزارش‌ها" },
   { key: "alerts", label: "هشدارها و آلارم‌ها" },
   { key: "training", label: "آموزش و دستورالعمل" },
@@ -9600,7 +9657,7 @@ export default function AppShell({ initial }: { initial: AppState }) {
       if (etagRef.current && etagRef.current.key === cacheKey) headers["if-none-match"] = etagRef.current.value;
       let res: Response;
       try {
-        res = await fetch(`/api/state?day=${encodeURIComponent(d)}&interval=${i}`, { cache: "no-store", headers });
+        res = await fetch(`/api/state?day=${encodeURIComponent(d)}&interval=${i}`, { cache: "no-store", headers, signal: AbortSignal.timeout(30000) });
       } catch {
         return toast("ارتباط با سرور برقرار نشد — دادهٔ همین صفحه نمایش داده می‌شود", "error");
       }
@@ -9629,6 +9686,8 @@ export default function AppShell({ initial }: { initial: AppState }) {
         method: "POST",
         headers: { "Content-Type": "application/json", "Idempotency-Key": key },
         body: JSON.stringify({ action, payload }),
+        // سقف ۳۰ ثانیه: روی PC ضعیف دکمه‌ها دیگر برای همیشه گیر نمی‌کنند
+        signal: AbortSignal.timeout(30000),
       });
       if (res.status === 401) {
         window.location.replace("/");
@@ -9701,7 +9760,7 @@ export default function AppShell({ initial }: { initial: AppState }) {
         const message = error instanceof Error ? error.message : "خطای نامشخص";
         if (message === "unauthorized") return false;
         const offline = typeof navigator !== "undefined" && navigator.onLine === false;
-        const networkish = offline || /fetch|network|ارتباط/i.test(message);
+        const networkish = offline || /fetch|network|ارتباط|timeout|abort/i.test(message);
         if (networkish) {
           const list = readQueue();
           list.push({ key, action, payload, at: Date.now(), tries: 0 });
@@ -9828,7 +9887,14 @@ export default function AppShell({ initial }: { initial: AppState }) {
               </span>
             )}
             <button type="button" className="btn tiny ghost" style={{ color: "#fff", borderColor: "rgba(255,255,255,0.3)" }} title="خروج"
-              onClick={async () => { await fetch("/api/auth", { method: "DELETE" }); window.location.replace("/"); }}>
+              onClick={() => {
+                let done = false;
+                const go = () => { if (!done) { done = true; window.location.replace("/"); } };
+                try {
+                  fetch("/api/auth", { method: "DELETE", keepalive: true }).then(go, go);
+                } catch { go(); return; }
+                setTimeout(go, 2000);
+              }}>
               <Icon name="logout" size={14} /> خروج
             </button>
           </div>
@@ -9854,6 +9920,7 @@ export default function AppShell({ initial }: { initial: AppState }) {
         {tab === "dashboard" && <Dashboard />}
         {tab === "aux" && <AuxTab />}
         {tab === "registry" && <RegistryTab />}
+        {tab === "pm" && <PmTab />}
         {tab === "reports" && <ReportsHub />}
         {tab === "alerts" && <AlertsTab />}
         {tab === "training" && <TrainingTab />}
@@ -9880,7 +9947,7 @@ export default function AppShell({ initial }: { initial: AppState }) {
   );
 }
 
-── FILE: src/components/Login.tsx  (123 خط) ──
+── FILE: src/components/Login.tsx  (124 خط) ──
 
 "use client";
 
@@ -9907,6 +9974,7 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: selected, pin, ...(totp ? { totp } : {}) }),
+        signal: AbortSignal.timeout(30000),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -9930,9 +9998,9 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
       <div className="login-card">
         <div className="login-hero">
           <div className="hero-machine">
-            {/* لوگوی رسمی: فایل public/brand/logo.png را جایگزین کنید */}
+            {/* لوگوی رسمی شرکت — عین فایل ارسالی کارفرما */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo.svg" alt={ORG_NAME} style={{ height: 56, width: "auto" }} />
+            <img src="/brand/logo.jpg" alt={ORG_NAME} style={{ height: 96, width: "auto", background: "#fff", borderRadius: 10, padding: 6 }} />
           </div>
           <div>
             <h2>{APP_NAME}</h2>
@@ -9949,7 +10017,7 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
           <div className="row" style={{ justifyContent: "space-between", marginBottom: 14 }}>
             <div className="panel-title" style={{ fontSize: 16 }}><Icon name="users" size={18} className="muted" /> انتخاب شیفت و ورود</div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo.svg" alt={ORG_NAME} style={{ height: 40 }} />
+            <img src="/brand/logo.jpg" alt={ORG_NAME} style={{ height: 44, width: "auto", background: "#fff", borderRadius: 8, padding: 4 }} />
           </div>
 
           <div className="shift-options">
@@ -10132,7 +10200,7 @@ export default function Dashboard() {
                 if (next === "service") openModal(`علامت‌گذاری ${m.tag} در حال سرویس`, <MotorServiceStartForm tag={m.tag} />);
                 else void act("motor.state", { tag: m.tag, state: next });
               }}
-              onService={() => openModal(`سرویس ماهانه موتور ${m.tag}`, <MotorServiceForm tag={m.tag} />, { wide: true, sub: "ذغال‌ها، ساعت HMI، انجام‌دهندگان، مگر و روغن" })}
+              onService={() => openModal(`سرویس ماهانه موتور ${m.tag}`, <MotorServiceForm tag={m.tag} />, { wide: true, sub: "ذغال‌ها، ساعت HMI، مگر و روغن" })}
               onChart={() => openModal(`نمودار ${m.tag}`, <ChartModal scope="motor" tag={m.tag} param="T10" />, { wide: true })}
             />
           ))}
@@ -10236,7 +10304,7 @@ export default function MotorCard({
             {hotCrit && <span className="bubble"><Icon name="fire" size={11} className="thermo-flame" /> حرارت بالا</span>}
           </div>
         )}
-        {m.state === "service" && <span className="wrench-icon wrench-blink"><Icon name="wrench" size={20} /></span>}
+        {m.state === "service" && <span className="wrench-icon wrench-blink"><Icon name="wrench" size={30} /></span>}
         <MotorVisual tag={m.tag} pumpTag={m.pumpTag} on={m.state === "on"} hot={hotWarn || red} smoke={smoke} />
       </div>
 
@@ -10281,7 +10349,7 @@ export default function MotorCard({
   );
 }
 
-── FILE: src/components/MotorVisual.tsx  (113 خط) ──
+── FILE: src/components/MotorVisual.tsx  (118 خط) ──
 
 "use client";
 
@@ -10291,10 +10359,10 @@ export default function MotorCard({
  * پمپ آبی با پروانهٔ سفید، خروجی عمودی با فلنج و مکش افقی، روی ریل مشترک.
  * رنگ‌ها از متغیرهای کارت (حالت خاموش/سرویس/زرد/قرمز) می‌آیند.
  */
-export default function MotorVisual({ tag, on, hot, smoke }: { tag: string; pumpTag: string; on: boolean; hot: boolean; smoke: boolean }) {
+export default function MotorVisual({ tag, pumpTag, on, hot, smoke }: { tag: string; pumpTag: string; on: boolean; hot: boolean; smoke: boolean }) {
   const id = tag.replace(/[^a-z0-9]/gi, "");
   return (
-    <svg viewBox="0 0 360 200" role="img" aria-label={`شماتیک موتور ${tag}`}>
+    <svg viewBox="0 0 360 200" role="img" aria-label={`شماتیک موتور ${tag} و پمپ ${pumpTag}`}>
       <defs>
         <linearGradient id={`mb-${id}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="var(--m-light)" />
@@ -10377,6 +10445,11 @@ export default function MotorVisual({ tag, on, hot, smoke }: { tag: string; pump
             <circle cx="270" cy="112" r="6.5" fill="#e0f2fe" stroke="var(--p-line)" strokeWidth="1" />
           </g>
           <circle className="glow-ring" cx="270" cy="112" r="54" fill="none" stroke="var(--glow)" strokeWidth="3.5" filter={`url(#glow-${id})`} />
+          {/* پلاک تگ پمپ */}
+          <rect x="243" y="139" width="54" height="17" rx="3" fill="#0f172a" stroke="#020617" strokeWidth="0.8" />
+          <text x="270" y="151.5" textAnchor="middle" fontFamily="monospace" fontSize="10.5" fontWeight="700" fill="#7dd3fc" letterSpacing="0.5">
+            {pumpTag}
+          </text>
         </g>
 
         {/* امواج حرارت */}
@@ -10396,7 +10469,7 @@ export default function MotorVisual({ tag, on, hot, smoke }: { tag: string; pump
   );
 }
 
-── FILE: src/components/MotorDetail.tsx  (196 خط) ──
+── FILE: src/components/MotorDetail.tsx  (195 خط) ──
 
 "use client";
 
@@ -10404,7 +10477,7 @@ import { useState } from "react";
 import { useApp } from "./context";
 import { MOTOR_PARAM_GROUPS } from "@/lib/domain";
 import { Icon } from "./ui";
-import { MotorServiceForm, MeggerForm, OilForm } from "./ServiceForm";
+import { MeggerForm, OilForm } from "./ServiceForm";
 import ChartModal from "./ChartModal";
 
 export default function MotorDetail({ tag }: { tag: string }) {
@@ -10416,6 +10489,8 @@ export default function MotorDetail({ tag }: { tag: string }) {
   if (!motor) return <div className="empty">موتور پیدا نشد.</div>;
 
   const serviceHistory = state.motorServices.filter((s) => s.tag === tag);
+  // نوار هشدار جزئیات هم فقط «تازه‌ها» را نشان می‌دهد؛ دیده/اقدام‌شده فقط در سربرگ هشدارها
+  const liveAlerts = state.alerts.filter((a) => a.tag === tag && !a.seenAt && !a.actedAt);
 
   async function save() {
     const values = Object.fromEntries(Object.entries(form).filter(([, v]) => v !== ""));
@@ -10444,9 +10519,6 @@ export default function MotorDetail({ tag }: { tag: string }) {
           <button type="button" className="btn tiny" onClick={() => openModal(`نمودار ${tag}`, <ChartModal scope="motor" tag={tag} param="T10" />, { wide: true })}>
             <Icon name="chart" size={12} /> نمودار و مقایسه
           </button>
-          <button type="button" className="btn tiny warn" onClick={() => openModal(`سرویس ماهانه ${tag}`, <MotorServiceForm tag={tag} />, { wide: true })}>
-            <Icon name="wrench" size={12} /> ثبت سرویس
-          </button>
           <button type="button" className="btn tiny" onClick={() => openModal(`تست مگر ${tag}`, <MeggerForm tag={tag} />)}>تست مگر</button>
           <button type="button" className="btn tiny" onClick={() => openModal(`تعویض روغن ${tag}`, <OilForm tag={tag} />)}>تعویض روغن</button>
         </div>
@@ -10471,10 +10543,10 @@ export default function MotorDetail({ tag }: { tag: string }) {
         </div>
       </div>
 
-      {motor.alerts.length > 0 && (
+      {liveAlerts.length > 0 && (
         <div className="alert-strip" style={{ marginBottom: 0 }}>
-          {motor.alerts.map((a, i) => (
-            <div key={`${a.param}-${i}`} className={`alert-item ${a.severity}`}>
+          {liveAlerts.map((a) => (
+            <div key={a.id} className={`alert-item ${a.severity}`}>
               <Icon name="alert" size={14} />
               <span className="msg">{a.message}</span>
             </div>
@@ -10809,7 +10881,7 @@ export function EquipmentDetail({ tag }: { tag: string }) {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("tag", tag);
-      const res = await fetch("/api/catalogs", { method: "POST", body: fd });
+      const res = await fetch("/api/catalogs", { method: "POST", body: fd, signal: AbortSignal.timeout(120000) });
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error ?? "آپلود ناموفق بود");
       toast("کاتالوگ بارگذاری شد");
@@ -10952,7 +11024,7 @@ export function PmForm({ tag }: { tag: string }) {
   );
 }
 
-── FILE: src/components/ServiceForm.tsx  (195 خط) ──
+── FILE: src/components/ServiceForm.tsx  (196 خط) ──
 
 "use client";
 
@@ -10967,7 +11039,6 @@ export function MotorServiceForm({ tag }: { tag: string }) {
   const { state, act, busy, closeModal, openModal } = useApp();
   const motor = state.motors.find((m) => m.tag === tag);
   const [hours, setHours] = useState(motor ? String(motor.totalHours) : "");
-  const [workers, setWorkers] = useState("");
   const [note, setNote] = useState("");
   const [brush, setBrush] = useState<Record<string, string>>({});
   const history = state.motorServices.filter((s) => s.tag === tag);
@@ -10976,7 +11047,7 @@ export function MotorServiceForm({ tag }: { tag: string }) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const id = await act("motor.service", { tag, hours, workers, note, brush, day: state.now.day });
+    const id = await act("motor.service", { tag, hours, note, brush, day: state.now.day });
     if (id) {
       closeModal();
       if (typeof id === "number") window.open(`/report/${id}`, "_blank");
@@ -10991,8 +11062,6 @@ export function MotorServiceForm({ tag }: { tag: string }) {
         <div className="field"><label>تاریخ سرویس</label><input className="input" value={state.now.day} readOnly /></div>
         <div className="field"><label>شیفت ثبت‌کننده</label><input className="input" value={`${state.shift.label} — ${state.shift.members.join(" و ")}`} readOnly /></div>
       </div>
-      <div className="field"><label>چه کسانی سرویس را انجام دادند؟ (متن آزاد)</label><input className="input" value={workers} onChange={(e) => setWorkers(e.target.value)} placeholder="نام افراد سرویس‌کار" /></div>
-
       <div>
         <div className="panel-title" style={{ fontSize: 14, marginBottom: 6 }}><Icon name="bolt" size={14} /> قرائت ذغال‌ها (۸ برس برای هر فاز — میلی‌متر)</div>
         <div className="table-wrap">
@@ -11033,13 +11102,13 @@ export function MotorServiceForm({ tag }: { tag: string }) {
           <div className="panel-title" style={{ fontSize: 14, marginBottom: 6 }}>سرویس‌های قبلی {tag}</div>
           <div className="table-wrap">
             <table className="data">
-              <thead><tr><th>تاریخ</th><th>ساعت HMI</th><th>انجام‌دهندگان</th><th>شیفت</th><th>یادداشت</th><th>گزارش</th></tr></thead>
+              <thead><tr><th>تاریخ</th><th>ساعت HMI</th><th>شیفت</th><th>یادداشت</th><th>گزارش</th></tr></thead>
               <tbody>
                 {history.map((s) => {
                   const rep = state.reports.find((r) => r.kind === "motor_service" && r.day === s.day && r.title.includes(tag));
                   return (
                     <tr key={s.id}>
-                      <td className="mono">{s.day}</td><td className="mono">{s.hours}</td><td>{s.workers || "—"}</td><td>{s.shiftLabel || s.shiftKey}</td><td className="small">{s.note || "—"}</td>
+                      <td className="mono">{s.day}</td><td className="mono">{s.hours}</td><td>{s.shiftLabel || s.shiftKey}</td><td className="small">{s.note || "—"}</td>
                       <td>{rep ? <button type="button" className="btn tiny" onClick={() => window.open(`/report/${rep.id}`, "_blank")}>PDF</button> : "—"}</td>
                     </tr>
                   );
@@ -11056,32 +11125,36 @@ export function MotorServiceForm({ tag }: { tag: string }) {
 /** تست مگر — فقط ۴ آیتم قفل‌شده + ولتاژ تست */
 export function MeggerForm({ tag }: { tag: string }) {
   const { state, act, busy, closeModal } = useApp();
-  const [f, setF] = useState<Record<string, string>>({ testVoltage: "1000" });
+  const [f, setF] = useState<Record<string, string>>({ testVoltage: "1000", testVoltageRotor: "1000", unit: "MΩ" });
   const set = (k: string, v: string) => setF((x) => ({ ...x, [k]: v }));
   const history = state.meggers.filter((m) => m.tag === tag);
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const id = await act("motor.megger", { tag, ...f, testVoltage: Number(f.testVoltage), day: state.now.day });
+    const id = await act("motor.megger", { tag, ...f, testVoltage: Number(f.testVoltage), testVoltageRotor: Number(f.testVoltageRotor || f.testVoltage), unit: f.unit || "MΩ", day: state.now.day });
     if (id) closeModal();
   }
   return (
     <form onSubmit={submit}>
-      <div className="panel-title" style={{ fontSize: 14, marginBottom: 6 }}>مقاومت عایقی استاتور (MΩ)</div>
+      <div className="panel-title" style={{ fontSize: 14, marginBottom: 6 }}>مقاومت عایقی استاتور ({f.unit || "MΩ"})</div>
       <div className="form-grid">{["statorU", "statorV", "statorW"].map((k, i) => <div className="field" key={k}><label>{["U1", "V1", "W1"][i]}</label><input className="input mono" type="number" step="any" value={f[k] ?? ""} onChange={(e) => set(k, e.target.value)} /></div>)}</div>
-      <div className="panel-title" style={{ fontSize: 14, margin: "10px 0 6px" }}>مقاومت عایقی رتور (MΩ)</div>
+      <div className="panel-title" style={{ fontSize: 14, margin: "10px 0 6px" }}>مقاومت عایقی رتور ({f.unit || "MΩ"})</div>
       <div className="form-grid">{["rotorU", "rotorV", "rotorW"].map((k, i) => <div className="field" key={k}><label>{["U1", "V1", "W1"][i]}</label><input className="input mono" type="number" step="any" value={f[k] ?? ""} onChange={(e) => set(k, e.target.value)} /></div>)}</div>
       <div className="form-grid" style={{ marginTop: 10 }}>
         <div className="field"><label>دمای سیم‌پیچ (°C)</label><input className="input mono" type="number" step="any" value={f.windingTemp ?? ""} onChange={(e) => set("windingTemp", e.target.value)} /></div>
-        <div className="field"><label>ضریب پلاریزاسیون (PI)</label><input className="input mono" type="number" step="any" value={f.pi ?? ""} onChange={(e) => set("pi", e.target.value)} /></div>
-        <div className="field"><label>ولتاژ تست</label><select className="input" value={f.testVoltage} onChange={(e) => set("testVoltage", e.target.value)}>{[500, 1000, 2500, 5000].map((v) => <option key={v} value={v}>{v} V</option>)}</select></div>
-        <div className="field"><label>انجام‌دهندگان</label><input className="input" value={f.workers ?? ""} onChange={(e) => set("workers", e.target.value)} /></div>
+        <div className="field"><label>یکا</label><select className="input" value={f.unit ?? "MΩ"} onChange={(e) => set("unit", e.target.value)}><option value="MΩ">مگااهم (MΩ)</option><option value="GΩ">گیگااهم (GΩ)</option></select></div>
+        <div className="field"><label>ولتاژ تست استاتور</label><select className="input" value={f.testVoltage} onChange={(e) => set("testVoltage", e.target.value)}>{[500, 1000, 2500, 5000].map((v) => <option key={v} value={v}>{v} V</option>)}</select></div>
+        <div className="field"><label>ولتاژ تست رتور</label><select className="input" value={f.testVoltageRotor} onChange={(e) => set("testVoltageRotor", e.target.value)}>{[500, 1000, 2500, 5000].map((v) => <option key={v} value={v}>{v} V</option>)}</select></div>
+      </div>
+      <div className="panel-title" style={{ fontSize: 14, margin: "10px 0 6px" }}>ضریب پلاریزاسیون (PI) هر سیم‌پیچ</div>
+      <div className="form-grid">{["piStatorU", "piStatorV", "piStatorW"].map((k, i) => <div className="field" key={k}><label>{["PI‑U1", "PI‑V1", "PI‑W1"][i]}</label><input className="input mono" type="number" step="any" value={f[k] ?? ""} onChange={(e) => set(k, e.target.value)} /></div>)}
+        <div className="field"><label>PI رتور</label><input className="input mono" type="number" step="any" value={f.piRotor ?? ""} onChange={(e) => set("piRotor", e.target.value)} /></div>
       </div>
       <div className="field"><label>یادداشت</label><textarea value={f.note ?? ""} onChange={(e) => set("note", e.target.value)} style={{ minHeight: 60 }} /></div>
       <div className="row" style={{ justifyContent: "flex-end" }}><button type="button" className="btn ghost" onClick={closeModal}>انصراف</button><button type="submit" className="btn primary" disabled={busy}>ثبت تست مگر</button></div>
       {history.length > 0 && (
         <div className="table-wrap" style={{ marginTop: 12 }}>
-          <table className="data"><thead><tr><th>تاریخ</th><th>U1/V1/W1 استاتور</th><th>U1/V1/W1 رتور</th><th>دما</th><th>PI</th><th>ولتاژ</th></tr></thead>
-            <tbody>{history.map((m) => <tr key={m.id}><td className="mono">{m.day}</td><td className="mono">{m.statorU ?? "—"} / {m.statorV ?? "—"} / {m.statorW ?? "—"}</td><td className="mono">{m.rotorU ?? "—"} / {m.rotorV ?? "—"} / {m.rotorW ?? "—"}</td><td className="mono">{m.windingTemp ?? "—"}</td><td className="mono">{m.pi ?? "—"}</td><td className="mono">{m.testVoltage}</td></tr>)}</tbody></table>
+          <table className="data"><thead><tr><th>تاریخ</th><th>U1/V1/W1 استاتور</th><th>U1/V1/W1 رتور</th><th>دما</th><th>PI استاتور / رتور</th><th>ولتاژ S/R</th></tr></thead>
+            <tbody>{history.map((m) => <tr key={m.id}><td className="mono">{m.day}</td><td className="mono">{m.statorU ?? "—"} / {m.statorV ?? "—"} / {m.statorW ?? "—"}</td><td className="mono">{m.rotorU ?? "—"} / {m.rotorV ?? "—"} / {m.rotorW ?? "—"}</td><td className="mono">{m.windingTemp ?? "—"}</td><td className="mono">{[m.piStatorU, m.piStatorV, m.piStatorW, m.piRotor].some((x) => x !== null && x !== undefined) ? `${m.piStatorU ?? "—"}/${m.piStatorV ?? "—"}/${m.piStatorW ?? "—"} | ${m.piRotor ?? "—"}` : (m.pi ?? "—")}</td><td className="mono">{m.testVoltage}/{m.testVoltageRotor ?? m.testVoltage}</td></tr>)}</tbody></table>
         </div>
       )}
     </form>
@@ -11149,7 +11222,7 @@ export function EquipmentServiceForm({ tag, name, defaultMode = "in_service" }: 
   );
 }
 
-── FILE: src/components/ReportsTab.tsx  (219 خط) ──
+── FILE: src/components/ReportsTab.tsx  (220 خط) ──
 
 "use client";
 
@@ -11168,6 +11241,7 @@ export default function ReportsTab({ initialView = "reports" }: { initialView?: 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "report.create", payload: { kind, day: state.now.day } }),
+        signal: AbortSignal.timeout(60000),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error ?? "ساخت گزارش ناموفق بود");
@@ -11525,7 +11599,7 @@ function TrendChart({ scope, tag, param }: { scope: "process" | "motor"; tag: st
       const q = isMotor
         ? `scope=motor&tag=${cmp ? "" : st}&param=${sp}&from=${f}&to=${t}`
         : `scope=process&tag=${st}&from=${f}&to=${t}`;
-      const res = await fetch(`/api/history?${q}`, { cache: "no-store" });
+      const res = await fetch(`/api/history?${q}`, { cache: "no-store", signal: AbortSignal.timeout(30000) });
       const json = await res.json();
       if (res.ok) setData(json as TrendResp);
     } finally {
@@ -11658,9 +11732,9 @@ function MultiParamChart({ tag, from, to }: { tag: string; from: string; to: str
   useEffect(() => {
     let active = true;
     Promise.all(series.map(async (param) => {
-      const res = await fetch(`/api/history?scope=motor&tag=${tag}&param=${param}&from=${from}&to=${to}`, { cache: "no-store" });
+      const res = await fetch(`/api/history?scope=motor&tag=${tag}&param=${param}&from=${from}&to=${to}`, { cache: "no-store", signal: AbortSignal.timeout(30000) });
       return [param, (await res.json()) as TrendResp] as const;
-    })).then((entries) => { if (active) setData(Object.fromEntries(entries)); });
+    })).then((entries) => { if (active) setData(Object.fromEntries(entries)); }).catch(() => {});
     return () => { active = false; };
   }, [series, tag, from, to]);
   const all = Object.values(data).flatMap((d) => d.points.map((p) => p.y));
@@ -11700,7 +11774,7 @@ function TotalMonthlyChart() {
   const [resp, setResp] = useState<TotalsResp | null>(null);
   useEffect(() => {
     const [y, m] = ym.split("/");
-    fetch(`/api/totals?year=${y}&month=${m}`, { cache: "no-store" }).then((r) => r.json()).then(setResp);
+    fetch(`/api/totals?year=${y}&month=${m}`, { cache: "no-store", signal: AbortSignal.timeout(30000) }).then((r) => r.json()).then(setResp).catch(() => {});
   }, [ym]);
   const d = resp?.data;
   const max = Math.max(...(d?.rows.map((r) => r.value ?? 0) ?? [1]), 1);
@@ -11875,7 +11949,7 @@ const TOPICS = [
     id: "service",
     title: "سرویس موتور و تجهیزات",
     body:
-      "برای موتور، دکمهٔ «سرویس» فرم ثبت سرویس را باز می‌کند: شمارنده HMI، انجام‌دهندگان و توضیحات. ثبت سرویس شمارنده را ریست " +
+      "برای موتور، دکمهٔ «سرویس» فرم ثبت سرویس را باز می‌کند: شمارنده HMI و توضیحات (نام شیفت و نفرات خودکار ثبت می‌شود). ثبت سرویس شمارنده را ریست " +
       "می‌کند. برای تجهیزات جانبی و رجیستری، وضعیت فقط «آماده به کار» یا «در حال سرویس» است و هنگام انتخاب «در حال سرویس»، " +
       "نوشتن دلیل/توضیحات الزامی است. این توضیح در کارت تجهیز و در گزارش PDF همان روز می‌آید.",
   },
@@ -11951,7 +12025,7 @@ export default function TrainingTab() {
   );
 }
 
-── FILE: src/components/AdminTab.tsx  (761 خط) ──
+── FILE: src/components/AdminTab.tsx  (755 خط) ──
 
 "use client";
 
@@ -11995,7 +12069,6 @@ export default function AdminTab() {
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(340px,1fr))" }}>
-        <SettingsPanel />
         <ShiftPanel />
       </div>
 
@@ -12004,7 +12077,7 @@ export default function AdminTab() {
         <MirrorPanel />
       </div>
 
-      <ProcessSetpoints />
+      <SetpointsPanel />
 
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(340px,1fr))" }}>
         <ChannelsPanel />
@@ -12176,7 +12249,7 @@ export default function AdminTab() {
   );
 }
 
-function SettingsPanel() {
+function SetpointsPanel() {
   const { state, act, busy } = useApp();
   const [form, setForm] = useState({
     serviceInterval: String(state.settings.serviceInterval),
@@ -12191,7 +12264,8 @@ function SettingsPanel() {
   });
 
   return (
-    <Panel title="ست‌پوینت‌ها و بازه سرویس" icon="gauge" hint="اعمال فوری روی داشبورد و هشدارها">
+    <Panel title="ست‌پوینت‌ها" icon="gauge" hint="اعمال فوری روی داشبورد و هشدارها">
+      <div className="panel-title" style={{ fontSize: 14, marginBottom: 8 }}>موتورها و بازهٔ سرویس</div>
       <div className="form-grid">
         {[
           ["serviceInterval", "بازه سرویس (ساعت)"],
@@ -12223,6 +12297,28 @@ function SettingsPanel() {
       </div>
       <div className="note" style={{ marginTop: 10, fontSize: 10.5 }}>
         تغییر بازه سرویس بلافاصله رنگ‌بندی ۰–۵۰٪ سبز، ۵۰–۹۰٪ زرد و ۹۰–۱۰۰٪ قرمز کارت موتورها را تغییر می‌دهد.
+      </div>
+      <div className="panel-title" style={{ fontSize: 14, margin: "16px 0 8px" }}>پارامترهای فرآیندی</div>
+      <div className="note" style={{ marginBottom: 8 }}>خارج از این محدوده‌ها فقط هشدار بصری است؛ ثبت بلاک نمی‌شود.</div>
+      <div className="table-wrap">
+        <table className="data">
+          <thead>
+            <tr>
+              <th>تگ</th>
+              <th>پارامتر</th>
+              <th>هشدار حداقل</th>
+              <th>هشدار حداکثر</th>
+              <th>بحرانی حداقل</th>
+              <th>بحرانی حداکثر</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {state.process.map((p) => (
+              <SetpointRow key={p.tag} p={p} busy={busy} onSave={(values) => act("admin.setpoints", { tag: p.tag, ...values })} />
+            ))}
+          </tbody>
+        </table>
       </div>
     </Panel>
   );
@@ -12298,35 +12394,6 @@ function ShiftPanel() {
       </div>
       <div className="note" style={{ fontSize: 10.5 }}>
         شیفت جاری: <b>{state.shift.label}</b> — {state.shift.members.join(" و ") || "بدون عضو"} ({state.shift.auto ? "چرخش خودکار" : "تثبیت‌شده"})
-      </div>
-    </Panel>
-  );
-}
-
-function ProcessSetpoints() {
-  const { state, act, busy } = useApp();
-  return (
-    <Panel title="ست‌پوینت پارامترهای فرآیندی" icon="gauge" hint="خارج از این محدوده‌ها فقط هشدار بصری است؛ ثبت بلاک نمی‌شود">
-      <div className="table-wrap">
-        <table className="data">
-          <thead>
-            <tr>
-              <th>تگ</th>
-              <th>پارامتر</th>
-              <th>هشدار حداقل</th>
-              <th>هشدار حداکثر</th>
-              <th>بحرانی حداقل</th>
-              <th>بحرانی حداکثر</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {state.process.map((p) => (
-              <SetpointRow key={p.tag} p={p} busy={busy} onSave={(values) => act("admin.setpoints", { tag: p.tag, ...values })} />
-
-            ))}
-          </tbody>
-        </table>
       </div>
     </Panel>
   );
@@ -12514,6 +12581,7 @@ function SecurityPanel() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action, payload }),
+      signal: AbortSignal.timeout(60000),
     });
     return (await res.json().catch(() => ({}))) as Record<string, unknown>;
   };
@@ -12522,7 +12590,7 @@ function SecurityPanel() {
     setLoading(true);
     try {
       const [h, s, f, c, d] = await Promise.all([
-        fetch("/api/health?full=1", { cache: "no-store" }).then((r) => r.json() as Promise<HealthFull>),
+        fetch("/api/health?full=1", { cache: "no-store", signal: AbortSignal.timeout(30000) }).then((r) => r.json() as Promise<HealthFull>),
         call("session.list", { shifts: true }),
         call("backup.files"),
         call("audit.verify", { limit: 5000 }),
@@ -13059,7 +13127,7 @@ export default function MirrorPanel() {
         await act("mirror.now");
         await load();
       } else {
-        const res = await fetch("/api/mirror", { method: "POST" });
+        const res = await fetch("/api/mirror", { method: "POST", signal: AbortSignal.timeout(120000) });
         const json = await res.json();
         if (!res.ok || !json.ok) throw new Error(json.error ?? "کپی ناموفق بود");
         toast("کپی روی آینه انجام و با هش تأیید شد");
@@ -14287,7 +14355,7 @@ process.exit(sendFailures.length || failures.length ? 1 : 0);
 #  ۸) آزمون‌های خودکار (audit)
 ##############################################################################
 
-── FILE: audit/audit1.mjs  (150 خط) ──
+── FILE: audit/audit1.mjs  (161 خط) ──
 
 const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 const out = [];
@@ -14433,6 +14501,17 @@ const H = (cookie) => ({ cookie });
   const pts = dupCheck.points ?? [];
   const sameDay = pts.filter((p) => String(p.label ?? "").includes("11") || true).length;
   log("concurrent motor value writes duplicate rows?", pts.length <= 6, `points=${pts.length} for 6 intervals — ${pts.length > 6 ? "DUPLICATES (bug)" : "ok"}`);
+
+  // ---------- H: megger (multi-voltage + per-winding PI + unit) ----------
+  const mg = await act(A, "motor.megger", { tag: "M-01", day, testVoltage: 1000, testVoltageRotor: 500, unit: "GΩ", statorU: 120, statorV: 130, statorW: 125, rotorU: 90, rotorV: 95, rotorW: 92, windingTemp: 35, piStatorU: 2.1, piStatorV: 2.0, piStatorW: 2.2, piRotor: 1.8, note: "audit" });
+  log("megger multi-voltage/PI/unit accepted", mg.status === 200 && mg.body?.ok === true && typeof mg.body?.id === "number", `status=${mg.status} id=${mg.body?.id}`);
+  st = await fetch(`${BASE}/api/state?day=${day}&interval=1`, { headers: H(A) }).then((r) => r.json());
+  const mrow = (st.meggers ?? []).find((m) => m.tag === "M-01");
+  log("megger fields persisted", mrow?.testVoltageRotor === 500 && mrow?.unit === "GΩ" && mrow?.piStatorU === 2.1 && mrow?.piRotor === 1.8, `rotorV=${mrow?.testVoltageRotor} unit=${mrow?.unit} piU=${mrow?.piStatorU} piR=${mrow?.piRotor}`);
+  const mgBad = await act(A, "motor.megger", { tag: "M-01", day, testVoltage: 1000, testVoltageRotor: 9999, statorU: 1 });
+  log("megger invalid rotor voltage rejected", mgBad.status === 400, `status=${mgBad.status}`);
+  const mgLegacy = await act(A, "motor.megger", { tag: "M-02", day, testVoltage: 2500, statorU: 50, pi: 1.5 });
+  log("megger legacy payload (single PI) still works", mgLegacy.status === 200 && mgLegacy.body?.ok === true, `status=${mgLegacy.status}`);
 
   console.log("\n=== summary ===");
   console.log(`total=${out.length} pass=${out.filter((o) => o.pass).length} fail=${out.filter((o) => !o.pass).length}`);
