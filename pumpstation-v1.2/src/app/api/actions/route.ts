@@ -423,6 +423,7 @@ export async function POST(request: Request) {
         const row = (await db.select().from(equipment).where(eq(equipment.id, id)).limit(1))[0];
         if (!row) throw new Error("تجهیز پیدا نشد");
         if (row.isMotor) throw new Error("موتورهای اصلی حذف‌شدنی نیستند");
+        if (row.safetyCritical) throw new Error("تجهیز ایمنی‌حیاتی حذف‌شدنی نیست؛ فقط مشخصات آن را ویرایش کنید");
         await db.update(equipment).set({ deletedAt: jalaliNow(), updatedAt: jalaliNow() }).where(eq(equipment.id, id));
         await logActivity(shiftKey, "حذف (نرم) تجهیز", `${row.tag} — ${str(p.reason, 300)}`);
         return Response.json({ ok: true, message: "تجهیز از فهرست برداشته شد (سابقه حفظ می‌شود)" });

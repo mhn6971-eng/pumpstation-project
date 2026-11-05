@@ -117,6 +117,18 @@ t("spoofed headers ignored", spoof.status === 200 && !spoof.text.includes("9.9.9
 const state = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());
 const today = state.now?.day ?? "";
 t("today available", /^\d{4}\/\d{2}\/\d{2}$/.test(today), today);
+const criticalEquipment = (state.equipment ?? []).find((row) => row.safetyCritical === true);
+let criticalDeleteBlocked = false;
+if (criticalEquipment) {
+  const r = await fetch(`${BASE}/api/actions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", cookie: adm.cookie },
+    body: JSON.stringify({ action: "equipment.delete", payload: { id: criticalEquipment.id, reason: "audit6" } }),
+  });
+  const b = await r.json().catch(() => null);
+  criticalDeleteBlocked = r.status === 400 && String(b?.error ?? "").includes("ایمنی‌حیاتی");
+}
+t("safety-critical equipment cannot be soft-deleted", criticalDeleteBlocked);
 const noteText = `audit6-probe-${Date.now()}`;
 const noteRes = await fetch(`${BASE}/api/actions`, {
   method: "POST",

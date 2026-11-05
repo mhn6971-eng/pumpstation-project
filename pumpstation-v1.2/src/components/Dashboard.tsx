@@ -64,7 +64,7 @@ export default function Dashboard() {
             const missing = it.filled === 0;
             const partial = it.filled > 0 && it.filled < it.total;
             return (
-              <button key={it.index} type="button" className={`interval ${it.current ? "current" : ""} ${missing ? "missing" : partial ? "current" : "filled"} ${interval === it.index ? "selected" : ""}`} onClick={() => setInterval(it.index)} title={`${it.filled} از ${it.total} پارامتر ثبت شده`}>
+              <button key={it.index} type="button" className={`interval ${it.current ? "current" : ""} ${missing ? "missing" : partial ? "partial" : "filled"} ${interval === it.index ? "selected" : ""}`} onClick={() => setInterval(it.index)} title={`${it.filled} از ${it.total} پارامتر ثبت شده`}>
                 {it.label}
                 <span className="n">{missing ? "بدون ثبت" : `${it.filled}/${it.total}`}{it.current ? " · جاری" : ""}</span>
               </button>

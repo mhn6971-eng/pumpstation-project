@@ -534,6 +534,12 @@ button, input, select, textarea { font-size: inherit; }
   background: #e7f6ec;
 }
 
+.interval.partial {
+  border-color: rgba(202, 138, 4, 0.5);
+  color: #854d0e;
+  background: #fff7e6;
+}
+
 .interval.missing {
   border-color: rgba(220, 38, 38, 0.55);
   color: #991b1b;
