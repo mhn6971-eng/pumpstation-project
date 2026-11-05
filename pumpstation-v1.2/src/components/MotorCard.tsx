@@ -60,7 +60,7 @@ export default function MotorCard({
             {hotCrit && <span className="bubble"><Icon name="fire" size={11} className="thermo-flame" /> حرارت بالا</span>}
           </div>
         )}
-        {m.state === "service" && <span className="wrench-icon wrench-blink"><Icon name="wrench" size={20} /></span>}
+        {m.state === "service" && <span className="wrench-icon wrench-blink"><Icon name="wrench" size={30} /></span>}
         <MotorVisual tag={m.tag} pumpTag={m.pumpTag} on={m.state === "on"} hot={hotWarn || red} smoke={smoke} />
       </div>
 

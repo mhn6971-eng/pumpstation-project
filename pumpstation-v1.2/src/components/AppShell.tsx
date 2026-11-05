@@ -346,7 +346,14 @@ export default function AppShell({ initial }: { initial: AppState }) {
               </span>
             )}
             <button type="button" className="btn tiny ghost" style={{ color: "#fff", borderColor: "rgba(255,255,255,0.3)" }} title="خروج"
-              onClick={async () => { await fetch("/api/auth", { method: "DELETE" }); window.location.replace("/"); }}>
+              onClick={() => {
+                let done = false;
+                const go = () => { if (!done) { done = true; window.location.replace("/"); } };
+                try {
+                  fetch("/api/auth", { method: "DELETE", keepalive: true }).then(go, go);
+                } catch { go(); return; }
+                setTimeout(go, 2000);
+              }}>
               <Icon name="logout" size={14} /> خروج
             </button>
           </div>

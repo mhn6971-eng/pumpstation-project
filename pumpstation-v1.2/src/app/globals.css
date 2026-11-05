@@ -1541,7 +1541,7 @@ textarea.input {
   filter: grayscale(0.85) opacity(0.72);
 }
 
-/* در سرویس: موتور و پمپ زرد + آچار چشمک‌زن */
+/* در سرویس: موتور و پمپ زرد + آچار چشمک‌زن + کج شدن بدنه */
 .motor-card.motor-service {
   --m-light: #fde68a;
   --m-dark: #d99a06;
@@ -1551,6 +1551,12 @@ textarea.input {
   --p-dark: #d97706;
   --p-line: #92400e;
   --c-body: #d97706;
+}
+.motor-card.motor-service .machine {
+  transform: rotate(-5deg);
+}
+.motor-card.motor-service .wrench-icon {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
 }
 
 /* ۷۰ تا ۹۰٪: زرد شدن موتور + لرزش خفیف */
