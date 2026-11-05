@@ -118,7 +118,7 @@ export default function AppShell({ initial }: { initial: AppState }) {
       if (etagRef.current && etagRef.current.key === cacheKey) headers["if-none-match"] = etagRef.current.value;
       let res: Response;
       try {
-        res = await fetch(`/api/state?day=${encodeURIComponent(d)}&interval=${i}`, { cache: "no-store", headers });
+        res = await fetch(`/api/state?day=${encodeURIComponent(d)}&interval=${i}`, { cache: "no-store", headers, signal: AbortSignal.timeout(30000) });
       } catch {
         return toast("ارتباط با سرور برقرار نشد — دادهٔ همین صفحه نمایش داده می‌شود", "error");
       }
@@ -147,6 +147,8 @@ export default function AppShell({ initial }: { initial: AppState }) {
         method: "POST",
         headers: { "Content-Type": "application/json", "Idempotency-Key": key },
         body: JSON.stringify({ action, payload }),
+        // سقف ۳۰ ثانیه: روی PC ضعیف دکمه‌ها دیگر برای همیشه گیر نمی‌کنند
+        signal: AbortSignal.timeout(30000),
       });
       if (res.status === 401) {
         window.location.replace("/");
@@ -219,7 +221,7 @@ export default function AppShell({ initial }: { initial: AppState }) {
         const message = error instanceof Error ? error.message : "خطای نامشخص";
         if (message === "unauthorized") return false;
         const offline = typeof navigator !== "undefined" && navigator.onLine === false;
-        const networkish = offline || /fetch|network|ارتباط/i.test(message);
+        const networkish = offline || /fetch|network|ارتباط|timeout|abort/i.test(message);
         if (networkish) {
           const list = readQueue();
           list.push({ key, action, payload, at: Date.now(), tries: 0 });

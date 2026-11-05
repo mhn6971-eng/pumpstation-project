@@ -46,9 +46,9 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
       <div className="login-card">
         <div className="login-hero">
           <div className="hero-machine">
-            {/* لوگوی رسمی: فایل public/brand/logo.png را جایگزین کنید */}
+            {/* لوگوی رسمی شرکت — عین فایل ارسالی کارفرما */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo.svg" alt={ORG_NAME} style={{ height: 56, width: "auto" }} />
+            <img src="/brand/logo.jpg" alt={ORG_NAME} style={{ height: 96, width: "auto", background: "#fff", borderRadius: 10, padding: 6 }} />
           </div>
           <div>
             <h2>{APP_NAME}</h2>
@@ -65,7 +65,7 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
           <div className="row" style={{ justifyContent: "space-between", marginBottom: 14 }}>
             <div className="panel-title" style={{ fontSize: 16 }}><Icon name="users" size={18} className="muted" /> انتخاب شیفت و ورود</div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo.svg" alt={ORG_NAME} style={{ height: 40 }} />
+            <img src="/brand/logo.jpg" alt={ORG_NAME} style={{ height: 44, width: "auto", background: "#fff", borderRadius: 8, padding: 4 }} />
           </div>
 
           <div className="shift-options">

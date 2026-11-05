@@ -34,7 +34,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
             <div className="print-sub">{APP_NAME} — {APP_SUBTITLE}</div>
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/logo.svg" alt={ORG_NAME} style={{ height: 46 }} />
+          <img src="/brand/logo.jpg" alt={ORG_NAME} style={{ height: 64, width: "auto" }} />
         </header>
 
         <h1 className="print-title">{REPORT_KINDS[row.kind] ?? row.title}</h1>

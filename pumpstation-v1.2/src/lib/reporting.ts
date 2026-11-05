@@ -34,13 +34,17 @@ type ShiftLike = { key: string; label: string; members: string[] };
 
 export async function buildOperationalPayload(kind: "daily" | "aux", day: string, shift: ShiftLike) {
   const op = operationalDay();
-  const processRows = await db.select().from(processReadingsAll).where(eq(processReadingsAll.day, day));
-  const total = (await db.select().from(dailyTotals).where(eq(dailyTotals.day, day)).limit(1))[0];
-  const motorRows = await db.select().from(motors);
-  const equipmentRows = await db.select().from(equipment).where(eq(equipment.deletedAt, ""));
-  const serviceRows = await db.select().from(equipmentReports).orderBy(desc(equipmentReports.id)).limit(200);
-  const note = (await db.select().from(operatorNotes).where(eq(operatorNotes.day, day)).orderBy(desc(operatorNotes.id)).limit(1))[0];
-  const thresholds = await getProcessThresholds();
+  const [processRows, totalRows, motorRows, equipmentRows, serviceRows, noteRows, thresholds] = await Promise.all([
+    db.select().from(processReadingsAll).where(eq(processReadingsAll.day, day)),
+    db.select().from(dailyTotals).where(eq(dailyTotals.day, day)).limit(1),
+    db.select().from(motors),
+    db.select().from(equipment).where(eq(equipment.deletedAt, "")),
+    db.select().from(equipmentReports).orderBy(desc(equipmentReports.id)).limit(200),
+    db.select().from(operatorNotes).where(eq(operatorNotes.day, day)).orderBy(desc(operatorNotes.id)).limit(1),
+    getProcessThresholds(),
+  ]);
+  const total = totalRows[0];
+  const note = noteRows[0];
 
   const process = PROCESS_PARAMS.map((p) => {
     const rows = processRows.filter((r) => r.tag === p.tag).sort((a, b) => b.intervalIndex - a.intervalIndex);

@@ -4,7 +4,7 @@ import type { CSSProperties, ReactNode } from "react";
 
 export function Logo({ size = 30 }: { size?: number }) {
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src="/brand/logo.svg" alt="آب منطقه‌ای اصفهان" style={{ height: size, width: "auto", display: "block" }} />;
+  return <img src="/brand/logo.jpg" alt="آب منطقه‌ای اصفهان" style={{ height: size, width: "auto", display: "block", background: "#fff", borderRadius: 6, padding: 2 }} />;
 }
 
 export function LogoMark({ size = 30 }: { size?: number }) {

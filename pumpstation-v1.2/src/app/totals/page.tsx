@@ -53,7 +53,7 @@ export default async function TotalsPage({ searchParams }: { searchParams: Promi
             <div className="print-sub">{APP_NAME} — {APP_SUBTITLE}</div>
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/logo.svg" alt={ORG_NAME} style={{ height: 46 }} />
+          <img src="/brand/logo.jpg" alt={ORG_NAME} style={{ height: 64, width: "auto" }} />
         </header>
         <h1 className="print-title">توتال ماهانه دبی (m³) — {PERSIAN_MONTHS[month - 1]} {year}</h1>
         <div className="print-meta">

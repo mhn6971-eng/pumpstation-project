@@ -1323,7 +1323,7 @@ textarea.input {
   color: #fff;
   background:
     linear-gradient(180deg, rgba(5, 20, 40, 0.25) 0%, rgba(5, 20, 40, 0.55) 55%, rgba(5, 20, 40, 0.92) 100%),
-    url("/images/station-hero.jpg") center / cover no-repeat;
+    url("/images/pump-hall.jpg") center / cover no-repeat;
   border-inline-end: 1px solid var(--line-soft);
   min-height: 520px;
   display: flex;
