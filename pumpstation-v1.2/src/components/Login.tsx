@@ -23,6 +23,7 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: selected, pin, ...(totp ? { totp } : {}) }),
+        signal: AbortSignal.timeout(30000),
       });
       const data = await res.json();
       if (!res.ok) {

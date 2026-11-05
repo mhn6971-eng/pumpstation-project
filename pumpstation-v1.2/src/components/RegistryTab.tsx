@@ -112,7 +112,7 @@ export function EquipmentDetail({ tag }: { tag: string }) {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("tag", tag);
-      const res = await fetch("/api/catalogs", { method: "POST", body: fd });
+      const res = await fetch("/api/catalogs", { method: "POST", body: fd, signal: AbortSignal.timeout(120000) });
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error ?? "آپلود ناموفق بود");
       toast("کاتالوگ بارگذاری شد");

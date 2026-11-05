@@ -55,7 +55,7 @@ export default function MirrorPanel() {
         await act("mirror.now");
         await load();
       } else {
-        const res = await fetch("/api/mirror", { method: "POST" });
+        const res = await fetch("/api/mirror", { method: "POST", signal: AbortSignal.timeout(120000) });
         const json = await res.json();
         if (!res.ok || !json.ok) throw new Error(json.error ?? "کپی ناموفق بود");
         toast("کپی روی آینه انجام و با هش تأیید شد");

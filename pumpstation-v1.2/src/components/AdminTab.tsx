@@ -40,7 +40,6 @@ export default function AdminTab() {
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(340px,1fr))" }}>
-        <SettingsPanel />
         <ShiftPanel />
       </div>
 
@@ -49,7 +48,7 @@ export default function AdminTab() {
         <MirrorPanel />
       </div>
 
-      <ProcessSetpoints />
+      <SetpointsPanel />
 
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(340px,1fr))" }}>
         <ChannelsPanel />
@@ -221,7 +220,7 @@ export default function AdminTab() {
   );
 }
 
-function SettingsPanel() {
+function SetpointsPanel() {
   const { state, act, busy } = useApp();
   const [form, setForm] = useState({
     serviceInterval: String(state.settings.serviceInterval),
@@ -236,7 +235,8 @@ function SettingsPanel() {
   });
 
   return (
-    <Panel title="ست‌پوینت‌ها و بازه سرویس" icon="gauge" hint="اعمال فوری روی داشبورد و هشدارها">
+    <Panel title="ست‌پوینت‌ها" icon="gauge" hint="اعمال فوری روی داشبورد و هشدارها">
+      <div className="panel-title" style={{ fontSize: 14, marginBottom: 8 }}>موتورها و بازهٔ سرویس</div>
       <div className="form-grid">
         {[
           ["serviceInterval", "بازه سرویس (ساعت)"],
@@ -268,6 +268,28 @@ function SettingsPanel() {
       </div>
       <div className="note" style={{ marginTop: 10, fontSize: 10.5 }}>
         تغییر بازه سرویس بلافاصله رنگ‌بندی ۰–۵۰٪ سبز، ۵۰–۹۰٪ زرد و ۹۰–۱۰۰٪ قرمز کارت موتورها را تغییر می‌دهد.
+      </div>
+      <div className="panel-title" style={{ fontSize: 14, margin: "16px 0 8px" }}>پارامترهای فرآیندی</div>
+      <div className="note" style={{ marginBottom: 8 }}>خارج از این محدوده‌ها فقط هشدار بصری است؛ ثبت بلاک نمی‌شود.</div>
+      <div className="table-wrap">
+        <table className="data">
+          <thead>
+            <tr>
+              <th>تگ</th>
+              <th>پارامتر</th>
+              <th>هشدار حداقل</th>
+              <th>هشدار حداکثر</th>
+              <th>بحرانی حداقل</th>
+              <th>بحرانی حداکثر</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {state.process.map((p) => (
+              <SetpointRow key={p.tag} p={p} busy={busy} onSave={(values) => act("admin.setpoints", { tag: p.tag, ...values })} />
+            ))}
+          </tbody>
+        </table>
       </div>
     </Panel>
   );
@@ -343,35 +365,6 @@ function ShiftPanel() {
       </div>
       <div className="note" style={{ fontSize: 10.5 }}>
         شیفت جاری: <b>{state.shift.label}</b> — {state.shift.members.join(" و ") || "بدون عضو"} ({state.shift.auto ? "چرخش خودکار" : "تثبیت‌شده"})
-      </div>
-    </Panel>
-  );
-}
-
-function ProcessSetpoints() {
-  const { state, act, busy } = useApp();
-  return (
-    <Panel title="ست‌پوینت پارامترهای فرآیندی" icon="gauge" hint="خارج از این محدوده‌ها فقط هشدار بصری است؛ ثبت بلاک نمی‌شود">
-      <div className="table-wrap">
-        <table className="data">
-          <thead>
-            <tr>
-              <th>تگ</th>
-              <th>پارامتر</th>
-              <th>هشدار حداقل</th>
-              <th>هشدار حداکثر</th>
-              <th>بحرانی حداقل</th>
-              <th>بحرانی حداکثر</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {state.process.map((p) => (
-              <SetpointRow key={p.tag} p={p} busy={busy} onSave={(values) => act("admin.setpoints", { tag: p.tag, ...values })} />
-
-            ))}
-          </tbody>
-        </table>
       </div>
     </Panel>
   );
@@ -559,6 +552,7 @@ function SecurityPanel() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action, payload }),
+      signal: AbortSignal.timeout(60000),
     });
     return (await res.json().catch(() => ({}))) as Record<string, unknown>;
   };
@@ -567,7 +561,7 @@ function SecurityPanel() {
     setLoading(true);
     try {
       const [h, s, f, c, d] = await Promise.all([
-        fetch("/api/health?full=1", { cache: "no-store" }).then((r) => r.json() as Promise<HealthFull>),
+        fetch("/api/health?full=1", { cache: "no-store", signal: AbortSignal.timeout(30000) }).then((r) => r.json() as Promise<HealthFull>),
         call("session.list", { shifts: true }),
         call("backup.files"),
         call("audit.verify", { limit: 5000 }),

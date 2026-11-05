@@ -8,6 +8,7 @@ import { Icon, Logo } from "./ui";
 import Dashboard from "./Dashboard";
 import AuxTab from "./AuxTab";
 import RegistryTab from "./RegistryTab";
+import PmTab from "./PmTab";
 import ReportsHub from "./ReportsHub";
 import AlertsTab from "./AlertsTab";
 import TrainingTab from "./TrainingTab";
@@ -53,6 +54,7 @@ const TABS = [
   { key: "dashboard", label: "داشبورد" },
   { key: "aux", label: "پایش تجهیزات جانبی" },
   { key: "registry", label: "لیست تجهیزات" },
+  { key: "pm", label: "نگهداشت (PM)" },
   { key: "reports", label: "گزارش‌ها" },
   { key: "alerts", label: "هشدارها و آلارم‌ها" },
   { key: "training", label: "آموزش و دستورالعمل" },
@@ -381,6 +383,7 @@ export default function AppShell({ initial }: { initial: AppState }) {
         {tab === "dashboard" && <Dashboard />}
         {tab === "aux" && <AuxTab />}
         {tab === "registry" && <RegistryTab />}
+        {tab === "pm" && <PmTab />}
         {tab === "reports" && <ReportsHub />}
         {tab === "alerts" && <AlertsTab />}
         {tab === "training" && <TrainingTab />}

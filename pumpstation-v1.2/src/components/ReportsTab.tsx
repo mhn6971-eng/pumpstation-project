@@ -15,6 +15,7 @@ export default function ReportsTab({ initialView = "reports" }: { initialView?: 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "report.create", payload: { kind, day: state.now.day } }),
+        signal: AbortSignal.timeout(60000),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) throw new Error(data.error ?? "ساخت گزارش ناموفق بود");

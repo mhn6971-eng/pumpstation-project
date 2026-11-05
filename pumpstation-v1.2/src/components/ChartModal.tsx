@@ -47,7 +47,7 @@ function TrendChart({ scope, tag, param }: { scope: "process" | "motor"; tag: st
       const q = isMotor
         ? `scope=motor&tag=${cmp ? "" : st}&param=${sp}&from=${f}&to=${t}`
         : `scope=process&tag=${st}&from=${f}&to=${t}`;
-      const res = await fetch(`/api/history?${q}`, { cache: "no-store" });
+      const res = await fetch(`/api/history?${q}`, { cache: "no-store", signal: AbortSignal.timeout(30000) });
       const json = await res.json();
       if (res.ok) setData(json as TrendResp);
     } finally {
@@ -180,9 +180,9 @@ function MultiParamChart({ tag, from, to }: { tag: string; from: string; to: str
   useEffect(() => {
     let active = true;
     Promise.all(series.map(async (param) => {
-      const res = await fetch(`/api/history?scope=motor&tag=${tag}&param=${param}&from=${from}&to=${to}`, { cache: "no-store" });
+      const res = await fetch(`/api/history?scope=motor&tag=${tag}&param=${param}&from=${from}&to=${to}`, { cache: "no-store", signal: AbortSignal.timeout(30000) });
       return [param, (await res.json()) as TrendResp] as const;
-    })).then((entries) => { if (active) setData(Object.fromEntries(entries)); });
+    })).then((entries) => { if (active) setData(Object.fromEntries(entries)); }).catch(() => {});
     return () => { active = false; };
   }, [series, tag, from, to]);
   const all = Object.values(data).flatMap((d) => d.points.map((p) => p.y));
@@ -222,7 +222,7 @@ function TotalMonthlyChart() {
   const [resp, setResp] = useState<TotalsResp | null>(null);
   useEffect(() => {
     const [y, m] = ym.split("/");
-    fetch(`/api/totals?year=${y}&month=${m}`, { cache: "no-store" }).then((r) => r.json()).then(setResp);
+    fetch(`/api/totals?year=${y}&month=${m}`, { cache: "no-store", signal: AbortSignal.timeout(30000) }).then((r) => r.json()).then(setResp).catch(() => {});
   }, [ym]);
   const d = resp?.data;
   const max = Math.max(...(d?.rows.map((r) => r.value ?? 0) ?? [1]), 1);

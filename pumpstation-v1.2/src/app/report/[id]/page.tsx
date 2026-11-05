@@ -109,11 +109,12 @@ function Daily({ d }: { d: Any }) {
 function Aux({ d }: { d: Any }) {
   const equipment = (d.equipment as Any[]) ?? [];
   const svc = (d.serviceReports as Any[]) ?? [];
+  const tone = (t: string) => (t.includes("آماده") ? "st-ok" : t.includes("سرویس") ? "st-warn" : "");
   return (
     <>
       <h2>وضعیت تجهیزات جانبی</h2>
       <table><thead><tr><th style={{ width: 80 }}>تگ</th><th>تجهیز</th><th style={{ width: 100 }}>وضعیت</th><th>توضیحات / دلیل سرویس</th><th style={{ width: 120 }}>زمان ثبت</th></tr></thead>
-        <tbody>{equipment.map((e) => <tr key={String(e.tag)}><td className="ltr">{v(e.tag)}{e.safetyCritical ? " *" : ""}</td><td>{v(e.name)}</td><td>{v(e.statusFa)}</td><td className="small">{v(e.description)}</td><td className="ltr small">{v(e.descriptionAt)}</td></tr>)}</tbody></table>
+        <tbody>{equipment.map((e) => <tr key={String(e.tag)}><td className="ltr">{v(e.tag)}{e.safetyCritical ? " *" : ""}</td><td>{v(e.name)}</td><td><span className={`st ${tone(String(e.statusFa ?? ""))}`}>{v(e.statusFa)}</span></td><td className="small">{v(e.description)}</td><td className="ltr small">{v(e.descriptionAt)}</td></tr>)}</tbody></table>
       <p className="print-note">* تجهیز حیاتی ایمنی</p>
       <h2>گزارش‌های سرویس امروز</h2>
       {svc.length === 0 ? <p className="print-para">گزارشی ثبت نشده است.</p> : (
