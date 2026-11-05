@@ -1,7 +1,7 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.0   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 63710d8
-تاریخ تولید: 2026-11-04   |   94 فایل   |   14,447 خط
+نسخهٔ برنامه: 1.4.1   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 3d0ee3e
+تاریخ تولید: 2026-11-05   |   102 فایل   |   15,302 خط
 ==============================================================================
 
 این فایل، «نسخهٔ خوانا»ی کل کد برنامه است؛ هر فایل کامل و بدون حذف درج شده و
@@ -15,73 +15,77 @@
 فهرست فایل‌ها:
 
   ۱) پیکربندی پروژه
-     package.json                                          45 خط
-     next.config.ts                                        43 خط
-     tsconfig.json                                         43 خط
-     eslint.config.mjs                                     23 خط
-     postcss.config.mjs                                     8 خط
-     drizzle.config.json                                    8 خط
-     .env.example                                          37 خط
+     package.json                                         48 خط
+     next.config.ts                                       43 خط
+     tsconfig.json                                        43 خط
+     eslint.config.mjs                                    23 خط
+     postcss.config.mjs                                   8 خط
+     drizzle.config.json                                  8 خط
+     .env.example                                         48 خط
 
   ۲) دیتابیس و مهاجرت‌ها
-     src/db/index.ts                                       97 خط
+     src/db/index.ts                                      101 خط
      src/db/schema.ts                                     455 خط
-     src/db/seed.ts                                       266 خط
-     src/lib/seed-helpers.ts                               12 خط
+     src/db/seed.ts                                       269 خط
+     src/lib/seed-helpers.ts                              12 خط
+     data/roster.sample.json                              10 خط
      drizzle/0000_woozy_omega_flight.sql                  259 خط
-     drizzle/0001_hardening.sql                            51 خط
+     drizzle/0001_hardening.sql                           51 خط
      drizzle/0002_resilience.sql                          155 خط
-     drizzle/0003_two_factor.sql                           26 خط
-     drizzle/0004_mirror_ts.sql                             4 خط
+     drizzle/0003_two_factor.sql                          26 خط
+     drizzle/0004_mirror_ts.sql                           4 خط
 
   ۳) کتابخانهٔ منطق (src/lib)
-     src/lib/version.ts                                     4 خط
-     src/lib/errors.ts                                     77 خط
+     src/lib/version.ts                                   4 خط
+     src/lib/errors.ts                                    77 خط
      src/lib/types.ts                                     149 خط
      src/lib/log.ts                                       103 خط
-     src/lib/dblock.ts                                     64 خط
-     src/lib/pin.ts                                        20 خط
-     src/lib/secret.ts                                     47 خط
+     src/lib/dblock.ts                                    64 خط
+     src/lib/pin.ts                                       20 خط
+     src/lib/secret.ts                                    47 خط
      src/lib/totp.ts                                      108 خط
      src/lib/auth.ts                                      131 خط
      src/lib/sessions.ts                                  215 خط
      src/lib/security.ts                                  173 خط
-     src/lib/audit.ts                                      63 خط
+     src/lib/audit.ts                                     63 خط
      src/lib/jalali.ts                                    221 خط
-     src/lib/domain.ts                                    332 خط
+     src/lib/domain.ts                                    336 خط
      src/lib/state.ts                                     264 خط
      src/lib/reporting.ts                                 203 خط
      src/lib/backup.ts                                    244 خط
      src/lib/mirror.ts                                    245 خط
      src/lib/archive.ts                                   172 خط
+     src/lib/roster.ts                                    94 خط
+     src/lib/netbind.ts                                   95 خط
+     src/lib/sqlite-cloud.ts                              41 خط
 
   ۴) مسیرهای API (src/app/api)
      src/app/api/auth/route.ts                            147 خط
      src/app/api/actions/route.ts                         955 خط
-     src/app/api/state/route.ts                            48 خط
-     src/app/api/history/route.ts                          31 خط
-     src/app/api/totals/route.ts                           48 خط
-     src/app/api/backups/[id]/route.ts                     23 خط
-     src/app/api/mirror/route.ts                           48 خط
+     src/app/api/state/route.ts                           48 خط
+     src/app/api/history/route.ts                         31 خط
+     src/app/api/totals/route.ts                          48 خط
+     src/app/api/backups/[id]/route.ts                    23 خط
+     src/app/api/mirror/route.ts                          48 خط
      src/app/api/health/route.ts                          117 خط
-     src/app/api/catalogs/route.ts                         98 خط
+     src/app/api/catalogs/route.ts                        98 خط
      src/app/api/export/route.ts                          141 خط
 
   ۵) صفحات، چیدمان و قلاب‌های زمان اجرا (src/app و ریشهٔ src)
-     src/app/layout.tsx                                    17 خط
-     src/app/page.tsx                                      32 خط
-     src/app/error.tsx                                     26 خط
-     src/app/loading.tsx                                   11 خط
-     src/app/not-found.tsx                                 14 خط
+     src/app/layout.tsx                                   17 خط
+     src/app/page.tsx                                     32 خط
+     src/app/error.tsx                                    26 خط
+     src/app/loading.tsx                                  11 خط
+     src/app/not-found.tsx                                14 خط
      src/app/report/[id]/page.tsx                         228 خط
-     src/app/totals/page.tsx                               81 خط
-     src/app/globals.css                                 2123 خط
-     src/proxy.ts                                         116 خط
-     src/instrumentation.ts                                32 خط
-     src/instrumentation.node.ts                           31 خط
+     src/app/totals/page.tsx                              81 خط
+     src/app/globals.css                                  2123 خط
+     src/proxy.ts                                         146 خط
+     src/instrumentation.ts                               32 خط
+     src/instrumentation.node.ts                          31 خط
 
   ۶) رابط کاربری (src/components)
-     src/components/context.tsx                            31 خط
+     src/components/context.tsx                           31 خط
      src/components/ui.tsx                                134 خط
      src/components/AppShell.tsx                          400 خط
      src/components/Login.tsx                             123 خط
@@ -89,42 +93,46 @@
      src/components/MotorCard.tsx                         107 خط
      src/components/MotorVisual.tsx                       113 خط
      src/components/MotorDetail.tsx                       196 خط
-     src/components/AuxTab.tsx                             97 خط
+     src/components/AuxTab.tsx                            97 خط
      src/components/RegistryTab.tsx                       257 خط
      src/components/ServiceForm.tsx                       195 خط
      src/components/ReportsTab.tsx                        219 خط
      src/components/ReportsHub.tsx                        102 خط
      src/components/ChartModal.tsx                        269 خط
-     src/components/PrintBar.tsx                           20 خط
-     src/components/AlertsTab.tsx                          49 خط
-     src/components/ProblemsTab.tsx                        27 خط
+     src/components/PrintBar.tsx                          20 خط
+     src/components/AlertsTab.tsx                         49 خط
+     src/components/ProblemsTab.tsx                       27 خط
      src/components/TrainingTab.tsx                       102 خط
      src/components/AdminTab.tsx                          761 خط
      src/components/TwoFactorPanel.tsx                    284 خط
      src/components/MirrorPanel.tsx                       137 خط
 
   ۷) اسکریپت‌های عملیاتی (scripts)
-     scripts/init-db.mjs                                   80 خط
+     scripts/init-db.mjs                                  87 خط
      scripts/doctor.mjs                                   259 خط
-     scripts/reset-admin-pin.mjs                           65 خط
-     scripts/mirror-backup.mjs                             74 خط
-     scripts/pg-init.mjs                                   65 خط
-     scripts/pg-dump.mjs                                   73 خط
+     scripts/reset-admin-pin.mjs                          83 خط
+     scripts/mirror-backup.mjs                            74 خط
+     scripts/pg-init.mjs                                  65 خط
+     scripts/pg-dump.mjs                                  73 خط
      scripts/pg-import-json.mjs                           205 خط
+     scripts/serve.mjs                                    70 خط
+     scripts/bulk-import.mjs                              206 خط
 
   ۸) آزمون‌های خودکار (audit)
-     audit/audit1.mjs                                     148 خط
-     audit/audit2.mjs                                      97 خط
+     audit/audit1.mjs                                     150 خط
+     audit/audit2.mjs                                     97 خط
      audit/audit3.mjs                                     199 خط
-     audit/audit4.mjs                                      91 خط
+     audit/audit4.mjs                                     91 خط
      audit/audit5.mjs                                     302 خط
-     audit/perf.mjs                                        27 خط
-     audit/conc.mjs                                        17 خط
+     audit/audit6.mjs                                     144 خط
+     audit/bulk.mjs                                       108 خط
+     audit/perf.mjs                                       27 خط
+     audit/conc.mjs                                       17 خط
 
   ۹) استقرار و CI
-     deploy/Caddyfile                                      70 خط
-     deploy/nginx.conf                                     80 خط
-     ../.github/workflows/ci.yml                           73 خط
+     deploy/Caddyfile                                     73 خط
+     deploy/nginx.conf                                    81 خط
+     ../.github/workflows/ci.yml                          74 خط
 
 ==============================================================================
 
@@ -132,21 +140,24 @@
 #  ۱) پیکربندی پروژه
 ##############################################################################
 
-── FILE: package.json  (45 خط) ──
+── FILE: package.json  (48 خط) ──
 
 {
   "name": "pumpstation-monitoring",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "preview": "node scripts/init-db.mjs && next dev -H 0.0.0.0 -p 3000",
+    "dev": "node scripts/serve.mjs dev",
+    "preview": "node scripts/init-db.mjs && node scripts/serve.mjs dev",
+    "preview:lan": "node scripts/init-db.mjs && node scripts/serve.mjs dev --host lan",
+    "stackblitz": "node scripts/init-db.mjs && node scripts/serve.mjs dev --webpack --host lan",
     "db:init": "node scripts/init-db.mjs",
     "build": "next build",
-    "start": "next start",
+    "start": "node scripts/serve.mjs start",
+    "start:lan": "node scripts/serve.mjs start --host lan",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "doctor": "node scripts/doctor.mjs",
-    "test:audit": "node audit/audit1.mjs && node audit/audit2.mjs && node audit/audit3.mjs && node audit/audit4.mjs && node audit/audit5.mjs",
+    "test:audit": "node audit/audit1.mjs && node audit/audit2.mjs && node audit/audit3.mjs && node audit/audit4.mjs && node audit/audit5.mjs && node audit/audit6.mjs",
     "test:perf": "node audit/perf.mjs",
     "test": "npm run typecheck && npm run test:audit",
     "db:pg-init": "node scripts/pg-init.mjs",
@@ -176,7 +187,7 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   },
-  "version": "1.4.0"
+  "version": "1.4.1"
 }
 
 ── FILE: next.config.ts  (43 خط) ──
@@ -314,7 +325,7 @@ export default postcssConfig;
   }
 }
 
-── FILE: .env.example  (37 خط) ──
+── FILE: .env.example  (48 خط) ──
 
 # ============================================================================
 #  نمونهٔ متغیرهای محیطی سامانهٔ ایستگاه پمپاژ گلاب — نسخه ۱.۴
@@ -331,11 +342,22 @@ export default postcssConfig;
 # حالت PGlite (فقط اگر از PGlite استفاده می‌کنید)
 # PGLITE_DATA_DIR=.data/pglite
 # PGLITE_RELAXED=0          # 1 = نوشتن سریع‌تر ولی ریسک از دست رفتن آخرین ثانیه‌ها در قطع برق
+# مسیر داخل Google Drive/OneDrive/Dropbox/iCloud ممنوع است (سرور بالا نمی‌آید)؛
+# فقط در حالت خاص و آگاهانه: PGLITE_ALLOW_CLOUD=1
 
 # ---------- HTTPS ----------
-# پشت پروکسی TLS (Caddy/nginx) هر دو را 1 کنید — docs/DEPLOY_HTTPS_FA.md
+# پشت پروکسی TLS (Caddy/nginx) هر سه را 1 کنید — docs/DEPLOY_HTTPS_FA.md
 COOKIE_SECURE=0
 FORCE_HTTPS=0
+TRUST_PROXY=0
+
+# ---------- شبکه (دو اتاق / LAN) ----------
+# پیش‌فرض امن: فقط خودِ دستگاه (127.0.0.1). برای اتصال از اتاق دوم:
+# BIND=lan  (یا اجرای `npm run preview:lan` به‌جای تنظیم دستی)
+# جزئیات کامل + فایروال: docs/STATION_NETWORK_FA.md
+# BIND=
+# TRUST_PROXY=1            # فقط پشت Caddy/nginx خودمان (هدر IP از همان پروکسی)
+# LAN_ALLOW=192.168.1.0/24 # رنج مجاز اتصال (با کاما چند رنج)؛ حلقه همیشه مجاز است
 
 # ---------- بک‌آپ ----------
 # BACKUP_DIR=.data/backups
@@ -357,13 +379,14 @@ FORCE_HTTPS=0
 #  ۲) دیتابیس و مهاجرت‌ها
 ##############################################################################
 
-── FILE: src/db/index.ts  (97 خط) ──
+── FILE: src/db/index.ts  (101 خط) ──
 
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle as drizzlePglite, type PgliteDatabase } from "drizzle-orm/pglite";
 import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { acquireDbLock, releaseDbLock } from "@/lib/dblock";
+import { requireLocalSqlite } from "@/lib/sqlite-cloud";
 
 /**
  * دو حالت اجرای دیتابیس — با یک متغیر محیطی انتخاب می‌شود:
@@ -382,6 +405,9 @@ export const usingPostgres = /^postgres(ql)?:\/\//i.test(databaseUrl);
 
 const buildPhase = process.env.NEXT_PHASE === "phase-production-build";
 const dataDir = process.env.PGLITE_DATA_DIR ?? ".data/pglite";
+
+// دیتابیس داخل پوشهٔ ابری (گوگل‌درایو/وان‌درایو/…) = خطر خرابی؛ سرور بالا نمی‌آید
+if (!usingPostgres && !buildPhase) requireLocalSqlite(dataDir);
 
 /**
  * قفل پوشهٔ داده (فقط PGlite): جلوگیری از باز شدن هم‌زمان توسط دو برنامه
@@ -913,7 +939,7 @@ export const backupMirrorRuns = pgTable(
   (t) => [index("backup_mirror_at_idx").on(t.ts)],
 );
 
-── FILE: src/db/seed.ts  (266 خط) ──
+── FILE: src/db/seed.ts  (269 خط) ──
 
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -931,7 +957,6 @@ import {
   channels,
 } from "@/db/schema";
 import {
-  SHIFT_ROSTER,
   DEFAULT_SETTINGS,
   MOTORS,
   MOTOR_PARAMS,
@@ -942,6 +967,7 @@ import {
   PM_TEMPLATE_SEED,
   type Settings,
 } from "@/lib/domain";
+import { resolveRoster } from "@/lib/roster";
 import { jelaliSeedDays, padSeedValue } from "@/lib/seed-helpers";
 import { jalaliNow, operationalDay } from "@/lib/jalali";
 import { hashPin } from "@/lib/pin";
@@ -987,8 +1013,11 @@ async function runSeed() {
   const op = operationalDay();
   const hour = op.hour;
 
+  // روستر از فایل محلی (واقعی) یا نمونهٔ ساختگی خوانده می‌شود؛ نام و PIN واقعی در کد نیست
+  const { roster, source } = resolveRoster();
+  console.log(`[seed] shifts roster source: ${source}`);
   await db.insert(shifts).values(
-    SHIFT_ROSTER.map((s) => ({
+    roster.map((s) => ({
       key: s.key,
       label: s.label,
       role: s.role,
@@ -1193,6 +1222,18 @@ export async function jelaliSeedDays() {
 
 export function padSeedValue(value: number, digits = 2) {
   return value.toFixed(digits);
+}
+
+── FILE: data/roster.sample.json  (10 خط) ──
+
+{
+  "_note": "نمونهٔ ساختگی برای تست و توسعه (نام‌ها و PINها واقعی نیستند). برای بهره‌برداری واقعی، این فایل را با نام roster.local.json کپی کنید و نام‌ها و PINهای واقعی را در آن بنویسید. فایل roster.local.json در گیت ذخیره نمی‌شود و فقط روی دستگاه ایستگاه می‌ماند.",
+  "roster": [
+    { "key": "A", "label": "شیفت A", "role": "operator", "pin": "1011", "members": ["اپراتور نمونه ۱", "اپراتور نمونه ۲"] },
+    { "key": "B", "label": "شیفت B", "role": "operator", "pin": "2022", "members": ["اپراتور نمونه ۳", "اپراتور نمونه ۴"] },
+    { "key": "C", "label": "شیفت C", "role": "operator", "pin": "3033", "members": ["اپراتور نمونه ۵", "اپراتور نمونه ۶"] },
+    { "key": "admin", "label": "ادمین", "role": "admin", "pin": "9009", "members": ["مدیر نمونه"] }
+  ]
 }
 
 ── FILE: drizzle/0000_woozy_omega_flight.sql  (259 خط) ──
@@ -1707,7 +1748,7 @@ CREATE INDEX IF NOT EXISTS "backup_mirror_at_idx" ON "backup_mirror_runs" ("ts")
 ── FILE: src/lib/version.ts  (4 خط) ──
 
 /** نسخهٔ سامانه — در /api/health و تب ادمین نمایش داده می‌شود */
-export const APP_VERSION = process.env.APP_VERSION ?? "1.4.0";
+export const APP_VERSION = process.env.APP_VERSION ?? "1.4.1";
 export const APP_NAME = "سامانه پایش ایستگاه پمپاژ زیرزمینی — تونل انتقال آب گلاب";
 
 ── FILE: src/lib/errors.ts  (77 خط) ──
@@ -2645,9 +2686,10 @@ export async function sessionsReady() {
 ── FILE: src/lib/security.ts  (173 خط) ──
 
 import { eq, inArray, sql } from "drizzle-orm";
-import { db } from "@/db";
+import { db, usingPostgres } from "@/db";
 import { authLocks, securityEvents } from "@/db/schema";
 import { jalaliNow } from "@/lib/jalali";
+import { trustedClientIp, trustProxyEnabled } from "./netbind";
 
 /** سقف حجم بدنهٔ درخواست‌های API (۲۵۶ کیلوبایت) */
 export const MAX_BODY_BYTES = 256 * 1024;
@@ -2672,7 +2714,9 @@ const lockCache = new Map<string, { fails: number; firstFailAt: number; lockedUn
 type LockRow = { scope: string; fails: number; firstFailAt: number; lockedUntil: number; updatedAt: number };
 
 async function readLock(scope: string): Promise<LockRow> {
-  const cached = lockCache.get(scope);
+  // حالت Postgres (چند نمونه‌ای): کش حافظه بین نمونه‌ها ناهم‌خوان می‌ماند، پس همیشه از دیتابیس
+  const useCache = !usingPostgres;
+  const cached = useCache ? lockCache.get(scope) : undefined;
   if (cached) return { scope, ...cached, updatedAt: 0 };
   const row = (await db.select().from(authLocks).where(eq(authLocks.scope, scope)).limit(1))[0];
   const value = {
@@ -2682,7 +2726,7 @@ async function readLock(scope: string): Promise<LockRow> {
     lockedUntil: Number(row?.lockedUntil ?? 0),
     updatedAt: Number(row?.updatedAt ?? 0),
   };
-  lockCache.set(scope, { fails: value.fails, firstFailAt: value.firstFailAt, lockedUntil: value.lockedUntil });
+  if (useCache) lockCache.set(scope, { fails: value.fails, firstFailAt: value.firstFailAt, lockedUntil: value.lockedUntil });
   return value;
 }
 
@@ -2720,12 +2764,9 @@ async function bump(scope: string, limit: number, lockMs: number) {
 }
 
 export function clientIp(request: Request) {
-  const h = request.headers;
-  return (
-    h.get("x-real-ip")?.trim() ||
-    h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    "local"
-  );
+  // هدرهای IP فقط پشت پروکسی مشخص (TRUST_PROXY=1)؛ در حالت مستقیم "local"
+  // تا هدر جعلی، نشست و سقف نرخ را مسموم نکند.
+  return trustedClientIp(request.headers, trustProxyEnabled());
 }
 
 export function clientAgent(request: Request) {
@@ -3105,24 +3146,28 @@ export function monthDaysOf(jy: number, jm: number) {
   return jalaaliMonthLength(jy, jm);
 }
 
-── FILE: src/lib/domain.ts  (332 خط) ──
+── FILE: src/lib/domain.ts  (336 خط) ──
+
+import SAMPLE_ROSTER_FILE from "../../data/roster.sample.json";
 
 export type EquipmentStatus = "ready" | "in_service";
 export type MotorState = "on" | "off" | "service";
 export type Severity = "ok" | "warning" | "critical";
 
-export const SHIFT_ROSTER: {
+/**
+ * روستر نمونهٔ ساختگی (نام‌ها و PINها واقعی نیستند) — فقط برای تست و توسعه.
+ * نام واقعی اپراتورها و PIN واقعی در `data/roster.local.json` روی دستگاه
+ * ایستگاه است و هرگز در کد و گیت نمی‌آید (src/lib/roster.ts).
+ */
+export type RosterEntry = {
   key: string;
   label: string;
   role: "operator" | "admin";
   pin: string;
   members: string[];
-}[] = [
-  { key: "A", label: "شیفت A", role: "operator", pin: "1111", members: ["سعید شریفی", "یزدان صفری"] },
-  { key: "B", label: "شیفت B", role: "operator", pin: "2222", members: ["جواد کاظمی", "حسین طیبانی"] },
-  { key: "C", label: "شیفت C", role: "operator", pin: "3333", members: ["محسن نقی‌پور", "یوسف نادری"] },
-  { key: "admin", label: "ادمین", role: "admin", pin: "9999", members: ["ادمین سیستم"] },
-];
+};
+
+export const SAMPLE_ROSTER: RosterEntry[] = (SAMPLE_ROSTER_FILE as unknown as { roster: RosterEntry[] }).roster;
 
 export const MOTORS = [
   { tag: "M-01", pumpTag: "P-01" },
@@ -4575,6 +4620,242 @@ export async function ensureYearlyArchive() {
   const last = (await db.select().from(archiveRuns).orderBy(asc(archiveRuns.id)).limit(1))[0];
   if (last && last.at.slice(0, 10) === op.day) return null;
   return archiveOlderThan(Number(process.env.ARCHIVE_AFTER_YEARS ?? 3), "system");
+}
+
+── FILE: src/lib/roster.ts  (94 خط) ──
+
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+
+/**
+ * روستر شیفت‌ها (نام‌ها و PINها) — نسخهٔ ۱٫۴٫۱.
+ *
+ * نام واقعی اپراتورها و PIN واقعی هرگز در کد و گیت نیست. ترتیب خواندن:
+ *   ۱) فایل محلی `data/roster.local.json` (یا مسیر ROSTER_FILE) — اگر هست،
+ *      حتماً باید معتبر باشد؛ اگر خراب باشد سرور بالا نمی‌آید تا اشتباهاً
+ *      با PIN آزمایشی کار نکند.
+ *   ۲) وگرنه نمونهٔ ساختگی `data/roster.sample.json` (فقط تست و توسعه).
+ *
+ * این ماژول هیچ ایمپورتی از داخل src ندارد تا هم در سرور، هم در اسکریپت‌ها
+ * و هم در تست‌ها (audit6) مستقیم قابل استفاده باشد.
+ */
+
+export type RosterEntry = {
+  key: string;
+  label: string;
+  role: "operator" | "admin";
+  pin: string;
+  members: string[];
+};
+
+export type RosterSource = "local" | "sample";
+
+export function sampleRosterPath(): string {
+  return path.join(process.cwd(), "data", "roster.sample.json");
+}
+
+export function localRosterPath(): string {
+  const raw = (process.env.ROSTER_FILE ?? "").trim() || path.join("data", "roster.local.json");
+  return path.isAbsolute(raw) ? raw : path.join(process.cwd(), raw);
+}
+
+/** اعتبارسنجی ساختار روستر؛ در صورت ایراد با پیام فارسی خطا می‌دهد. */
+export function validateRoster(input: unknown, sourceName: string): RosterEntry[] {
+  const bad = (why: string): Error => new Error(`روستر ${sourceName} معتبر نیست: ${why}`);
+  const root = input as { roster?: unknown } | null;
+  const rawList: unknown = root && typeof root === "object" && "roster" in root ? root.roster : input;
+  if (!Array.isArray(rawList) || rawList.length === 0) throw bad("فهرست شیفت‌ها خالی است");
+  const list: unknown[] = rawList;
+  const seen = new Set<string>();
+  const out: RosterEntry[] = [];
+  for (const item of list) {
+    const e = (item ?? {}) as Partial<RosterEntry>;
+    const key = String(e.key ?? "").trim();
+    if (!/^[A-Za-z0-9_-]{1,10}$/.test(key)) throw bad(`کلید شیفت نامعتبر است (${String(e.key ?? "")})`);
+    if (seen.has(key)) throw bad(`کلید تکراری: ${key}`);
+    seen.add(key);
+    const label = String(e.label ?? "").trim();
+    if (!label || label.length > 40) throw bad(`نام نمایشی شیفت ${key} نامعتبر است`);
+    const role = e.role;
+    if (role !== "operator" && role !== "admin") throw bad(`نقش شیفت ${key} باید operator یا admin باشد`);
+    const pin = String(e.pin ?? "");
+    if (!/^\d{4,6}$/.test(pin)) throw bad(`PIN شیفت ${key} باید چهار تا شش رقم باشد`);
+    const members = Array.isArray(e.members) ? e.members.map((m) => String(m ?? "").trim()).filter(Boolean) : [];
+    if (members.length === 0 || members.length > 4) throw bad(`اعضای شیفت ${key} باید یک تا چهار نام باشد`);
+    if (members.some((m) => m.length > 80)) throw bad(`نام یکی از اعضای شیفت ${key} بیش از حد طولانی است`);
+    out.push({ key, label, role, pin, members });
+  }
+  const admin = out.find((e) => e.key === "admin");
+  if (!admin || admin.role !== "admin") throw bad("یک شیفت admin لازم است تا سامانه قفل نشود");
+  return out;
+}
+
+/** خواندن و اعتبارسنجی یک فایل روستر. */
+export function loadRosterFile(file: string): RosterEntry[] {
+  const raw = readFileSync(file, "utf8");
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error(`روستر ${file} معتبر نیست: فایل JSON خراب است`);
+  }
+  return validateRoster(parsed, file);
+}
+
+/**
+ * روستر فعال: فایل محلی اگر هست (خراب = توقف با خطا)، وگرنه نمونهٔ ساختگی.
+ * اخطار «نمونه» عمداً بلند است تا در بهره‌برداری واقعی جا نماند.
+ */
+export function resolveRoster(): { roster: RosterEntry[]; source: RosterSource; path: string } {
+  const local = localRosterPath();
+  if (existsSync(local)) {
+    const roster = loadRosterFile(local);
+    return { roster, source: "local", path: local };
+  }
+  const sample = sampleRosterPath();
+  const roster = loadRosterFile(sample);
+  console.warn(`[roster] فایل محلی پیدا نشد (${local}) — از روستر نمونهٔ ساختگی استفاده می‌شود؛ پیش از بهره‌برداری واقعی roster.local.json را بسازید.`);
+  return { roster, source: "sample", path: sample };
+}
+
+── FILE: src/lib/netbind.ts  (95 خط) ──
+
+/**
+ * بایند شبکه و اعتماد به پروکسی — نسخهٔ ۱٫۴٫۱.
+ *
+ * قانون قفل‌شده: پیش‌فرض فقط 127.0.0.1 است؛ حالت شبکهٔ داخلی فقط با
+ * پیکربندی صریح (BIND=lan یا ‎--host) فعال می‌شود.
+ *
+ * خالص و بدون ایمپورت داخلی: در سرور، اسکریپت‌ها و تست‌ها (audit6) مستقیم
+ * قابل استفاده است.
+ */
+
+export type BindMode = "loopback" | "lan" | "custom";
+
+/** میزبان بایند از روی BIND: خالی/loopback → حلقه؛ lan → همهٔ رابط‌ها؛ IP → همان IP. */
+export function resolveBind(bindRaw?: string): { host: string; mode: BindMode } {
+  const raw = (bindRaw ?? process.env.BIND ?? "").trim().toLowerCase();
+  if (!raw || raw === "loopback" || raw === "local" || raw === "127.0.0.1" || raw === "localhost") {
+    return { host: "127.0.0.1", mode: "loopback" };
+  }
+  if (raw === "lan" || raw === "0.0.0.0") return { host: "0.0.0.0", mode: "lan" };
+  if (parseIpv4(raw) !== null) return { host: raw, mode: "custom" };
+  throw new Error(`مقدار BIND نامعتبر است («${raw}»). مجاز: خالی (حلقه)، lan، یا یک IP مثل 192.168.1.10`);
+}
+
+/** آیا به هدرهای پروکسی (X-Forwarded-For / X-Real-IP) اعتماد شود؟ فقط پشت Caddy/nginx مشخص. */
+export function trustProxyEnabled(env?: Record<string, string | undefined>): boolean {
+  const v = (env ?? process.env).TRUST_PROXY;
+  return v === "1" || v?.toLowerCase() === "true" || v?.toLowerCase() === "yes";
+}
+
+/** IP متن از هدرها؛ در حالت مستقیم (بدون پروکسی) همیشه "local" است. */
+export function trustedClientIp(headers: { get: (name: string) => string | null }, trustProxy: boolean): string {
+  if (!trustProxy) return "local";
+  const real = headers.get("x-real-ip")?.trim();
+  if (real) return real;
+  const fwd = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  if (fwd) return fwd;
+  // حالت پروکسی ولی بدون هدر: یعنی ضربهٔ مستقیم یا پروکسی بدپیکربندی؛
+  // با بایند loopback پشت Caddy فقط حلقه می‌تواند مستقیم بزند (docs/STATION_NETWORK_FA.md).
+  return "direct";
+}
+
+/** IPv4 متنی به عدد ۳۲بیتی؛ نامعتبر → null. */
+export function parseIpv4(ip: string): number | null {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(ip.trim());
+  if (!m) return null;
+  const parts = m.slice(1).map(Number);
+  if (parts.some((n) => n > 255)) return null;
+  return ((parts[0] * 256 + parts[1]) * 256 + parts[2]) * 256 + parts[3];
+}
+
+/** آیا ip داخل cidr است؟ cidr هم می‌تواند IP تکی باشد. IPv6 پشتیبانی نمی‌شود (false). */
+export function ipInCidr(ip: string, cidr: string): boolean {
+  const clean = cidr.trim();
+  const slash = clean.indexOf("/");
+  if (slash < 0) return parseIpv4(ip) !== null && parseIpv4(clean) === parseIpv4(ip);
+  const base = parseIpv4(clean.slice(0, slash));
+  const bits = Number(clean.slice(slash + 1));
+  const addr = parseIpv4(ip);
+  if (base === null || addr === null || !Number.isInteger(bits) || bits < 0 || bits > 32) return false;
+  if (bits === 0) return true;
+  const mask = ~((1 << (32 - bits)) - 1) >>> 0;
+  return ((base & mask) >>> 0) === ((addr & mask) >>> 0);
+}
+
+/** پارس فهرست LAN_ALLOW (جدا با کاما/فاصله)؛ ورودی نامعتبر → خطای فارسی. */
+export function parseAllowList(raw: string): string[] {
+  const items = raw.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
+  for (const item of items) {
+    const slash = item.indexOf("/");
+    const base = slash < 0 ? item : item.slice(0, slash);
+    const bits = slash < 0 ? "32" : item.slice(slash + 1);
+    if (parseIpv4(base) === null || !/^\d{1,2}$/.test(bits) || Number(bits) > 32) {
+      throw new Error(`رنج مجاز نامعتبر در LAN_ALLOW: «${item}» (نمونهٔ درست: 192.168.1.0/24)`);
+    }
+  }
+  return items;
+}
+
+function isLoopbackIp(ip: string): boolean {
+  return ip === "::1" || ip === "localhost" || ipInCidr(ip, "127.0.0.0/8");
+}
+
+/**
+ * آیا این IP اجازهٔ اتصال دارد؟
+ * - حلقه (127/8 و ‎::1) و حالت مستقیم تک‌دستگاهی ("local") همیشه مجازند.
+ * - اگر LAN_ALLOW خالی باشد، همه مجازند (کنترل با فایروال سیستم‌عامل است).
+ */
+export function lanAllowed(ip: string, allowRaw: string): boolean {
+  if (ip === "local" || ip === "direct") return true;
+  if (isLoopbackIp(ip)) return true;
+  const trimmed = allowRaw.trim();
+  if (!trimmed) return true;
+  return parseAllowList(trimmed).some((cidr) => ipInCidr(ip, cidr));
+}
+
+── FILE: src/lib/sqlite-cloud.ts  (41 خط) ──
+
+/**
+ * نگهبان مسیر دیتابیس: دیتابیس هرگز داخل پوشهٔ ابری (خطر خرابی فایل) — نسخهٔ ۱٫۴٫۱.
+ *
+ * پوشه‌های همگام‌سازی ابری (گوگل‌درایو/وان‌درایو/دراپ‌باکس/آی‌کلاد) فایل‌های
+ * دیتابیس را قفل و نیمه‌همگام می‌کنند و عامل شناخته‌شدهٔ خرابی‌اند.
+ * این ماژول مسیر را بررسی می‌کند و در صورت خطر، سرور/اسکریپت با پیام فارسی
+ * متوقف می‌شود. خالص و بدون ایمپورت داخلی (قابل استفاده در تست‌ها).
+ */
+
+export type CloudService = "Google Drive" | "OneDrive" | "Dropbox" | "iCloud";
+
+const CLOUD_HINT =
+  "دیتابیس را به پوشه‌ای محلی (خارج از فضای ابری) منتقل کنید و برای نسخهٔ بیرونی از آینه (MIRROR_DIR) استفاده کنید.";
+
+/** بررسی بخش‌های مسیر؛ حساس به غلط‌نویسی نیست ولی به «sandbox» گیر نمی‌دهد. */
+export function detectCloudPath(dir: string): CloudService | null {
+  const segments = dir.split(/[\\/]/).map((s) => s.trim().toLowerCase()).filter(Boolean);
+  for (const seg of segments) {
+    if (seg.includes("google drive") || seg === "googledrive") return "Google Drive";
+    if (seg === "onedrive" || seg.startsWith("onedrive ") || seg.startsWith("onedrive-") || seg.startsWith("onedrive_")) return "OneDrive";
+    if (seg === "dropbox") return "Dropbox";
+    if (seg.includes("icloud")) return "iCloud";
+  }
+  return null;
+}
+
+/**
+ * اگر مسیر داخل فضای ابری باشد، خطا می‌دهد و برنامه متوقف می‌شود.
+ * راه فرار فقط برای حالت‌های خاص و آگاهانه: PGLITE_ALLOW_CLOUD=1
+ */
+export function requireLocalSqlite(dataDir: string, env?: Record<string, string | undefined>): void {
+  const allow = (env ?? process.env).PGLITE_ALLOW_CLOUD === "1";
+  if (allow) return;
+  const service = detectCloudPath(dataDir);
+  if (service) {
+    throw new Error(
+      `مسیر دیتابیس داخل ${service} است و این خطر خرابی دیتابیس دارد؛ سرور بالا نمی‌آید. ${CLOUD_HINT}`,
+    );
+  }
 }
 
 ##############################################################################
@@ -8809,16 +9090,25 @@ textarea.input {
   }
 }
 
-── FILE: src/proxy.ts  (116 خط) ──
+── FILE: src/proxy.ts  (146 خط) ──
 
 import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
+import { lanAllowed, trustProxyEnabled, trustedClientIp } from "./lib/netbind";
 
 /** سقف حجم بدنه برای همهٔ مسیرهای API — پیش از خواندن بدنه رد می‌شود */
 const MAX_BODY_BYTES = 256 * 1024;
 
 /** سقف درخواست هر IP در دقیقه (ضدسیل ساده و ارزان) */
 const IP_LIMIT = 600;
+// اخطار پیکربندی شبکه: فقط یک‌بار در هر فرایند (LAN_ALLOW بدون پروکسیِ مورداعتماد قابل اعمال نیست)
+declare global {
+  var __psNetWarnedLAN: boolean | undefined;
+}
+if ((process.env.LAN_ALLOW ?? "").trim() && !trustProxyEnabled() && !globalThis.__psNetWarnedLAN) {
+  globalThis.__psNetWarnedLAN = true;
+  console.warn("[net] اخطار: LAN_ALLOW تنظیم شده ولی TRUST_PROXY=1 نیست؛ در اتصال مستقیم، IP واقعی دیده نمی‌شود و فهرست مجاز اعمال نمی‌گردد (کنترل با فایروال سیستم‌عامل است).");
+}
 const IP_WINDOW_MS = 60_000;
 const buckets = new Map<string, { count: number; resetAt: number }>();
 
@@ -8828,11 +9118,9 @@ const PROTECTED = [/^\/totals(\/|$)/, /^\/report(\/|$)/];
 const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 function ipOf(request: NextRequest) {
-  return (
-    request.headers.get("x-real-ip")?.trim() ||
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    "local"
-  );
+  // هدرهای IP فقط پشت پروکسی مشخص (TRUST_PROXY=1) خوانده می‌شوند؛ در حالت
+  // مستقیم، هدرِ جعلی نادیده گرفته می‌شود تا سقف نرخ و نشست مسموم نشود.
+  return trustedClientIp(request.headers, trustProxyEnabled());
 }
 
 function hostOf(request: NextRequest) {
@@ -8888,6 +9176,29 @@ export default function proxy(request: NextRequest) {
   const headers = new Headers(request.headers);
   headers.set("x-request-id", requestId);
 
+  // دروازهٔ رنج مجاز شبکه (فقط اگر LAN_ALLOW تنظیم شده باشد)
+  const lanAllow = (process.env.LAN_ALLOW ?? "").trim();
+  if (lanAllow) {
+    let ok = true;
+    try {
+      ok = lanAllowed(ipOf(request), lanAllow);
+    } catch {
+      ok = false;
+    }
+    if (!ok) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json(
+          { ok: false, error: "اتصال از این شبکه مجاز نیست", code: "lan_denied", requestId },
+          { status: 403, headers: { "x-request-id": requestId } },
+        );
+      }
+      return new NextResponse("اتصال از این شبکه مجاز نیست", {
+        status: 403,
+        headers: { "x-request-id": requestId },
+      });
+    }
+  }
+
   if (pathname.startsWith("/api/")) {
     // ضدسیل: درخواست‌های بیش از حد از یک IP
     const retry = rateLimited(ipOf(request));
@@ -8924,7 +9235,7 @@ export default function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/:path*", "/totals/:path*", "/totals", "/report/:path*"],
+  matcher: ["/api/:path*", "/totals/:path*", "/totals", "/report/:path*", "/"],
 };
 
 ── FILE: src/instrumentation.ts  (32 خط) ──
@@ -12832,7 +13143,7 @@ export default function MirrorPanel() {
 #  ۷) اسکریپت‌های عملیاتی (scripts)
 ##############################################################################
 
-── FILE: scripts/init-db.mjs  (80 خط) ──
+── FILE: scripts/init-db.mjs  (87 خط) ──
 
 /**
  * اجرای مهاجرت‌های دیتابیس (بدون نیاز به سرور PostgreSQL).
@@ -12845,8 +13156,15 @@ import { PGlite } from "@electric-sql/pglite";
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { mkdir, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { requireLocalSqlite } from "../src/lib/sqlite-cloud.ts";
 
 const dataDir = process.env.PGLITE_DATA_DIR ?? ".data/pglite";
+try {
+  requireLocalSqlite(dataDir);
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error);
+  process.exit(1);
+}
 await mkdir(dataDir, { recursive: true });
 
 /**
@@ -13175,13 +13493,14 @@ try {
   }
 }
 
-── FILE: scripts/reset-admin-pin.mjs  (65 خط) ──
+── FILE: scripts/reset-admin-pin.mjs  (83 خط) ──
 
 /**
- * بازنشانی اضطراری PIN ادمین (وقتی کسی به سامانه دسترسی ندارد)
- *   node scripts/reset-admin-pin.mjs            → PIN ادمین به 9999
- *   node scripts/reset-admin-pin.mjs 1234 A     → PIN دلخواه برای شیفت دلخواه
+ * بازنشانی اضطراری PIN (وقتی کسی به سامانه دسترسی ندارد) — نسخهٔ ۱٫۴٫۱.
  *
+ *   node scripts/reset-admin-pin.mjs --pin 123456 --confirm 123456 [--shift admin]
+ *
+ * بدون --pin و --confirmِ یکسان، هیچ کاری انجام نمی‌شود (PIN پیش‌فرضی در کار نیست).
  * شرط‌ها: سامانه باید خاموش باشد (قفل پوشهٔ داده بررسی می‌شود) و
  * رویداد در دفتر فعالیت ثبت می‌شود تا رد پا بماند.
  */
@@ -13189,6 +13508,30 @@ import { PGlite } from "@electric-sql/pglite";
 import { randomBytes, scryptSync } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+
+const args = process.argv.slice(2);
+const flag = (name) => {
+  const i = args.findIndex((a) => a === name);
+  return i >= 0 ? (args[i + 1] ?? "").trim() : "";
+};
+
+const pin = flag("--pin");
+const confirm = flag("--confirm");
+const shiftKey = flag("--shift") || "admin";
+
+if (!pin || !confirm) {
+  console.error("استفاده: node scripts/reset-admin-pin.mjs --pin <4تا6 رقم> --confirm <تکرار PIN> [--shift admin]");
+  console.error("بدون --pin و --confirm هیچ کاری انجام نمی‌شود.");
+  process.exit(1);
+}
+if (pin !== confirm) {
+  console.error("PIN و تکرار آن یکسان نیست؛ هیچ کاری انجام نشد.");
+  process.exit(1);
+}
+if (!/^\d{4,6}$/.test(pin)) {
+  console.error("PIN باید چهار تا شش رقم باشد.");
+  process.exit(1);
+}
 
 const dataDir = process.env.PGLITE_DATA_DIR ?? ".data/pglite";
 const lockFile = path.join(path.resolve(dataDir), ".pumpstation.lock");
@@ -13208,13 +13551,6 @@ if (existsSync(lockFile)) {
   } catch {
     /* ignore */
   }
-}
-
-const pin = (process.argv[2] ?? "9999").trim();
-const shiftKey = (process.argv[3] ?? "admin").trim();
-if (!/^\d{4,6}$/.test(pin)) {
-  console.error("PIN باید چهار تا شش رقم باشد.");
-  process.exit(1);
 }
 
 const salt = randomBytes(16).toString("hex");
@@ -13667,11 +14003,291 @@ try {
   process.exit(1);
 }
 
+── FILE: scripts/serve.mjs  (70 خط) ──
+
+/**
+ * اجرای سرور با بایند امن (نسخهٔ ۱٫۴٫۱).
+ *
+ *   node scripts/serve.mjs dev [--webpack] [--host lan|IP]
+ *   node scripts/serve.mjs start [--host lan|IP]
+ *
+ * پیش‌فرض فقط 127.0.0.1 است. حالت شبکهٔ داخلی فقط با BIND=lan یا ‎--host
+ * صریح فعال می‌شود (همراه با اخطار فایروال). جزئیات: docs/STATION_NETWORK_FA.md
+ */
+import { spawn } from "node:child_process";
+import { resolveBind } from "../src/lib/netbind.ts";
+import { requireLocalSqlite } from "../src/lib/sqlite-cloud.ts";
+
+// پیش‌بررسی مسیر دیتابیس (حالت PGlite): مسیر ابری = توقف پیش از بالا آمدن
+if (!/^postgres(ql)?:\/\//i.test((process.env.DATABASE_URL ?? "").trim())) {
+  try {
+    requireLocalSqlite(process.env.PGLITE_DATA_DIR ?? ".data/pglite");
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+  }
+}
+
+const [mode, ...rest] = process.argv.slice(2);
+if (mode !== "dev" && mode !== "start") {
+  console.error("استفاده: node scripts/serve.mjs dev|start [--webpack] [--host lan|IP]");
+  process.exit(1);
+}
+
+let hostOverride = "";
+const passthrough = [];
+for (let i = 0; i < rest.length; i += 1) {
+  if (rest[i] === "--host" && rest[i + 1]) {
+    hostOverride = rest[i + 1];
+    i += 1;
+    continue;
+  }
+  passthrough.push(rest[i]);
+}
+
+let host;
+try {
+  host = (hostOverride ? resolveBind(hostOverride) : resolveBind()).host;
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error);
+  process.exit(1);
+}
+
+const port = Number(process.env.PORT ?? 3000);
+if (!Number.isInteger(port) || port < 1 || port > 65535) {
+  console.error(`پورت نامعتبر است: ${process.env.PORT}`);
+  process.exit(1);
+}
+
+if (host === "0.0.0.0") {
+  console.warn(`[net] هشدار: سرور روی همهٔ رابط‌های شبکه باز می‌شود (${host}:${port}) — فقط در شبکهٔ داخلی ایستگاه با فایروال محدود به رنج اداره.`);
+} else {
+  console.log(`[net] server on ${host}:${port} (loopback-only)`);
+}
+
+const child = spawn(
+  process.execPath,
+  ["node_modules/next/dist/bin/next", mode, "-H", host, "-p", String(port), ...passthrough],
+  { stdio: "inherit", cwd: process.cwd() },
+);
+child.on("exit", (code, signal) => {
+  if (signal) process.exit(1);
+  process.exit(code ?? 0);
+});
+
+── FILE: scripts/bulk-import.mjs  (206 خط) ──
+
+/**
+ * ورود گروهی قرائت‌ها از CSV از مسیر رسمی API (نسخهٔ ۱٫۴٫۱).
+ *
+ *   node scripts/bulk-import.mjs --file rows.csv --shift A --pin 1011 --confirm-test
+ *   node scripts/bulk-import.mjs --file rows.csv --dry-run   (بدون نوشتن؛ فقط بررسی و گزارش)
+ *
+ * ستون‌های CSV (با سطر سربرگ): day,interval,scope,tag,param,value
+ *   scope=process → tag مثل PIT-001 (param نادیده) — یک درخواست برای هر سطر
+ *   scope=motor   → tag مثل M-01 و param مثل I1 — سطرهای هم‌روز/هم‌بازه/هم‌موتور یکی می‌شوند
+ *   scope=total   → فقط value (یک عدد برای هر روز)
+ *
+ * ایمنی: بدون --confirm-test هیچ چیزی نوشته نمی‌شود (--dry-run استثناست)؛
+ * پیش‌فرض فقط به خودِ دستگاه وصل می‌شود (--allow-remote برای آدرس بیرونی).
+ * هر درخواست کلید یکتایی قطعی دارد؛ اگر وسط کار قطع شود، اجرای دوباره
+ * سطرهای قبلی را تکرارِ بی‌اثر می‌کند (نه ثبت دوباره).
+ */
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { isValidJalaliDay } from "../src/lib/jalali.ts";
+
+const args = process.argv.slice(2);
+const flag = (name) => {
+  const i = args.findIndex((a) => a === name);
+  return i >= 0 ? (args[i + 1] ?? "").trim() : "";
+};
+const has = (name) => args.includes(name);
+
+const file = flag("--file");
+const shift = flag("--shift") || "A";
+const pin = flag("--pin");
+const base = (flag("--base") || "http://127.0.0.1:3000").replace(/\/$/, "");
+const chunkSize = Math.max(1, Number(flag("--chunk") || 50));
+const dryRun = has("--dry-run");
+const confirmed = has("--confirm-test");
+
+if (!file) {
+  console.error("استفاده: node scripts/bulk-import.mjs --file rows.csv --shift A --pin **** [--dry-run | --confirm-test]");
+  process.exit(1);
+}
+if (!dryRun && !confirmed) {
+  console.error("بدون --confirm-test هیچ چیزی نوشته نمی‌شود (تأیید می‌کنید دیتابیس مقصد آزمایشی است). برای بررسی بدون نوشتن: --dry-run");
+  process.exit(1);
+}
+if (!dryRun && !pin) {
+  console.error("--pin لازم است.");
+  process.exit(1);
+}
+let baseUrl;
+try {
+  baseUrl = new URL(base);
+} catch {
+  console.error(`آدرس مقصد نامعتبر است: ${base}`);
+  process.exit(1);
+}
+const localHost = ["127.0.0.1", "localhost", "::1"].includes(baseUrl.hostname);
+if (!localHost && !has("--allow-remote")) {
+  console.error(`مقصد ${base} دستگاه خودمان نیست؛ برای ادامه --allow-remote را اضافه کنید.`);
+  process.exit(1);
+}
+
+function parseCsv(text) {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
+  if (lines.length < 2) return { header: [], rows: [] };
+  const split = (line) => line.split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
+  const header = split(lines[0]).map((h) => h.toLowerCase());
+  return { header, rows: lines.slice(1).map((line, i) => ({ lineNo: i + 2, cells: split(line) })) };
+}
+
+const { header, rows } = parseCsv(readFileSync(file, "utf8"));
+const need = ["day", "interval", "scope", "tag", "param", "value"];
+const missing = need.filter((c) => !header.includes(c));
+if (missing.length) {
+  console.error(`ستون‌های لازم در CSV نیست: ${missing.join("، ")} (لازم: ${need.join(",")})`);
+  process.exit(1);
+}
+const col = (row, name) => row.cells[header.indexOf(name)] ?? "";
+
+const failures = [];   // { lineNo, reason }
+const requests = [];   // { action, payload }
+const motorGroups = new Map(); // day|interval|tag -> { day, intervalIndex, tag, values }
+
+for (const row of rows) {
+  const fail = (reason) => failures.push({ lineNo: row.lineNo, reason });
+  const day = col(row, "day");
+  const intervalIndex = Number(col(row, "interval"));
+  const scope = col(row, "scope").toLowerCase();
+  const tag = col(row, "tag");
+  const param = col(row, "param");
+  const value = Number(col(row, "value"));
+  if (!isValidJalaliDay(day)) { fail(`روز نامعتبر: ${day}`); continue; }
+  if (!Number.isInteger(intervalIndex) || intervalIndex < 0 || intervalIndex > 5) { fail(`بازه نامعتبر: ${col(row, "interval")}`); continue; }
+  if (!Number.isFinite(value)) { fail(`مقدار نامعتبر: ${col(row, "value")}`); continue; }
+  if (scope === "process") {
+    if (!tag) { fail("تگ خالی است"); continue; }
+    requests.push({ action: "process.set", payload: { tag, value, day, intervalIndex } });
+  } else if (scope === "motor") {
+    if (!tag || !param) { fail("تگ یا پارامتر خالی است"); continue; }
+    const key = `${day}|${intervalIndex}|${tag}`;
+    if (!motorGroups.has(key)) motorGroups.set(key, { day, intervalIndex, tag, values: {} });
+    motorGroups.get(key).values[param] = value;
+  } else if (scope === "total") {
+    requests.push({ action: "total.set", payload: { value, day } });
+  } else {
+    fail(`نوع نامعتبر (process/motor/total): ${col(row, "scope")}`);
+  }
+}
+for (const g of motorGroups.values()) {
+  requests.push({ action: "motor.values", payload: { tag: g.tag, values: g.values, day: g.day, intervalIndex: g.intervalIndex } });
+}
+
+console.log(`سطرها: ${rows.length} | درخواست‌ها: ${requests.length} | سطر خراب: ${failures.length}`);
+if (dryRun) {
+  console.log("(حالت بررسی: چیزی نوشته نشد.)");
+  for (const f of failures.slice(0, 20)) console.log(`  سطر ${f.lineNo}: ${f.reason}`);
+  if (failures.length > 20) console.log(`  … و ${failures.length - 20} مورد دیگر`);
+  process.exit(failures.length ? 1 : 0);
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const idemKey = (req) => `bulk-${createHash("sha1").update(JSON.stringify(req)).digest("hex").slice(0, 32)}`;
+
+const login = await fetch(`${base}/api/auth`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ key: shift, pin }),
+});
+if (!login.ok) {
+  console.error(`ورود ناموفق (${login.status})؛ شیفت/PIN یا آدرس مقصد را بررسی کنید.`);
+  process.exit(1);
+}
+const cookie = (login.headers.get("set-cookie") || "").split(";")[0];
+if (!cookie) {
+  console.error("ورود کوکی برنگرداند؛ ادامه ممکن نیست.");
+  process.exit(1);
+}
+
+let ok = 0, replayed = 0;
+const sendFailures = [];
+for (let i = 0; i < requests.length; i += 1) {
+  const req = requests[i];
+  let attempt = 0;
+  for (;;) {
+    attempt += 1;
+    const res = await fetch(`${base}/api/actions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", cookie, "Idempotency-Key": idemKey(req) },
+      body: JSON.stringify(req),
+    });
+    if (res.status === 429 && attempt <= 4) {
+      const wait = Math.min(300, Math.max(1, Number(res.headers.get("Retry-After") ?? 60)));
+      console.log(`  … سقف نرخ؛ ${wait} ثانیه صبر و ادامه (درخواست ${i + 1}/${requests.length})`);
+      await sleep(wait * 1000);
+      continue;
+    }
+    const body = await res.json().catch(() => null);
+    if (res.ok && body?.ok) {
+      if (res.headers.get("idempotent-replay")) replayed += 1; else ok += 1;
+    } else {
+      sendFailures.push({ n: i + 1, action: req.action, error: body?.error ?? `HTTP ${res.status}` });
+    }
+    break;
+  }
+  if ((i + 1) % chunkSize === 0 && i + 1 < requests.length) {
+    console.log(`  … ${i + 1}/${requests.length} ارسال شد؛ مکث کوتاه`);
+    await sleep(1000);
+  }
+}
+
+// نمونه‌بینی: یک قلم فرآیندی و یک قلم موتوری را از تاریخچه می‌خوانیم
+const verify = [];
+const sampleProcess = requests.find((r) => r.action === "process.set");
+const sampleMotor = requests.find((r) => r.action === "motor.values");
+async function checkHistory(url, needle) {
+  try {
+    const res = await fetch(url, { headers: { cookie } });
+    const text = await res.text();
+    return res.ok && text.includes(needle);
+  } catch {
+    return false;
+  }
+}
+if (sampleProcess) {
+  const p = sampleProcess.payload;
+  const good = await checkHistory(
+    `${base}/api/history?scope=process&tag=${encodeURIComponent(p.tag)}&from=${encodeURIComponent(p.day)}&to=${encodeURIComponent(p.day)}`,
+    String(p.value),
+  );
+  verify.push(`نمونهٔ فرآیندی ${p.tag}=${p.value}: ${good ? "پیدا شد ✓" : "پیدا نشد ✗"}`);
+}
+if (sampleMotor) {
+  const p = sampleMotor.payload;
+  const firstParam = Object.keys(p.values)[0];
+  const good = await checkHistory(
+    `${base}/api/history?scope=motor&tag=${encodeURIComponent(p.tag)}&param=${encodeURIComponent(firstParam)}&from=${encodeURIComponent(p.day)}&to=${encodeURIComponent(p.day)}`,
+    String(p.values[firstParam]),
+  );
+  verify.push(`نمونهٔ موتوری ${p.tag}/${firstParam}=${p.values[firstParam]}: ${good ? "پیدا شد ✓" : "پیدا نشد ✗"}`);
+}
+
+console.log("--- گزارش ---");
+console.log(`موفق: ${ok} | تکراریِ بی‌اثر: ${replayed} | ناموفق: ${sendFailures.length} | سطر خراب: ${failures.length}`);
+for (const f of failures.slice(0, 10)) console.log(`  سطر ${f.lineNo}: ${f.reason}`);
+for (const f of sendFailures.slice(0, 10)) console.log(`  درخواست ${f.n} (${f.action}): ${f.error}`);
+for (const v of verify) console.log(`  ${v}`);
+process.exit(sendFailures.length || failures.length ? 1 : 0);
+
 ##############################################################################
 #  ۸) آزمون‌های خودکار (audit)
 ##############################################################################
 
-── FILE: audit/audit1.mjs  (148 خط) ──
+── FILE: audit/audit1.mjs  (150 خط) ──
 
 const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 const out = [];
@@ -13714,7 +14330,7 @@ const H = (cookie) => ({ cookie });
   log("brute-force throttling (per IP)", firstLock > 0 && firstLock <= 5, `قفل از تلاش ${firstLock} ام فعال شد (${perAttempt.toFixed(1)}ms/attempt) — ادامهٔ حدس بی‌فایده است`);
 
   // legitimate user from another IP is not affected by the attacker's lock
-  const legitOtherIp = await post({ key: "A", pin: "1111" }, { "x-forwarded-for": "10.1.1.1" });
+  const legitOtherIp = await post({ key: "A", pin: "1011" }, { "x-forwarded-for": "10.1.1.1" });
   log("other IP not locked out by attacker", legitOtherIp.status === 200, `status=${legitOtherIp.status}`);
 
   // global shift lock after 20 failures from rotating IPs
@@ -13727,17 +14343,17 @@ const H = (cookie) => ({ cookie });
 
   // پاک‌سازی قفل‌های ایجادشده در تست‌های حدس PIN تا مجموعهٔ بعدی سالم بماند
   {
-    const adm = await login("admin", "9999");
+    const adm = await login("admin", "9009");
     if (adm.cookie) {
       await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie }, body: JSON.stringify({ action: "admin.unlock", payload: { key: "all" } }) });
     }
   }
 
-  const okA = await login("A", "1111");
+  const okA = await login("A", "1011");
   log("valid PIN accepted", okA.status === 200 && okA.cookie.includes("ps_session"), `status=${okA.status}`);
   const A = okA.cookie;
 
-  const admin = await login("admin", "9999");
+  const admin = await login("admin", "9009");
   // تست‌های قبلی ممکن است قفل ورود گذاشته باشند؛ ادمین آن را برمی‌دارد
   await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: admin.cookie }, body: JSON.stringify({ action: "admin.unlock", payload: { key: "all" } }) });
   const ADM = admin.cookie;
@@ -13792,11 +14408,13 @@ const H = (cookie) => ({ cookie });
   const negative = await act(A, "total.set", { value: -5000, day: "1405/08/13" });
   log("negative total rejected", negative.status === 400, `status=${negative.status} ${negative.body?.ok ? "ACCEPTED (bug)" : "error=" + negative.body?.error}`);
   // قفل خوش‌بینانه: متن فعلی را می‌خوانیم تا ثبت با تعارض رد نشود
+  // (یادداشت state همیشه مال «امروز» است، پس روز تست هم امروز است تا تاریخ‌محور نشود)
   const cur = await fetch(`${BASE}/api/state`, { headers: H(A) }).then((r) => r.json());
-  const xss = await act(A, "note.save", { text: '<script>alert(1)</script><img src=x onerror=alert(1)>', day: "1405/08/13", expected: cur.note ?? "" });
+  const noteDay = cur.now?.day ?? "1405/08/13";
+  const xss = await act(A, "note.save", { text: '<script>alert(1)</script><img src=x onerror=alert(1)>', day: noteDay, expected: cur.note ?? "" });
   const stateAfter = await fetch(`${BASE}/api/state`, { headers: H(A) }).then((r) => r.json());
   log("XSS payload stored as inert text", stateAfter.note.includes("<script>") && xss.body?.ok, `stored raw, rendered by React escaping. len=${stateAfter.note.length}`);
-  const longNote = await act(A, "note.save", { text: "ا".repeat(10000), day: "1405/08/13", expected: '<script>alert(1)</script><img src=x onerror=alert(1)>' });
+  const longNote = await act(A, "note.save", { text: "ا".repeat(10000), day: noteDay, expected: '<script>alert(1)</script><img src=x onerror=alert(1)>' });
   const st2 = await fetch(`${BASE}/api/state`, { headers: H(A) }).then((r) => r.json());
   log("over-long note truncated silently", st2.note.length <= 4000, `saved length=${st2.note.length} (silently truncated, no warning)`);
 
@@ -13837,8 +14455,8 @@ const act = async (cookie, action, payload) => {
 const state = (cookie, q = "") => fetch(`${BASE}/api/state${q}`, { headers: { cookie } }).then((r) => r.json());
 
 (async () => {
-  const A = await login("A", "1111");
-  const ADM = await login("admin", "9999");
+  const A = await login("A", "1011");
+  const ADM = await login("admin", "9009");
   await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: ADM.cookie }, body: JSON.stringify({ action: "admin.unlock", payload: { key: "all" } }) });
   const day = "1405/08/14";
 
@@ -13869,7 +14487,7 @@ const state = (cookie, q = "") => fetch(`${BASE}/api/state${q}`, { headers: { co
   // ---- report authorization (object level) ----
   const rep = await fetch(`${BASE}/report/${post3.body?.id ?? 1}`, { headers: { cookie: A } });
   log("report page opens for operator", rep.status === 200, `status=${rep.status}`);
-  const B = await login("B", "2222");
+  const B = await login("B", "2022");
   const repB = await fetch(`${BASE}/report/${post3.body?.id ?? 1}`, { headers: { cookie: B } });
   log("other shift can read report by id", repB.status === 200, `status=${repB.status} — reports are not scoped per shift (by design?)`);
 
@@ -13962,13 +14580,13 @@ async function act(cookie, action, payload = {}, headers = {}) {
   log("health has no secrets", !JSON.stringify(body).includes("secret"));
 }
 
-const admin = await login("admin", "9999");
+const admin = await login("admin", "9009");
 // تست‌های قبلی ممکن است قفل ورود گذاشته باشند؛ ادمین آن را برمی‌دارد
 if (admin.cookie) {
   const unlock = await act(admin.cookie, "admin.unlock", { key: "all" });
   log("admin can clear login locks", unlock.body.ok === true, `cleared=${unlock.body.cleared}`);
 }
-const opA = await login("A", "1111");
+const opA = await login("A", "1011");
 log("admin login", admin.status === 200 && admin.cookie, `status=${admin.status}`);
 log("operator login", opA.status === 200 && opA.cookie);
 
@@ -13984,7 +14602,7 @@ log("operator login", opA.status === 200 && opA.cookie);
   const list = await act(admin.cookie, "session.list", { shifts: true });
   log("session.list", Array.isArray(list.body.sessions) && list.body.sessions.length > 0, `count=${list.body.sessions?.length}`);
   // یک نشست اختصاصی برای شیفت C می‌سازیم تا ابطال تک‌نشست را دقیق بسنجیم
-  const victim = await login("C", "3333");
+  const victim = await login("C", "3033");
   const me = await fetch(`${BASE}/api/auth`, { headers: { cookie: victim.cookie } }).then((r) => r.json());
   const fresh = await act(admin.cookie, "session.list", { shifts: true });
   const target = fresh.body.sessions.find((s) => s.id.startsWith(me.sessionId ?? "-"));
@@ -13997,7 +14615,7 @@ log("operator login", opA.status === 200 && opA.cookie);
     log("session.revoke", false, "نشست هدف پیدا نشد");
   }
 
-  const third = await login("B", "2222");
+  const third = await login("B", "2022");
   const before = await fetch(`${BASE}/api/state`, { headers: { cookie: third.cookie } }).then((r) => r.status);
   const revokeOthers = await act(admin.cookie, "session.revoke_others", { key: "B" });
   const after = await fetch(`${BASE}/api/state`, { headers: { cookie: third.cookie } }).then((r) => r.status);
@@ -14158,7 +14776,7 @@ async function act(cookie, action, payload = {}) {
 
 const state = (cookie) => fetch(`${BASE}/api/state`, { headers: { cookie } }).then((r) => r.json());
 
-const admin = await login("admin", "9999");
+const admin = await login("admin", "9009");
 await act(admin.cookie, "admin.unlock", { key: "all" });
 
 /* ۱) وضعیت پایه و نسخهٔ ایمنی */
@@ -14230,7 +14848,7 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 
 const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
-const ADMIN_PIN = process.env.ADMIN_PIN ?? "9999";
+const ADMIN_PIN = process.env.ADMIN_PIN ?? "9009";
 
 let pass = 0;
 const failures = [];
@@ -14391,7 +15009,7 @@ async function main() {
 
   // شیفت دیگر همچنان فقط با PIN وارد می‌شود (دوعاملی فقط برای ادمین فعال است)
   cookie = "";
-  const other = await login("A", "1111");
+  const other = await login("A", "1011");
   check("شیفت بدون دوعاملی با PIN وارد می‌شود", other.res.status === 200, String(other.res.status));
   await act("admin.unlock", { key: "all" });
 
@@ -14518,6 +15136,262 @@ main().catch((error) => {
   process.exit(1);
 });
 
+── FILE: audit/audit6.mjs  (144 خط) ──
+
+/**
+ * audit6 — آزمون‌های نسخهٔ ۱٫۴٫۱ (روستر محلی، بایند شبکه، نگهبان مسیر، ورود گروهی).
+ * پیش‌نیاز: سرور روی http://127.0.0.1:3000 با PINهای آزمایشی بالا باشد.
+ * تاریخ‌محور نیست: روز جاری از خودِ state خوانده می‌شود.
+ */
+import { execFile } from "node:child_process";
+import { writeFileSync } from "node:fs";
+import { resolveBind, trustProxyEnabled, trustedClientIp, parseIpv4, ipInCidr, parseAllowList, lanAllowed } from "../src/lib/netbind.ts";
+import { validateRoster, loadRosterFile, resolveRoster } from "../src/lib/roster.ts";
+import { detectCloudPath, requireLocalSqlite } from "../src/lib/sqlite-cloud.ts";
+
+const BASE = "http://127.0.0.1:3000";
+const results = [];
+const t = (name, ok, extra = "") => {
+  results.push({ name, ok: !!ok });
+  console.log(`${ok ? "PASS" : "FAIL"} | ${name}${extra ? ` | ${extra}` : ""}`);
+};
+const throws = (fn) => {
+  try {
+    fn();
+    return false;
+  } catch {
+    return true;
+  }
+};
+const headersOf = (obj) => ({ get: (n) => obj[n.toLowerCase()] ?? null });
+
+// ---------- الف) بایند شبکه و IP ----------
+t("bind default is loopback", JSON.stringify(resolveBind("")) === JSON.stringify({ host: "127.0.0.1", mode: "loopback" }));
+t("bind lan", resolveBind("lan").host === "0.0.0.0");
+t("bind custom ip", resolveBind("192.168.1.10").mode === "custom");
+t("bind invalid throws", throws(() => resolveBind("nonsense")));
+t("trust proxy 1/true/unset", trustProxyEnabled({ TRUST_PROXY: "1" }) && trustProxyEnabled({ TRUST_PROXY: "true" }) && !trustProxyEnabled({}));
+t("direct mode ignores headers", trustedClientIp(headersOf({ "x-forwarded-for": "1.2.3.4", "x-real-ip": "5.6.7.8" }), false) === "local");
+t("trusted real-ip wins", trustedClientIp(headersOf({ "x-forwarded-for": "1.2.3.4", "x-real-ip": "9.9.9.9" }), true) === "9.9.9.9");
+t("trusted xff first", trustedClientIp(headersOf({ "x-forwarded-for": "10.9.9.5, 9.9.9.9" }), true) === "10.9.9.5");
+t("trusted without header is direct", trustedClientIp(headersOf({}), true) === "direct");
+t("ipv4 parse ok/bad", parseIpv4("192.168.1.1") === 3232235777 && parseIpv4("999.1.1.1") === null && parseIpv4("::1") === null);
+t("cidr in/out", ipInCidr("192.168.1.50", "192.168.1.0/24") && !ipInCidr("192.168.2.5", "192.168.1.0/24"));
+t("cidr exact and /32", ipInCidr("10.9.9.5", "10.9.9.5") && !ipInCidr("10.9.9.6", "10.9.9.5"));
+t("allowlist multi/invalid", parseAllowList("10.0.0.0/8, 192.168.1.0/24").length === 2 && throws(() => parseAllowList("10.0.0.0/33")));
+t("lan allows local/direct/loopback", lanAllowed("local", "10.0.0.0/8") && lanAllowed("direct", "10.0.0.0/8") && lanAllowed("127.0.0.1", "10.0.0.0/8") && lanAllowed("::1", "10.0.0.0/8"));
+t("lan allow/deny by range", lanAllowed("10.9.9.5", "10.9.9.0/24") && !lanAllowed("192.168.9.9", "10.9.9.0/24"));
+t("empty allowlist allows all", lanAllowed("192.168.9.9", ""));
+
+// ---------- ب) روستر ----------
+const sample = resolveRoster();
+t("sample roster resolves", sample.source === "sample" && sample.roster.length === 4);
+t("sample test PINs", sample.roster.find((e) => e.key === "A")?.pin === "1011" && sample.roster.find((e) => e.key === "admin")?.pin === "9009");
+t("roster without admin rejected", throws(() => validateRoster([{ key: "A", label: "x", role: "operator", pin: "1011", members: ["m"] }], "t")));
+t("roster bad pin rejected", throws(() => validateRoster([{ key: "admin", label: "x", role: "admin", pin: "abc", members: ["m"] }], "t")));
+t("roster dup key rejected", throws(() => validateRoster([
+  { key: "admin", label: "x", role: "admin", pin: "9009", members: ["m"] },
+  { key: "admin", label: "y", role: "admin", pin: "9009", members: ["m"] },
+], "t")));
+t("roster empty members rejected", throws(() => validateRoster([{ key: "admin", label: "x", role: "admin", pin: "9009", members: [] }], "t")));
+writeFileSync("/tmp/audit6-good.json", JSON.stringify({ roster: [
+  { key: "A", label: "ش", role: "operator", pin: "5555", members: ["x"] },
+  { key: "admin", label: "ا", role: "admin", pin: "666666", members: ["y"] },
+] }));
+writeFileSync("/tmp/audit6-bad.json", JSON.stringify({ roster: [{ key: "A" }] }));
+process.env.ROSTER_FILE = "/tmp/audit6-good.json";
+const local = resolveRoster();
+t("local roster wins", local.source === "local" && local.roster[0].pin === "5555");
+process.env.ROSTER_FILE = "/tmp/audit6-bad.json";
+t("invalid local blocks", throws(() => resolveRoster()));
+delete process.env.ROSTER_FILE;
+t("sample file loads", loadRosterFile("data/roster.sample.json").length === 4);
+
+// ---------- ج) نگهبان مسیر ابری ----------
+t("cloud paths detected",
+  detectCloudPath("C:\\Users\\op\\Google Drive\\ps") === "Google Drive" &&
+  detectCloudPath("/home/u/OneDrive - Co/ps") === "OneDrive" &&
+  detectCloudPath("/x/Dropbox/ps") === "Dropbox" &&
+  detectCloudPath("D:\\iCloud Drive\\ps") === "iCloud");
+t("normal paths pass", detectCloudPath(".data/pglite") === null && detectCloudPath("/tmp/sandbox/ps") === null);
+t("cloud path throws", throws(() => requireLocalSqlite("/x/Dropbox/ps")));
+t("cloud override works", (() => { requireLocalSqlite("/x/Dropbox/ps", { PGLITE_ALLOW_CLOUD: "1" }); return true; })());
+
+// ---------- د) HTTP ----------
+async function login(key, pin, extraHeaders = {}) {
+  const r = await fetch(`${BASE}/api/auth`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...extraHeaders },
+    body: JSON.stringify({ key, pin }),
+  });
+  const text = await r.text();
+  return { status: r.status, cookie: (r.headers.get("set-cookie") || "").split(";")[0], text };
+}
+const adm = await login("admin", "9009");
+t("login with test PIN", adm.status === 200 && !!adm.cookie);
+const spoof = await login("admin", "9009", { "X-Forwarded-For": "9.9.9.9", "X-Real-IP": "8.8.8.8" });
+t("spoofed headers ignored", spoof.status === 200 && !spoof.text.includes("9.9.9.9") && !spoof.text.includes("8.8.8.8"));
+const state = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());
+const today = state.now?.day ?? "";
+t("today available", /^\d{4}\/\d{2}\/\d{2}$/.test(today), today);
+const noteText = `audit6-probe-${Date.now()}`;
+const noteRes = await fetch(`${BASE}/api/actions`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", cookie: adm.cookie },
+  body: JSON.stringify({ action: "note.save", payload: { text: noteText, day: today, expected: state.note ?? "" } }),
+});
+t("note.save ok", noteRes.ok);
+const state2 = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());
+t("state note is plain text (no channel object)", typeof state2.note === "string" && state2.note.includes(noteText));
+const procRes = await fetch(`${BASE}/api/actions`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", cookie: adm.cookie },
+  body: JSON.stringify({ action: "process.set", payload: { tag: "PIT-001", value: 3.33, day: today, intervalIndex: 0 } }),
+});
+t("process.set ok", procRes.ok);
+
+// ---------- هـ) اسکریپت‌ها ----------
+const run = (args, env = {}) => new Promise((resolve) => {
+  execFile("node", args, { cwd: process.cwd(), timeout: 90000, env: { ...process.env, ...env } }, (error, stdout, stderr) => {
+    resolve({ code: error ? (error.code ?? 1) : 0, stdout: String(stdout ?? ""), stderr: String(stderr ?? "") });
+  });
+});
+writeFileSync("/tmp/audit6-rows.csv", `day,interval,scope,tag,param,value\n${today},0,process,PIT-001,,3.21\n${today},1,motor,M-01,I1,12.5\n`);
+const dryGood = await run(["scripts/bulk-import.mjs", "--file", "/tmp/audit6-rows.csv", "--dry-run"]);
+t("bulk-import dry-run clean", dryGood.code === 0 && dryGood.stdout.includes("درخواست‌ها: 2"), dryGood.stdout.split("\n")[0] ?? "");
+writeFileSync("/tmp/audit6-rows-bad.csv", "day,interval,scope,tag,param,value\nbad-day,0,process,PIT-001,,1.0\n");
+const dryBad = await run(["scripts/bulk-import.mjs", "--file", "/tmp/audit6-rows-bad.csv", "--dry-run"]);
+t("bulk-import dry-run flags bad row", dryBad.code === 1 && dryBad.stdout.includes("سطر خراب: 1"));
+const noConfirm = await run(["scripts/bulk-import.mjs", "--file", "/tmp/audit6-rows.csv", "--shift", "A", "--pin", "1011"]);
+t("bulk-import refuses without --confirm-test", noConfirm.code === 1 && noConfirm.stderr.includes("--confirm-test"));
+const seederNoConfirm = await run(["audit/bulk.mjs", "--db", "/tmp/audit6-seed"]);
+t("bulk seeder refuses without --confirm-test", seederNoConfirm.code === 1);
+const seederCloud = await run(["audit/bulk.mjs", "--db", "/tmp/Dropbox/seed", "--confirm-test"]);
+t("bulk seeder refuses cloud path", seederCloud.code === 1 && seederCloud.stderr.includes("Dropbox"));
+const serveBogus = await run(["scripts/serve.mjs", "bogus"]);
+t("serve.mjs bogus mode exits 1", serveBogus.code === 1);
+const serveBadBind = await run(["scripts/serve.mjs", "dev"], { BIND: "nonsense" });
+t("serve.mjs invalid BIND exits 1", serveBadBind.code === 1 && serveBadBind.stderr.includes("BIND"));
+const serveCloud = await run(["scripts/serve.mjs", "dev"], { PGLITE_DATA_DIR: "/tmp/OneDrive-x/ps" });
+t("serve.mjs cloud path exits 1", serveCloud.code === 1 && serveCloud.stderr.includes("OneDrive"));
+
+// ---------- جمع‌بندی ----------
+const pass = results.filter((r) => r.ok).length;
+console.log("\n=== summary ===");
+console.log(`total=${results.length} pass=${pass} fail=${results.length - pass}`);
+console.log(JSON.stringify(results.filter((r) => !r.ok).map((r) => r.name)));
+process.exit(results.length - pass ? 1 : 0);
+
+── FILE: audit/bulk.mjs  (108 خط) ──
+
+/**
+ * تولید دادهٔ حجیم آزمایشی با SQL مستقیم — فقط دیتابیس TEST (نسخهٔ ۱٫۴٫۱).
+ *
+ *   node audit/bulk.mjs --db /tmp/bulk-test --days 30 --confirm-test
+ *
+ * این ابزار برای آزمون بار/کارایی است، نه ورود اطلاعات واقعی (برای ورود
+ * واقعی از scripts/bulk-import.mjs که از مسیر API می‌گذرد استفاده کنید).
+ * ایمنی: بدون --confirm-test اجرا نمی‌شود؛ روی دیتابیسِ در حال اجرا
+ * (قفل زنده) و مسیر ابری (گوگل‌درایو/…) اجرا نمی‌شود.
+ */
+import { PGlite } from "@electric-sql/pglite";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+import { addDaysToDay, jalaliNow, operationalDay } from "../src/lib/jalali.ts";
+import { requireLocalSqlite } from "../src/lib/sqlite-cloud.ts";
+
+const args = process.argv.slice(2);
+const flag = (name) => {
+  const i = args.findIndex((a) => a === name);
+  return i >= 0 ? (args[i + 1] ?? "").trim() : "";
+};
+
+const dbPath = flag("--db");
+const days = Math.min(730, Math.max(1, Number(flag("--days") || 30)));
+const end = flag("--to") || operationalDay().day;
+
+if (!dbPath) {
+  console.error("استفاده: node audit/bulk.mjs --db <مسیر دیتابیس TEST> [--days 30] [--to 1405/08/14] --confirm-test");
+  process.exit(1);
+}
+if (!args.includes("--confirm-test")) {
+  console.error("بدون --confirm-test اجرا نمی‌شود (تأیید می‌کنید این دیتابیس آزمایشی است).");
+  process.exit(1);
+}
+try {
+  requireLocalSqlite(dbPath);
+} catch (error) {
+  console.error(error instanceof Error ? error.message : error);
+  process.exit(1);
+}
+
+// هرگز روی دیتابیسی که سامانه‌ای روی آن روشن است ننویس
+const lockFile = path.join(path.resolve(dbPath), ".pumpstation.lock");
+if (existsSync(lockFile)) {
+  try {
+    const info = JSON.parse(readFileSync(lockFile, "utf8"));
+    if (info?.pid) {
+      try {
+        process.kill(info.pid, 0);
+        console.error(`دیتابیس توسط سامانه‌ای با PID ${info.pid} باز است؛ ابتدا آن را ببندید.`);
+        process.exit(1);
+      } catch {
+        /* قفل قدیمی */
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+const allDays = [];
+for (let i = 0; i < days; i += 1) allDays.push(addDaysToDay(end, -i));
+
+// هم‌گام با MOTORS و PROCESS_PARAMS در src/lib/domain.ts
+const tags = ["M-01", "M-02", "M-03", "M-04", "M-05", "M-06", "M-07", "M-08"];
+const params = ["I1", "I2", "I3", ...Array.from({ length: 10 }, (_, i) => `T${i + 1}`), "BRG-P-DE", "BRG-P-NDE", "VIB-P-DE", "VIB-P-NDE", "VIB-M-DE", "VIB-M-NDE"];
+const ptags = ["PIT-001", "PIT-002", "PIT-003", "PIT-004", "FIT-001", "LT-01", "LT-02"];
+
+const db = new PGlite(dbPath);
+try {
+  const now = jalaliNow();
+  const t0 = Date.now();
+  for (let i = 0; i < allDays.length; i += 60) {
+    const slice = allDays.slice(i, i + 60);
+    await db.query(
+      `insert into motor_readings (tag, day, interval_index, param, value, shift_key, recorded_at, updated_at)
+       select t, d, i, p, 50 + random()*20, 'A', $4, $4
+       from unnest($1::text[]) d cross join unnest($2::text[]) t cross join generate_series(0,5) i cross join unnest($3::text[]) p on conflict do nothing`,
+      [slice, tags, params, now],
+    );
+    await db.query(
+      `insert into process_readings (day, interval_index, tag, value, shift_key, recorded_at, updated_at)
+       select d, i, t, 3 + random()*2, 'A', $3, $3
+       from unnest($1::text[]) d cross join generate_series(0,5) i cross join unnest($2::text[]) t on conflict do nothing`,
+      [slice, ptags, now],
+    );
+    console.log(`  … ${Math.min(i + 60, allDays.length)}/${allDays.length} روز (${Date.now() - t0}ms)`);
+  }
+  await db.query(
+    `insert into daily_totals (day, value, shift_key, recorded_at, updated_at)
+     select d, 30000 + random()*5000, 'A', $2, $2 from unnest($1::text[]) d on conflict do nothing`,
+    [allDays, now],
+  );
+  await db.query(
+    `insert into alerts (at, day, tag, param, label, value, severity, message, shift_key, seen_at, acted_at, seen_shift, acted_shift)
+     select $2, d, 'M-01', 'T1', 'دما', 100, 'warning', 'bulk test alert', 'A', '', '', '', '' from unnest($1::text[]) d`,
+    [allDays.slice(0, 2000), now],
+  );
+  await db.query(`insert into activity (at, shift_key, action, detail) select $1,'A','bulk','row' from generate_series(1,5000)`, [now]);
+  const c = await db.query(`select (select count(*) from motor_readings) mr, (select count(*) from process_readings) pr, (select count(*) from daily_totals) dt, (select pg_size_pretty(pg_database_size(current_database()))) size`);
+  console.log("--- گزارش ---");
+  console.log(`روزها: ${allDays.length} تا ${end}`);
+  console.log(c.rows[0]);
+  console.log(`زمان کل: ${Date.now() - t0}ms`);
+} finally {
+  await db.close();
+}
+
 ── FILE: audit/perf.mjs  (27 خط) ──
 
 const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
@@ -14529,7 +15403,7 @@ const time = async (label, fn, n = 3) => {
   console.log(`${label}: min=${ts[0]}ms median=${ts[Math.floor(n / 2)]}ms max=${ts[n - 1]}ms`);
   return ts[Math.floor(n / 2)];
 };
-const A = await login("A", "1111");
+const A = await login("A", "1011");
 const H = { headers: { cookie: A } };
 await time("GET / (SSR + full state)", () => fetch(BASE + "/", H).then((r) => r.text()));
 await time("GET /api/state", () => fetch(BASE + "/api/state", H).then((r) => r.json()));
@@ -14553,7 +15427,7 @@ const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 const login = async (k, p) => (await (await fetch(`${BASE}/api/auth`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: k, pin: p }) })).headers.get("set-cookie") || "").split(";")[0];
 const act = (cookie, action, payload) => fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie }, body: JSON.stringify({ action, payload }) }).then((r) => r.json());
 const state = (cookie, q = "") => fetch(`${BASE}/api/state${q}`, { headers: { cookie } }).then((r) => r.json());
-const A = await login("A", "1111");
+const A = await login("A", "1011");
 const s0 = await state(A);
 console.log("readings before:", s0.counts.readings, "alerts:", s0.counts.alerts);
 const day = "1405/10/01";
@@ -14570,7 +15444,7 @@ console.log("readings after 10 concurrent motor.values:", s2.counts.readings, "d
 #  ۹) استقرار و CI
 ##############################################################################
 
-── FILE: deploy/Caddyfile  (70 خط) ──
+── FILE: deploy/Caddyfile  (73 خط) ──
 
 # ============================================================================
 #  Caddy — پروکسی HTTPS برای «سامانهٔ ایستگاه پمپاژ گلاب»
@@ -14603,6 +15477,8 @@ https://pumpstation.local, https://192.168.1.50 {
 	# پراکسی به اپ Next.js روی همان ماشین
 	reverse_proxy 127.0.0.1:3000 {
 		header_up X-Forwarded-Proto https
+		# بازنویسی کامل (نه الحاق): هدر جعلیِ کلاینت هرگز به اپ نمی‌رسد
+		header_up X-Forwarded-For {remote_host}
 		header_up X-Real-IP {remote_host}
 		header_up X-Request-Id {http.request.uuid}
 		# سرور محلی است؛ انتقال فشرده لازم نیست
@@ -14637,12 +15513,13 @@ https://pumpstation.local, https://192.168.1.50 {
 #	encode zstd gzip
 #	reverse_proxy 127.0.0.1:3000 {
 #		header_up X-Forwarded-Proto https
+#		header_up X-Forwarded-For {remote_host}
 #		header_up X-Real-IP {remote_host}
 #	}
 #	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
 #}
 
-── FILE: deploy/nginx.conf  (80 خط) ──
+── FILE: deploy/nginx.conf  (81 خط) ──
 
 # ============================================================================
 #  nginx — پروکسی HTTPS برای «سامانهٔ ایستگاه پمپاژ گلاب»
@@ -14712,7 +15589,8 @@ http {
             proxy_http_version 1.1;
             proxy_set_header   Host              $host;
             proxy_set_header   X-Real-IP         $remote_addr;
-            proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+            # بازنویسی کامل با IP واقعی (نه $proxy_add_x_forwarded_for که هدر جعلی کلاینت را نگه می‌دارد)
+            proxy_set_header   X-Forwarded-For   $remote_addr;
             proxy_set_header   X-Forwarded-Proto https;   # مهم: کوکی secure و تشخیص HTTPS
             proxy_set_header   X-Forwarded-Host  $host;
             proxy_set_header   Upgrade           $http_upgrade;
@@ -14724,7 +15602,7 @@ http {
     }
 }
 
-── FILE: ../.github/workflows/ci.yml  (73 خط) ──
+── FILE: ../.github/workflows/ci.yml  (74 خط) ──
 
 name: CI
 
@@ -14786,6 +15664,7 @@ jobs:
           node audit/audit3.mjs
           node audit/audit4.mjs
           node audit/audit5.mjs
+          node audit/audit6.mjs
 
       - name: آزمون آینه روی رسانهٔ آزمایشی
         run: |
@@ -14799,6 +15678,3 @@ jobs:
         if: always()
         run: kill "$(cat /tmp/next.pid)" || true
 
-==============================================================================
-پایان کد — سامانهٔ ایستگاه پمپاژ گلاب، نسخهٔ ۱.۴
-==============================================================================
