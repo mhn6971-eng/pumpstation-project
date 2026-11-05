@@ -1,6 +1,6 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.4   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 7347d92
+نسخهٔ برنامه: 1.4.4   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 7b94876
 تاریخ تولید: 2026-11-05   |   117 فایل   |   25,005 خط
 ==============================================================================
 
@@ -165,7 +165,7 @@
     "dev": "node scripts/serve.mjs dev",
     "preview": "node scripts/init-db.mjs && node scripts/serve.mjs dev",
     "preview:lan": "node scripts/init-db.mjs && node scripts/serve.mjs dev --host lan",
-    "stackblitz": "node scripts/init-db.mjs && node scripts/serve.mjs dev --webpack --host lan",
+    "stackblitz": "node scripts/init-db.mjs && node node_modules/next/dist/bin/next dev -H 0.0.0.0 -p 3000 --webpack",
     "db:init": "node scripts/init-db.mjs",
     "db:migrate": "node scripts/init-db.mjs",
     "build": "next build",
