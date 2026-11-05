@@ -39,6 +39,16 @@ export function trustedClientIp(headers: { get: (name: string) => string | null 
   return "direct";
 }
 
+/** میزبان درخواست؛ X-Forwarded-Host فقط پشت پروکسی مورد اعتماد خوانده می‌شود. */
+export function trustedRequestHost(
+  headers: { get: (name: string) => string | null },
+  fallbackHost: string,
+  trustProxy: boolean,
+): string {
+  const forwarded = trustProxy ? headers.get("x-forwarded-host")?.split(",")[0]?.trim() : null;
+  return forwarded || headers.get("host") || fallbackHost;
+}
+
 /** IPv4 متنی به عدد ۳۲بیتی؛ نامعتبر → null. */
 export function parseIpv4(ip: string): number | null {
   const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(ip.trim());

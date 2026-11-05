@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { lanAllowed, trustProxyEnabled, trustedClientIp } from "./lib/netbind";
+import { lanAllowed, trustProxyEnabled, trustedClientIp, trustedRequestHost } from "./lib/netbind";
 
 /** سقف حجم بدنه برای همهٔ مسیرهای API — پیش از خواندن بدنه رد می‌شود */
 const MAX_BODY_BYTES = 256 * 1024;
@@ -30,11 +30,7 @@ function ipOf(request: NextRequest) {
 }
 
 function hostOf(request: NextRequest) {
-  return (
-    request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ||
-    request.headers.get("host") ||
-    request.nextUrl.host
-  );
+  return trustedRequestHost(request.headers, request.nextUrl.host, trustProxyEnabled());
 }
 
 /**

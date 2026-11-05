@@ -31,6 +31,7 @@ import {
 } from "@/db/schema";
 import { jalaliNow, jalaliStamp } from "@/lib/jalali";
 import { getAllSettings, saveSettings } from "@/db/seed";
+import { assertCompleteSnapshot } from "@/lib/backup-validation";
 
 /**
  * نسخهٔ پشتیبان (C3 در گزارش بازبینی)
@@ -99,6 +100,7 @@ function stripBinaries(snapshot: Snapshot): Snapshot {
  * هیچ تغییری اعمال نمی‌شود) و بعد شمارش ردیف‌ها تطبیق داده می‌شود.
  */
 export async function restoreAll(snapshot: Snapshot) {
+  assertCompleteSnapshot(snapshot, Object.keys(TABLES));
   const expected: Record<string, number> = {};
   for (const [name, rows] of Object.entries(snapshot)) if (Array.isArray(rows)) expected[name] = rows.length;
 
@@ -199,6 +201,8 @@ export async function restoreFromFile(file: string, opts: { force?: boolean } = 
     throw new Error("چک‌سام فایل با محتوای آن نمی‌خواند؛ برای جلوگیری از بازیابی مخدوش متوقف شد");
   }
   const payload = JSON.parse(json) as Snapshot;
+  // هر جدول باید حاضر باشد؛ snapshot ناقص نباید دادهٔ فعلی را با دادهٔ قدیمی مخلوط کند.
+  assertCompleteSnapshot(payload, Object.keys(TABLES));
   // نسخهٔ ایمنی از وضعیت فعلی، تا اگر فایل قدیمی بود بتوان برگشت
   await createInternalBackup("نسخه ایمنی قبل از بازیابی از فایل");
   await restoreAll(payload);

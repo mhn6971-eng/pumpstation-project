@@ -191,8 +191,7 @@ export default function AppShell({ initial }: { initial: AppState }) {
         await refresh();
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [postAction, toast],
+    [postAction, refresh, toast],
   );
 
   const call = useCallback(

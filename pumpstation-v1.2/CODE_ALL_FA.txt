@@ -1,7 +1,7 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.4   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 7b94876
-تاریخ تولید: 2026-11-05   |   117 فایل   |   25,005 خط
+نسخهٔ برنامه: 1.4.5   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 385f1ca
+تاریخ تولید: 2026-11-05   |   118 فایل   |   25,055 خط
 ==============================================================================
 
 این فایل، «نسخهٔ خوانا»ی کل کد برنامه است؛ هر فایل کامل و بدون حذف درج شده و
@@ -56,18 +56,19 @@
      src/lib/domain.ts                                    346 خط
      src/lib/state.ts                                     264 خط
      src/lib/reporting.ts                                 207 خط
-     src/lib/backup.ts                                    244 خط
+     src/lib/backup.ts                                    248 خط
+     src/lib/backup-validation.ts                         15 خط
      src/lib/mirror.ts                                    245 خط
      src/lib/archive.ts                                   173 خط
      src/lib/roster.ts                                    94 خط
-     src/lib/netbind.ts                                   95 خط
+     src/lib/netbind.ts                                   105 خط
      src/lib/sqlite-cloud.ts                              41 خط
      src/lib/bot.ts                                       71 خط
      src/lib/zip.ts                                       94 خط
 
   ۴) مسیرهای API (src/app/api)
      src/app/api/auth/route.ts                            147 خط
-     src/app/api/actions/route.ts                         1044 خط
+     src/app/api/actions/route.ts                         1047 خط
      src/app/api/state/route.ts                           48 خط
      src/app/api/history/route.ts                         31 خط
      src/app/api/totals/route.ts                          48 خط
@@ -86,14 +87,14 @@
      src/app/report/[id]/page.tsx                         232 خط
      src/app/totals/page.tsx                              81 خط
      src/app/globals.css                                  2154 خط
-     src/proxy.ts                                         146 خط
+     src/proxy.ts                                         142 خط
      src/instrumentation.ts                               32 خط
      src/instrumentation.node.ts                          31 خط
 
   ۶) رابط کاربری (src/components)
      src/components/context.tsx                           31 خط
      src/components/ui.tsx                                134 خط
-     src/components/AppShell.tsx                          413 خط
+     src/components/AppShell.tsx                          412 خط
      src/components/Login.tsx                             124 خط
      src/components/Dashboard.tsx                         165 خط
      src/components/MotorCard.tsx                         107 خط
@@ -110,7 +111,7 @@
      src/components/AlertsTab.tsx                         49 خط
      src/components/ProblemsTab.tsx                       27 خط
      src/components/TrainingTab.tsx                       102 خط
-     src/components/AdminTab.tsx                          772 خط
+     src/components/AdminTab.tsx                          775 خط
      src/components/TwoFactorPanel.tsx                    284 خط
      src/components/MirrorPanel.tsx                       137 خط
 
@@ -134,7 +135,7 @@
      audit/audit3.mjs                                     199 خط
      audit/audit4.mjs                                     91 خط
      audit/audit5.mjs                                     302 خط
-     audit/audit6.mjs                                     270 خط
+     audit/audit6.mjs                                     290 خط
      audit/bulk.mjs                                       108 خط
      audit/perf.mjs                                       27 خط
      audit/conc.mjs                                       17 خط
@@ -204,7 +205,7 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   },
-  "version": "1.4.4"
+  "version": "1.4.5"
 }
 
 ── FILE: package-lock.json  (8490 خط) ──
@@ -10292,7 +10293,7 @@ ALTER TABLE "megger_tests" ADD COLUMN IF NOT EXISTS "unit" text NOT NULL DEFAULT
 ── FILE: src/lib/version.ts  (4 خط) ──
 
 /** نسخهٔ سامانه — در /api/health و تب ادمین نمایش داده می‌شود */
-export const APP_VERSION = process.env.APP_VERSION ?? "1.4.4";
+export const APP_VERSION = process.env.APP_VERSION ?? "1.4.5";
 export const APP_NAME = "سامانه پایش ایستگاه پمپاژ زیرزمینی — تونل انتقال آب گلاب";
 
 ── FILE: src/lib/errors.ts  (77 خط) ──
@@ -12519,7 +12520,7 @@ export async function buildTrendPayload(
   return { scope, tag, param, compare: false, label: `${tag} — ${meta.label} (${meta.key})`, unit: meta.unit, from, to, grouped: grouped ? "day" : "interval", points: points.slice(0, 5000), truncated: points.length > 5000, stats: trendStats(points) };
 }
 
-── FILE: src/lib/backup.ts  (244 خط) ──
+── FILE: src/lib/backup.ts  (248 خط) ──
 
 import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
@@ -12554,6 +12555,7 @@ import {
 } from "@/db/schema";
 import { jalaliNow, jalaliStamp } from "@/lib/jalali";
 import { getAllSettings, saveSettings } from "@/db/seed";
+import { assertCompleteSnapshot } from "@/lib/backup-validation";
 
 /**
  * نسخهٔ پشتیبان (C3 در گزارش بازبینی)
@@ -12622,6 +12624,7 @@ function stripBinaries(snapshot: Snapshot): Snapshot {
  * هیچ تغییری اعمال نمی‌شود) و بعد شمارش ردیف‌ها تطبیق داده می‌شود.
  */
 export async function restoreAll(snapshot: Snapshot) {
+  assertCompleteSnapshot(snapshot, Object.keys(TABLES));
   const expected: Record<string, number> = {};
   for (const [name, rows] of Object.entries(snapshot)) if (Array.isArray(rows)) expected[name] = rows.length;
 
@@ -12722,6 +12725,8 @@ export async function restoreFromFile(file: string, opts: { force?: boolean } = 
     throw new Error("چک‌سام فایل با محتوای آن نمی‌خواند؛ برای جلوگیری از بازیابی مخدوش متوقف شد");
   }
   const payload = JSON.parse(json) as Snapshot;
+  // هر جدول باید حاضر باشد؛ snapshot ناقص نباید دادهٔ فعلی را با دادهٔ قدیمی مخلوط کند.
+  assertCompleteSnapshot(payload, Object.keys(TABLES));
   // نسخهٔ ایمنی از وضعیت فعلی، تا اگر فایل قدیمی بود بتوان برگشت
   await createInternalBackup("نسخه ایمنی قبل از بازیابی از فایل");
   await restoreAll(payload);
@@ -12763,6 +12768,23 @@ export async function createInternalBackup(label: string) {
     .values({ label: `${label} ${jalaliNow()}`, createdAt: jalaliNow(), sizeBytes, payload })
     .returning({ id: backups.id });
   return { id: row[0]?.id, sizeBytes };
+}
+
+── FILE: src/lib/backup-validation.ts  (15 خط) ──
+
+/** اعتبارسنجی خالصِ کامل‌بودن snapshot پیش از هرگونه تغییر در دیتابیس. */
+export function assertCompleteSnapshot(
+  snapshot: unknown,
+  requiredTables: readonly string[],
+): asserts snapshot is Record<string, unknown[]> {
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
+    throw new Error("فایل بک‌آپ نامعتبر است: ساختار جدول‌ها پیدا نشد");
+  }
+  const data = snapshot as Record<string, unknown>;
+  const missing = requiredTables.filter((name) => !Array.isArray(data[name]));
+  if (missing.length) {
+    throw new Error(`فایل بک‌آپ ناقص است؛ جدول‌های لازم وجود ندارند: ${missing.join("، ")}`);
+  }
 }
 
 ── FILE: src/lib/mirror.ts  (245 خط) ──
@@ -13283,7 +13305,7 @@ export function resolveRoster(): { roster: RosterEntry[]; source: RosterSource; 
   return { roster, source: "sample", path: sample };
 }
 
-── FILE: src/lib/netbind.ts  (95 خط) ──
+── FILE: src/lib/netbind.ts  (105 خط) ──
 
 /**
  * بایند شبکه و اعتماد به پروکسی — نسخهٔ ۱٫۴٫۱.
@@ -13324,6 +13346,16 @@ export function trustedClientIp(headers: { get: (name: string) => string | null 
   // حالت پروکسی ولی بدون هدر: یعنی ضربهٔ مستقیم یا پروکسی بدپیکربندی؛
   // با بایند loopback پشت Caddy فقط حلقه می‌تواند مستقیم بزند (docs/STATION_NETWORK_FA.md).
   return "direct";
+}
+
+/** میزبان درخواست؛ X-Forwarded-Host فقط پشت پروکسی مورد اعتماد خوانده می‌شود. */
+export function trustedRequestHost(
+  headers: { get: (name: string) => string | null },
+  fallbackHost: string,
+  trustProxy: boolean,
+): string {
+  const forwarded = trustProxy ? headers.get("x-forwarded-host")?.split(",")[0]?.trim() : null;
+  return forwarded || headers.get("host") || fallbackHost;
 }
 
 /** IPv4 متنی به عدد ۳۲بیتی؛ نامعتبر → null. */
@@ -13745,7 +13777,7 @@ export async function DELETE(request: Request) {
   }
 }
 
-── FILE: src/app/api/actions/route.ts  (1044 خط) ──
+── FILE: src/app/api/actions/route.ts  (1047 خط) ──
 
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -13801,6 +13833,9 @@ export const dynamic = "force-dynamic";
 type Payload = Record<string, unknown>;
 
 function num(value: unknown): number {
+  if (value === null || value === undefined || (typeof value === "string" && !value.trim())) {
+    throw new Error("مقدار عددی لازم است");
+  }
   const n = typeof value === "string" ? Number(value.replace(/,/g, "").replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))) : Number(value);
   if (!Number.isFinite(n)) throw new Error("مقدار عددی معتبر وارد کنید");
   if (Math.abs(n) > 10_000_000) throw new Error("مقدار خارج از محدودهٔ منطقی است");
@@ -17948,11 +17983,11 @@ textarea.input {
   }
 }
 
-── FILE: src/proxy.ts  (146 خط) ──
+── FILE: src/proxy.ts  (142 خط) ──
 
 import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { lanAllowed, trustProxyEnabled, trustedClientIp } from "./lib/netbind";
+import { lanAllowed, trustProxyEnabled, trustedClientIp, trustedRequestHost } from "./lib/netbind";
 
 /** سقف حجم بدنه برای همهٔ مسیرهای API — پیش از خواندن بدنه رد می‌شود */
 const MAX_BODY_BYTES = 256 * 1024;
@@ -17982,11 +18017,7 @@ function ipOf(request: NextRequest) {
 }
 
 function hostOf(request: NextRequest) {
-  return (
-    request.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ||
-    request.headers.get("host") ||
-    request.nextUrl.host
-  );
+  return trustedRequestHost(request.headers, request.nextUrl.host, trustProxyEnabled());
 }
 
 /**
@@ -18336,7 +18367,7 @@ export function Spinner({ label = "در حال دریافت…" }: { label?: str
   );
 }
 
-── FILE: src/components/AppShell.tsx  (413 خط) ──
+── FILE: src/components/AppShell.tsx  (412 خط) ──
 
 "use client";
 
@@ -18531,8 +18562,7 @@ export default function AppShell({ initial }: { initial: AppState }) {
         await refresh();
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [postAction, toast],
+    [postAction, refresh, toast],
   );
 
   const call = useCallback(
@@ -20965,7 +20995,7 @@ export default function TrainingTab() {
   );
 }
 
-── FILE: src/components/AdminTab.tsx  (772 خط) ──
+── FILE: src/components/AdminTab.tsx  (775 خط) ──
 
 "use client";
 
@@ -21240,6 +21270,9 @@ function SetpointsPanel() {
       </div>
       <div className="note" style={{ marginTop: 10, fontSize: 10.5 }}>
         تغییر بازه سرویس بلافاصله رنگ‌بندی ۰–۵۰٪ سبز، ۵۰–۹۰٪ زرد و ۹۰–۱۰۰٪ قرمز کارت موتورها را تغییر می‌دهد.
+      </div>
+      <div className="note" style={{ marginTop: 8, fontSize: 10.5, color: "var(--warn)" }}>
+        پیش از بهره‌برداری، آستانه‌های جریان و سایر ست‌پوینت‌ها را با پلاک واقعی موتور و تأیید مسئول برق/ابزار دقیق تنظیم کنید؛ مقادیر پیش‌فرض نمونه‌اند.
       </div>
       <div className="panel-title" style={{ fontSize: 14, margin: "16px 0 8px" }}>پارامترهای فرآیندی</div>
       <div className="note" style={{ marginBottom: 8 }}>خارج از این محدوده‌ها فقط هشدار بصری است؛ ثبت بلاک نمی‌شود.</div>
@@ -23353,7 +23386,7 @@ const SECTIONS = [
     "src/lib/dblock.ts", "src/lib/pin.ts", "src/lib/secret.ts", "src/lib/totp.ts",
     "src/lib/auth.ts", "src/lib/sessions.ts", "src/lib/security.ts", "src/lib/audit.ts",
     "src/lib/jalali.ts", "src/lib/domain.ts", "src/lib/state.ts", "src/lib/reporting.ts",
-    "src/lib/backup.ts", "src/lib/mirror.ts", "src/lib/archive.ts",
+    "src/lib/backup.ts", "src/lib/backup-validation.ts", "src/lib/mirror.ts", "src/lib/archive.ts",
     "src/lib/roster.ts", "src/lib/netbind.ts", "src/lib/sqlite-cloud.ts",
     "src/lib/bot.ts", "src/lib/zip.ts",
   ] },
@@ -24564,7 +24597,7 @@ main().catch((error) => {
   process.exit(1);
 });
 
-── FILE: audit/audit6.mjs  (270 خط) ──
+── FILE: audit/audit6.mjs  (290 خط) ──
 
 /**
  * audit6 — آزمون‌های نسخهٔ ۱٫۴٫۱ (روستر محلی، بایند شبکه، نگهبان مسیر، ورود گروهی).
@@ -24573,7 +24606,8 @@ main().catch((error) => {
  */
 import { execFile } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
-import { resolveBind, trustProxyEnabled, trustedClientIp, parseIpv4, ipInCidr, parseAllowList, lanAllowed } from "../src/lib/netbind.ts";
+import { resolveBind, trustProxyEnabled, trustedClientIp, trustedRequestHost, parseIpv4, ipInCidr, parseAllowList, lanAllowed } from "../src/lib/netbind.ts";
+import { assertCompleteSnapshot } from "../src/lib/backup-validation.ts";
 import { validateRoster, loadRosterFile, resolveRoster } from "../src/lib/roster.ts";
 import { detectCloudPath, requireLocalSqlite } from "../src/lib/sqlite-cloud.ts";
 import { createServer } from "node:http";
@@ -24606,6 +24640,8 @@ t("direct mode ignores headers", trustedClientIp(headersOf({ "x-forwarded-for": 
 t("trusted real-ip wins", trustedClientIp(headersOf({ "x-forwarded-for": "1.2.3.4", "x-real-ip": "9.9.9.9" }), true) === "9.9.9.9");
 t("trusted xff first", trustedClientIp(headersOf({ "x-forwarded-for": "10.9.9.5, 9.9.9.9" }), true) === "10.9.9.5");
 t("trusted without header is direct", trustedClientIp(headersOf({}), true) === "direct");
+t("direct host ignores spoofed forwarded-host", trustedRequestHost(headersOf({ "x-forwarded-host": "evil.test", host: "station.test" }), "fallback.test", false) === "station.test");
+t("trusted proxy host uses first forwarded-host", trustedRequestHost(headersOf({ "x-forwarded-host": "station.test, evil.test", host: "internal" }), "fallback.test", true) === "station.test");
 t("ipv4 parse ok/bad", parseIpv4("192.168.1.1") === 3232235777 && parseIpv4("999.1.1.1") === null && parseIpv4("::1") === null);
 t("cidr in/out", ipInCidr("192.168.1.50", "192.168.1.0/24") && !ipInCidr("192.168.2.5", "192.168.1.0/24"));
 t("cidr exact and /32", ipInCidr("10.9.9.5", "10.9.9.5") && !ipInCidr("10.9.9.6", "10.9.9.5"));
@@ -24613,6 +24649,10 @@ t("allowlist multi/invalid", parseAllowList("10.0.0.0/8, 192.168.1.0/24").length
 t("lan allows local/direct/loopback", lanAllowed("local", "10.0.0.0/8") && lanAllowed("direct", "10.0.0.0/8") && lanAllowed("127.0.0.1", "10.0.0.0/8") && lanAllowed("::1", "10.0.0.0/8"));
 t("lan allow/deny by range", lanAllowed("10.9.9.5", "10.9.9.0/24") && !lanAllowed("192.168.9.9", "10.9.9.0/24"));
 t("empty allowlist allows all", lanAllowed("192.168.9.9", ""));
+t("backup snapshot requires every table", (() => {
+  assertCompleteSnapshot({ shifts: [], settings: [], motors: [] }, ["shifts", "settings", "motors"]);
+  return throws(() => assertCompleteSnapshot({ shifts: [], settings: [] }, ["shifts", "settings", "motors"]));
+})());
 
 // ---------- ب) روستر ----------
 const sample = resolveRoster();
@@ -24660,6 +24700,19 @@ async function login(key, pin, extraHeaders = {}) {
 }
 const adm = await login("admin", "9009");
 t("login with test PIN", adm.status === 200 && !!adm.cookie);
+const csrfSpoof = await fetch(`${BASE}/api/actions`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", cookie: adm.cookie, Origin: "http://evil.test", "X-Forwarded-Host": "evil.test" },
+  body: JSON.stringify({ action: "process.set", payload: { tag: "PIT-001", value: 1 } }),
+});
+t("CSRF ignores untrusted forwarded-host", csrfSpoof.status === 403);
+const nullNumber = await fetch(`${BASE}/api/actions`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", cookie: adm.cookie },
+  body: JSON.stringify({ action: "process.set", payload: { tag: "PIT-001", value: null } }),
+});
+const nullNumberBody = await nullNumber.json().catch(() => null);
+t("numeric null rejected", nullNumber.status === 400 && String(nullNumberBody?.error ?? "").includes("مقدار عددی لازم"));
 const spoof = await login("admin", "9009", { "X-Forwarded-For": "9.9.9.9", "X-Real-IP": "8.8.8.8" });
 t("spoofed headers ignored", spoof.status === 200 && !spoof.text.includes("9.9.9.9") && !spoof.text.includes("8.8.8.8"));
 const state = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());

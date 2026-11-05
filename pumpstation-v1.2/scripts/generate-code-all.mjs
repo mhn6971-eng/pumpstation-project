@@ -41,7 +41,7 @@ const SECTIONS = [
     "src/lib/dblock.ts", "src/lib/pin.ts", "src/lib/secret.ts", "src/lib/totp.ts",
     "src/lib/auth.ts", "src/lib/sessions.ts", "src/lib/security.ts", "src/lib/audit.ts",
     "src/lib/jalali.ts", "src/lib/domain.ts", "src/lib/state.ts", "src/lib/reporting.ts",
-    "src/lib/backup.ts", "src/lib/mirror.ts", "src/lib/archive.ts",
+    "src/lib/backup.ts", "src/lib/backup-validation.ts", "src/lib/mirror.ts", "src/lib/archive.ts",
     "src/lib/roster.ts", "src/lib/netbind.ts", "src/lib/sqlite-cloud.ts",
     "src/lib/bot.ts", "src/lib/zip.ts",
   ] },

@@ -272,6 +272,9 @@ function SetpointsPanel() {
       <div className="note" style={{ marginTop: 10, fontSize: 10.5 }}>
         تغییر بازه سرویس بلافاصله رنگ‌بندی ۰–۵۰٪ سبز، ۵۰–۹۰٪ زرد و ۹۰–۱۰۰٪ قرمز کارت موتورها را تغییر می‌دهد.
       </div>
+      <div className="note" style={{ marginTop: 8, fontSize: 10.5, color: "var(--warn)" }}>
+        پیش از بهره‌برداری، آستانه‌های جریان و سایر ست‌پوینت‌ها را با پلاک واقعی موتور و تأیید مسئول برق/ابزار دقیق تنظیم کنید؛ مقادیر پیش‌فرض نمونه‌اند.
+      </div>
       <div className="panel-title" style={{ fontSize: 14, margin: "16px 0 8px" }}>پارامترهای فرآیندی</div>
       <div className="note" style={{ marginBottom: 8 }}>خارج از این محدوده‌ها فقط هشدار بصری است؛ ثبت بلاک نمی‌شود.</div>
       <div className="table-wrap">

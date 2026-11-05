@@ -52,6 +52,9 @@ export const dynamic = "force-dynamic";
 type Payload = Record<string, unknown>;
 
 function num(value: unknown): number {
+  if (value === null || value === undefined || (typeof value === "string" && !value.trim())) {
+    throw new Error("مقدار عددی لازم است");
+  }
   const n = typeof value === "string" ? Number(value.replace(/,/g, "").replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))) : Number(value);
   if (!Number.isFinite(n)) throw new Error("مقدار عددی معتبر وارد کنید");
   if (Math.abs(n) > 10_000_000) throw new Error("مقدار خارج از محدودهٔ منطقی است");

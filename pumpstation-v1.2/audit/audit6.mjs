@@ -5,7 +5,8 @@
  */
 import { execFile } from "node:child_process";
 import { mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
-import { resolveBind, trustProxyEnabled, trustedClientIp, parseIpv4, ipInCidr, parseAllowList, lanAllowed } from "../src/lib/netbind.ts";
+import { resolveBind, trustProxyEnabled, trustedClientIp, trustedRequestHost, parseIpv4, ipInCidr, parseAllowList, lanAllowed } from "../src/lib/netbind.ts";
+import { assertCompleteSnapshot } from "../src/lib/backup-validation.ts";
 import { validateRoster, loadRosterFile, resolveRoster } from "../src/lib/roster.ts";
 import { detectCloudPath, requireLocalSqlite } from "../src/lib/sqlite-cloud.ts";
 import { createServer } from "node:http";
@@ -38,6 +39,8 @@ t("direct mode ignores headers", trustedClientIp(headersOf({ "x-forwarded-for": 
 t("trusted real-ip wins", trustedClientIp(headersOf({ "x-forwarded-for": "1.2.3.4", "x-real-ip": "9.9.9.9" }), true) === "9.9.9.9");
 t("trusted xff first", trustedClientIp(headersOf({ "x-forwarded-for": "10.9.9.5, 9.9.9.9" }), true) === "10.9.9.5");
 t("trusted without header is direct", trustedClientIp(headersOf({}), true) === "direct");
+t("direct host ignores spoofed forwarded-host", trustedRequestHost(headersOf({ "x-forwarded-host": "evil.test", host: "station.test" }), "fallback.test", false) === "station.test");
+t("trusted proxy host uses first forwarded-host", trustedRequestHost(headersOf({ "x-forwarded-host": "station.test, evil.test", host: "internal" }), "fallback.test", true) === "station.test");
 t("ipv4 parse ok/bad", parseIpv4("192.168.1.1") === 3232235777 && parseIpv4("999.1.1.1") === null && parseIpv4("::1") === null);
 t("cidr in/out", ipInCidr("192.168.1.50", "192.168.1.0/24") && !ipInCidr("192.168.2.5", "192.168.1.0/24"));
 t("cidr exact and /32", ipInCidr("10.9.9.5", "10.9.9.5") && !ipInCidr("10.9.9.6", "10.9.9.5"));
@@ -45,6 +48,10 @@ t("allowlist multi/invalid", parseAllowList("10.0.0.0/8, 192.168.1.0/24").length
 t("lan allows local/direct/loopback", lanAllowed("local", "10.0.0.0/8") && lanAllowed("direct", "10.0.0.0/8") && lanAllowed("127.0.0.1", "10.0.0.0/8") && lanAllowed("::1", "10.0.0.0/8"));
 t("lan allow/deny by range", lanAllowed("10.9.9.5", "10.9.9.0/24") && !lanAllowed("192.168.9.9", "10.9.9.0/24"));
 t("empty allowlist allows all", lanAllowed("192.168.9.9", ""));
+t("backup snapshot requires every table", (() => {
+  assertCompleteSnapshot({ shifts: [], settings: [], motors: [] }, ["shifts", "settings", "motors"]);
+  return throws(() => assertCompleteSnapshot({ shifts: [], settings: [] }, ["shifts", "settings", "motors"]));
+})());
 
 // ---------- ب) روستر ----------
 const sample = resolveRoster();
@@ -92,6 +99,19 @@ async function login(key, pin, extraHeaders = {}) {
 }
 const adm = await login("admin", "9009");
 t("login with test PIN", adm.status === 200 && !!adm.cookie);
+const csrfSpoof = await fetch(`${BASE}/api/actions`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", cookie: adm.cookie, Origin: "http://evil.test", "X-Forwarded-Host": "evil.test" },
+  body: JSON.stringify({ action: "process.set", payload: { tag: "PIT-001", value: 1 } }),
+});
+t("CSRF ignores untrusted forwarded-host", csrfSpoof.status === 403);
+const nullNumber = await fetch(`${BASE}/api/actions`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", cookie: adm.cookie },
+  body: JSON.stringify({ action: "process.set", payload: { tag: "PIT-001", value: null } }),
+});
+const nullNumberBody = await nullNumber.json().catch(() => null);
+t("numeric null rejected", nullNumber.status === 400 && String(nullNumberBody?.error ?? "").includes("مقدار عددی لازم"));
 const spoof = await login("admin", "9009", { "X-Forwarded-For": "9.9.9.9", "X-Real-IP": "8.8.8.8" });
 t("spoofed headers ignored", spoof.status === 200 && !spoof.text.includes("9.9.9.9") && !spoof.text.includes("8.8.8.8"));
 const state = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());
