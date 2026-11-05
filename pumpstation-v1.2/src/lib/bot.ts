@@ -17,6 +17,42 @@ export function botSendUrl(provider: BotProvider, token: string): string {
   return provider === "eitaa" ? `${base}/${token}/sendMessage` : `${base}/bot${token}/sendMessage`;
 }
 
+/** سقف حجم فایل ارسالی به بله/ایتا: ۵۰ مگابایت */
+export const BOT_FILE_SIZE_LIMIT = 50 * 1024 * 1024;
+
+export function botSendDocumentUrl(provider: BotProvider, token: string): string {
+  const base = botApiBase(provider);
+  return provider === "eitaa" ? `${base}/${token}/sendDocument` : `${base}/bot${token}/sendDocument`;
+}
+
+/**
+ * ارسال فایل (سند) با multipart/form-data. کپشن اختیاری حداکثر ۹۰۰ نویسه.
+ * فایل بزرگ‌تر از ۵۰ مگابایت با خطای روشن رد می‌شود (بدون تلاش شبکه).
+ */
+export async function sendBotDocument(opts: {
+  provider: BotProvider;
+  token: string;
+  chatId: string;
+  filename: string;
+  data: Uint8Array;
+  caption?: string;
+  timeoutMs?: number;
+}): Promise<void> {
+  if (opts.data.byteLength > BOT_FILE_SIZE_LIMIT) {
+    throw new Error(`حجم فایل (${(opts.data.byteLength / 1048576).toFixed(1)}MB) بیش از سقف ۵۰ مگابایت است؛ ارسال نشد`);
+  }
+  const form = new FormData();
+  form.append("chat_id", opts.chatId);
+  form.append("document", new Blob([opts.data as BlobPart], { type: "application/octet-stream" }), opts.filename);
+  if (opts.caption) form.append("caption", opts.caption.slice(0, 900));
+  const res = await fetch(botSendDocumentUrl(opts.provider, opts.token), {
+    method: "POST",
+    body: form,
+    signal: AbortSignal.timeout(opts.timeoutMs ?? 15000),
+  });
+  if (!res.ok) throw new Error(`پاسخ ${res.status}`);
+}
+
 export async function sendBotText(opts: {
   provider: BotProvider;
   token: string;

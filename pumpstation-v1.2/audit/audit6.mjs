@@ -4,14 +4,15 @@
  * تاریخ‌محور نیست: روز جاری از خودِ state خوانده می‌شود.
  */
 import { execFile } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { resolveBind, trustProxyEnabled, trustedClientIp, parseIpv4, ipInCidr, parseAllowList, lanAllowed } from "../src/lib/netbind.ts";
 import { validateRoster, loadRosterFile, resolveRoster } from "../src/lib/roster.ts";
 import { detectCloudPath, requireLocalSqlite } from "../src/lib/sqlite-cloud.ts";
 import { createServer } from "node:http";
-import { botApiBase, botSendUrl, sendBotText } from "../src/lib/bot.ts";
+import { botApiBase, botSendDocumentUrl, botSendUrl, sendBotDocument, sendBotText } from "../src/lib/bot.ts";
+import { crc32, zipStored } from "../src/lib/zip.ts";
 
-const BASE = "http://127.0.0.1:3000";
+const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 const results = [];
 const t = (name, ok, extra = "") => {
   results.push({ name, ok: !!ok });
@@ -172,6 +173,93 @@ try { await sendBotText({ provider: "bale", token: "T", chatId: "1", text: "x" }
 t("bot http error surfaces", httpErr.includes("پاسخ 500"));
 errSrv.close();
 delete process.env.BALE_API_BASE;
+
+// ---------- ز) بایگانی نامحدود (قانون مقدس) ----------
+const archiveSrc = readFileSync("src/lib/archive.ts", "utf8");
+t("archive default unlimited", archiveSrc.includes("keep: number = Infinity"));
+t("archive guard rejects <500", archiveSrc.includes("keep < 500") && archiveSrc.includes("throw new Error"));
+const routeSrc = readFileSync("src/app/api/actions/route.ts", "utf8");
+t("archive log says pruning disabled", routeSrc.includes("پیرایش نسخه‌های قدیمی غیرفعال است"));
+mkdirSync(".data/backups/archive", { recursive: true });
+for (let i = 0; i < 25; i += 1) writeFileSync(`.data/backups/archive/audit6-dummy-${String(i).padStart(2, "0")}.jsonl.gz`, "dummy");
+const archRes = await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie }, body: JSON.stringify({ action: "data.archive", payload: { years: 10 } }) });
+const archBody = await archRes.json().catch(() => null);
+const dummiesLeft = readdirSync(".data/backups/archive").filter((f) => f.startsWith("audit6-dummy-")).length;
+for (let i = 0; i < 25; i += 1) { try { unlinkSync(`.data/backups/archive/audit6-dummy-${String(i).padStart(2, "0")}.jsonl.gz`); } catch {} }
+t("archive keeps 25 versions", archRes.status === 200 && archBody?.ok === true && dummiesLeft === 25, `left=${dummiesLeft}`);
+
+// ---------- ح) shebang خط اول اسکریپت‌ها ----------
+const SHEBANG_FILES = ["audit/audit5.mjs", "scripts/mirror-backup.mjs", "scripts/pg-init.mjs", "scripts/pg-dump.mjs", "scripts/pg-import-json.mjs"];
+t("shebang first line in 5 scripts", SHEBANG_FILES.every((f) => readFileSync(f, "utf8").split("\n")[0] === "#!/usr/bin/env node"));
+
+// ---------- ط) مهاجرت تازه شامل شش ستون مگر است (معادل 0005_fix_megger) ----------
+const migDir = "/tmp/audit6-mig";
+rmSync(migDir, { recursive: true, force: true });
+const migRun = await run(["scripts/init-db.mjs"], { PGLITE_DATA_DIR: migDir });
+let migCols = false;
+if (migRun.code === 0) {
+  const { PGlite } = await import("@electric-sql/pglite");
+  const probe = new PGlite(migDir);
+  try {
+    await probe.query("SELECT test_voltage_rotor, pi_stator_u, pi_stator_v, pi_stator_w, pi_rotor, unit FROM megger_tests LIMIT 0");
+    migCols = true;
+  } catch {}
+  await probe.close();
+}
+rmSync(migDir, { recursive: true, force: true });
+t("fresh migrate applies 0000..0005", migRun.code === 0 && migRun.stdout.includes("0005_megger_pi"), migRun.stdout.trim().split("\n").pop() ?? "");
+t("fresh migrate has 6 megger columns", migCols);
+
+// ---------- ی) PM: قالب + رکورد + PDF (ایراد ۱) ----------
+const tplRes = await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie }, body: JSON.stringify({ action: "pm.template", payload: { category: "تست", name: "قالب تست audit6", items: ["آیتم ۱", "آیتم ۲"] } }) });
+t("pm.template creates", tplRes.status === 200 && (await tplRes.json().catch(() => null))?.ok === true);
+const opA = await login("A", "1011");
+const recRes = await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: opA.cookie }, body: JSON.stringify({ action: "pm.record", payload: { tag: "M-01", templateName: "قالب تست audit6", results: { "آیتم ۱": "سالم" }, workers: "تست", note: "" } }) });
+const recBody = await recRes.json().catch(() => null);
+t("pm.record creates + report id", recRes.status === 200 && typeof recBody?.id === "number", `report=${recBody?.id}`);
+let pmPdf = false;
+if (typeof recBody?.id === "number") {
+  const pdf = await fetch(`${BASE}/report/${recBody.id}`, { headers: { cookie: opA.cookie } });
+  pmPdf = pdf.status === 200 && (await pdf.text()).includes("PM M-01");
+}
+t("pm report page renders", pmPdf);
+
+// ---------- ک) ارسال فایل به بله + ZIP (بخش ۴) ----------
+t("bot doc bale url", botSendDocumentUrl("bale", "TOK") === "https://tapi.bale.ai/botTOK/sendDocument");
+t("bot doc eitaa url", botSendDocumentUrl("eitaa", "TOK") === "https://eitaayar.ir/api/TOK/sendDocument");
+const docHits = [];
+const docMock = createServer((req, res) => {
+  const chunks = [];
+  req.on("data", (c) => chunks.push(c));
+  req.on("end", () => {
+    docHits.push({ url: req.url, ctype: req.headers["content-type"] ?? "", body: Buffer.concat(chunks) });
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true }));
+  });
+});
+await new Promise((r) => docMock.listen(0, "127.0.0.1", r));
+process.env.BALE_API_BASE = `http://127.0.0.1:${docMock.address().port}`;
+const docBytes = new TextEncoder().encode("<html>گزارش تست</html>");
+await sendBotDocument({ provider: "bale", token: "T9", chatId: "-100", filename: "r.html", data: docBytes, caption: "کپشن" });
+const dh = docHits[0];
+t("bot doc multipart received", docHits.length === 1 && dh.url === "/botT9/sendDocument" && dh.ctype.includes("multipart/form-data") && dh.body.includes('filename="r.html"') && dh.body.includes("-100") && dh.body.includes(docBytes));
+docMock.close();
+let bigErr = "";
+try { await sendBotDocument({ provider: "bale", token: "T", chatId: "1", filename: "big.bin", data: new Uint8Array(51 * 1024 * 1024) }); } catch (e) { bigErr = e instanceof Error ? e.message : ""; }
+t("bot doc 51MB rejected", bigErr.includes("۵۰ مگابایت"));
+const docErrSrv = createServer((req, res) => { res.writeHead(500); res.end("boom"); });
+await new Promise((r) => docErrSrv.listen(0, "127.0.0.1", r));
+process.env.BALE_API_BASE = `http://127.0.0.1:${docErrSrv.address().port}`;
+let docHttpErr = "";
+try { await sendBotDocument({ provider: "bale", token: "T", chatId: "1", filename: "x.bin", data: new Uint8Array([1, 2, 3]) }); } catch (e) { docHttpErr = e instanceof Error ? e.message : ""; }
+t("bot doc http error surfaces", docHttpErr.includes("پاسخ 500"));
+docErrSrv.close();
+delete process.env.BALE_API_BASE;
+t("zip crc32 vector", crc32(new TextEncoder().encode("123456789")) === 0xcbf43926);
+const zipOut = zipStored([{ name: "a.json", data: new TextEncoder().encode('{"a":1}') }, { name: "b.sha256", data: new TextEncoder().encode("deadbeef") }]);
+const zipText = Buffer.from(zipOut).toString("latin1");
+const eocdAt = zipOut.length - 22;
+t("zip stored structure", zipOut[0] === 0x50 && zipOut[1] === 0x4b && zipText.includes("a.json") && zipText.includes("b.sha256") && zipOut[eocdAt] === 0x50 && zipOut[eocdAt + 1] === 0x4b && zipOut[eocdAt + 2] === 0x05 && zipOut[eocdAt + 3] === 0x06 && zipOut[eocdAt + 8] === 2 && zipOut[eocdAt + 10] === 2);
 
 // ---------- جمع‌بندی ----------
 const pass = results.filter((r) => r.ok).length;

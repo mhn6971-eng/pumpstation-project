@@ -43,7 +43,8 @@ import { bodyTooLarge, clearLoginLock, logSecurityEvent, rateLimitedResponse, to
 import { effectiveShift, getProcessThresholds, logActivity, thresholdSeverity } from "@/lib/state";
 import { buildOperationalPayload, buildRegistryPayload, buildTrendPayload, createReport, latestMotorRecords, normalizeRange, REPORT_KINDS } from "@/lib/reporting";
 import { addDaysToDay, isValidJalaliDay, jalaliNow, operationalDay } from "@/lib/jalali";
-import { sendBotText } from "@/lib/bot";
+import { sendBotDocument, sendBotText } from "@/lib/bot";
+import { zipStored } from "@/lib/zip";
 import { CATEGORIES, MOTORS, MOTOR_PARAMS, MOTOR_TYPE_LIMITS, MOTOR_STATE_FA, PROCESS_LIMITS, PROCESS_PARAMS, TOTAL_LIMITS, limitError, type Settings } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
@@ -612,6 +613,77 @@ export async function POST(request: Request) {
         return Response.json({ ok: true, message: "پیام تستی ارسال شد؛ کانال را بررسی کنید" });
       }
 
+      case "channel.sendReport": {
+        requireAdmin();
+        const ch = (await db.select().from(channels).where(eq(channels.key, "daily")).limit(1))[0];
+        if (!ch?.enabled) throw new Error("کانال گزارش روزانه فعال نیست؛ ابتدا آن را فعال و ذخیره کنید");
+        if (!ch.token || !ch.chatId) throw new Error("توکن یا شناسه کانال گزارش روزانه خالی است؛ ابتدا ذخیره کنید");
+        const latest = (await db.select().from(reports).where(eq(reports.kind, "daily")).orderBy(desc(reports.id)).limit(1))[0];
+        if (!latest) throw new Error("هنوز گزارش روزانه‌ای ثبت نشده است؛ چیزی برای ارسال نیست");
+        const fail = async (detail: string) => {
+          await logActivity(shiftKey, "ارسال ناموفق گزارش به کانال", `گزارش ${latest.id} (${latest.day}): ${detail}`);
+        };
+        let html: string;
+        try {
+          const origin = new URL(request.url).origin;
+          const page = await fetch(`${origin}/report/${latest.id}`, { headers: { cookie: request.headers.get("cookie") ?? "" }, signal: AbortSignal.timeout(15000) });
+          if (!page.ok) throw new Error(`پاسخ ${page.status}`);
+          html = await page.text();
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : "خطای شبکه";
+          await fail(detail);
+          throw new Error(`خواندن صفحهٔ گزارش ناموفق بود (${detail})`);
+        }
+        try {
+          await sendBotDocument({
+            provider: ch.provider === "eitaa" ? "eitaa" : "bale",
+            token: ch.token,
+            chatId: ch.chatId,
+            filename: `ایستگاه پمپاژ زیر زمینی — ${latest.day}.html`,
+            data: new TextEncoder().encode(html),
+            caption: `${latest.title}\nروز: ${latest.day}${latest.operators ? `\n${latest.operators}` : ""}`,
+          });
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : "خطای شبکه";
+          await fail(detail);
+          throw new Error(`ارسال به کانال ناموفق بود (${detail})`);
+        }
+        await logActivity(shiftKey, "ارسال گزارش روزانه به کانال", `${latest.title} (${latest.day})`);
+        return Response.json({ ok: true, message: "گزارش روزانه به کانال ارسال شد" });
+      }
+
+      case "channel.sendBackup": {
+        requireAdmin();
+        const ch = (await db.select().from(channels).where(eq(channels.key, "backup")).limit(1))[0];
+        if (!ch?.enabled) throw new Error("کانال بکاپ فعال نیست؛ ابتدا آن را فعال و ذخیره کنید");
+        if (!ch.token || !ch.chatId) throw new Error("توکن یا شناسه کانال بکاپ خالی است؛ ابتدا ذخیره کنید");
+        const snap = await writeFileBackup("channel");
+        const { readFile } = await import("node:fs/promises");
+        const jsonBytes = await readFile(snap.file);
+        const sha = await readFile(`${snap.file}.sha256`, "utf8").catch(() => "");
+        const base = snap.file.replace(/\\/g, "/").split("/").pop() ?? "backup.json";
+        const zip = zipStored([
+          { name: base, data: new Uint8Array(jsonBytes) },
+          { name: `${base}.sha256`, data: new TextEncoder().encode(sha) },
+        ]);
+        try {
+          await sendBotDocument({
+            provider: ch.provider === "eitaa" ? "eitaa" : "bale",
+            token: ch.token,
+            chatId: ch.chatId,
+            filename: base.replace(/\.json$/, "") + ".zip",
+            data: zip,
+            caption: `بکاپ کامل ایستگاه پمپاژ (${snap.rows} ردیف)${sha ? `\nsha256: ${sha.slice(0, 32)}…` : ""}`,
+          });
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : "خطای شبکه";
+          await logActivity(shiftKey, "ارسال ناموفق بکاپ به کانال", detail);
+          throw new Error(`ارسال به کانال ناموفق بود (${detail})`);
+        }
+        await logActivity(shiftKey, "ارسال بکاپ به کانال", `${base} — ${snap.rows} ردیف`);
+        return Response.json({ ok: true, message: "فایل بکاپ (ZIP) به کانال ارسال شد" });
+      }
+
       case "admin.settings": {
         requireAdmin();
         const incoming = (p.settings ?? {}) as Partial<Record<keyof Settings, unknown>>;
@@ -778,7 +850,7 @@ export async function POST(request: Request) {
         const years = Math.min(20, Math.max(1, Number(p.years) || 3));
         const result = await archiveOlderThan(years, shiftKey);
         await pruneArchives().catch(() => 0);
-        await logActivity(shiftKey, "بایگانی داده قدیمی", `قدیمی‌تر از ${years} سال (${result.cutoffDay}) — ${result.motorRows + result.processRows} ردیف`);
+        await logActivity(shiftKey, "بایگانی داده قدیمی", `قدیمی‌تر از ${years} سال (${result.cutoffDay}) — ${result.motorRows + result.processRows} ردیف — پیرایش نسخه‌های قدیمی غیرفعال است (نگه‌داری نامحدود)`);
         return Response.json({ ok: true, ...result, message: `${result.motorRows + result.processRows} ردیف بایگانی شد` });
       }
 

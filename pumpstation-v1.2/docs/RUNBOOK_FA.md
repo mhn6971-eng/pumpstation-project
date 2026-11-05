@@ -31,7 +31,7 @@
 3. در ترمینال همان پوشه:
    ```bash
    npm ci
-   npm run db:init      # ساخت جدول‌ها
+   npm run db:migrate    # ساخت جدول‌ها و اجرای مهاجرت‌ها (نام دیگر: db:init)
    npm start            # یا برای اجرای توسعه: npm run preview
    ```
 4. مرورگر: `http://localhost:3000` — ورود با PIN شیفت یا ادمین.
@@ -204,8 +204,10 @@ node scripts/doctor.mjs --repair   # بازسازی از آخرین بک‌آپ
 
 1. بک‌آپ فایلی بگیرید (دکمهٔ ادمین).
 2. کد جدید را جایگزین کنید (پوشهٔ `.data` و `files` را دست نزنید).
-3. `npm ci` سپس `npm run db:init` سپس `npm run build` و `npm start`.
+3. `npm ci` سپس `npm run db:migrate` سپس `npm run build` و `npm start`.
 4. `npm test` (یا حداقل `npm run test:audit`) را روی نسخهٔ آزمایشی اجرا کنید.
+5. اعتبارسنجی بستهٔ تحویلی (توصیه‌شده): `node scripts/test-fresh-install.mjs` — نصب کامل
+   از صفر در پوشهٔ موقت + اجرای همهٔ تست‌ها؛ خروج ۰ یعنی بسته نصب‌پذیر است.
 
 ---
 

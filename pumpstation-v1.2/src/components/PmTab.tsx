@@ -7,10 +7,11 @@ import { PmForm } from "./RegistryTab";
 
 /** سربرگ نگهداشت دوره‌ای (PM): قالب‌ها + تاریخچهٔ همهٔ تجهیزات */
 export default function PmTab() {
-  const { state, goTab } = useApp();
+  const { state, act, busy, isAdmin, goTab } = useApp();
   const [tag, setTag] = useState("");
   const [eqTag, setEqTag] = useState("");
   const [openTpl, setOpenTpl] = useState<number | null>(null);
+  const [newTpl, setNewTpl] = useState<{ category: string; name: string; items: string } | null>(null);
 
   const tags = Array.from(new Set(state.pmRecords.map((r) => r.tag))).sort();
   const history = state.pmRecords.filter((r) => !tag || r.tag === tag);
@@ -80,7 +81,29 @@ export default function PmTab() {
         )}
       </Panel>
 
-      <Panel title="قالب‌های PM" icon="file" hint="قالب‌ها توسط ادمین در سربرگ ادمین ساخته و ویرایش می‌شوند">
+      <Panel
+        title="قالب‌های PM"
+        icon="file"
+        hint="ساخت قالب تازه فقط ادمین؛ ویرایش قالب‌ها در سربرگ ادمین"
+        actions={isAdmin ? (
+          <button type="button" className="btn tiny primary" onClick={() => setNewTpl({ category: cats[0] ?? "", name: "", items: "" })}>
+            قالب تازه
+          </button>
+        ) : undefined}
+      >
+        {newTpl && (
+          <div className="service-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 8, marginBottom: 10 }}>
+            <div className="form-grid">
+              <div className="field"><label>دسته</label><input className="input" value={newTpl.category} onChange={(e) => setNewTpl({ ...newTpl, category: e.target.value })} placeholder="مثلاً: الکتروموتور" /></div>
+              <div className="field"><label>نام قالب</label><input className="input" value={newTpl.name} onChange={(e) => setNewTpl({ ...newTpl, name: e.target.value })} placeholder="مثلاً: PM ماهانه" /></div>
+            </div>
+            <div className="field"><label>آیتم‌های چک‌لیست (هر خط یک آیتم)</label><textarea className="input" rows={4} value={newTpl.items} onChange={(e) => setNewTpl({ ...newTpl, items: e.target.value })} /></div>
+            <div className="row" style={{ justifyContent: "flex-end" }}>
+              <button type="button" className="btn ghost tiny" onClick={() => setNewTpl(null)}>انصراف</button>
+              <button type="button" className="btn tiny primary" disabled={busy} onClick={async () => { if (await act("pm.template", { category: newTpl.category, name: newTpl.name, items: newTpl.items.split("\n").map((x) => x.trim()).filter(Boolean) })) setNewTpl(null); }}>ذخیره قالب</button>
+            </div>
+          </div>
+        )}
         {state.pmTemplates.length === 0 ? (
           <div className="empty">قالبی تعریف نشده است.</div>
         ) : (

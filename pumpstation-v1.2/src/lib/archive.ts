@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { createWriteStream } from "node:fs";
-import { mkdir, readdir, stat, unlink } from "node:fs/promises";
+import { mkdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { createGzip } from "node:zlib";
 import { asc, inArray, lt, sql } from "drizzle-orm";
@@ -146,16 +146,17 @@ export async function archiveOlderThan(years: number, shiftKey: string): Promise
   return { cutoffDay, motorRows, processRows, file, sha256, bytes };
 }
 
-/** نگه‌داری نسخه‌های آرشیو: حداکثر `keep` فایل آخر */
-export async function pruneArchives(keep = 20) {
-  try {
-    const files = (await readdir(/*turbopackIgnore: true*/ ARCHIVE_DIR)).filter((f) => f.endsWith(".jsonl.gz")).sort();
-    const extra = files.slice(0, Math.max(0, files.length - keep));
-    for (const f of extra) await unlink(/*turbopackIgnore: true*/ path.join(ARCHIVE_DIR, f)).catch(() => {});
-    return extra.length;
-  } catch {
-    return 0;
+/**
+ * نگه‌داری نسخه‌های آرشیو — «قانون مقدس»: هیچ داده‌ای حذف/پیرایش نمی‌شود.
+ * پیش‌فرض نامحدود است و این تابع هیچ فایلی را پاک نمی‌کند (همیشه ۰ برمی‌گرداند).
+ * تابع برای آینده نگه داشته شده، ولی اگر کسی صریحاً سقفی کمتر از ۵۰۰ نسخه
+ * بخواهد، خطای روشن می‌دهد چون نقض قانون مقدس است.
+ */
+export async function pruneArchives(keep: number = Infinity) {
+  if (keep !== Infinity && (!Number.isFinite(keep) || keep < 500)) {
+    throw new Error("پیرایش بایگانی غیرفعال است (قانون مقدس: نگه‌داری نامحدود)؛ حداقل مجاز ۵۰۰ نسخه است");
   }
+  return 0;
 }
 
 /** بایگانی خودکار: سالی یک‌بار در پنجرهٔ کم‌ترافیک (۳ تا ۵ بامداد) */

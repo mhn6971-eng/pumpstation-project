@@ -60,6 +60,9 @@ jobs:
           node audit/audit5.mjs
           node audit/audit6.mjs
 
+      - name: آزمون نصب تازه از بسته
+        run: node scripts/test-fresh-install.mjs
+
       - name: آزمون آینه روی رسانهٔ آزمایشی
         run: |
           MIRROR_DIR=.data/mirror-ci node scripts/mirror-backup.mjs

@@ -447,7 +447,8 @@ function RestoreConfirm({ id, label, createdAt }: { id: number; label: string; c
 
 
 function ChannelsPanel() {
-  const { state, act, busy } = useApp();
+  const { state, act, busy, isAdmin } = useApp();
+  const offline = typeof navigator !== "undefined" && !navigator.onLine;
   const [forms, setForms] = useState<Record<string, { provider: string; chatId: string; token: string; enabled: boolean }>>(
     Object.fromEntries(state.channels.map((c) => [c.key, { provider: c.provider, chatId: c.chatId, token: "", enabled: c.enabled }])),
   );
@@ -475,6 +476,16 @@ function ChannelsPanel() {
           </div>
         );
       })}
+      {isAdmin && (
+        <div className="service-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 8 }}>
+          <div className="spread"><b>ارسال به کانال</b>{offline && <span className="chip danger">آفلاین — ارسال ممکن نیست</span>}</div>
+          <div className="row" style={{ gap: 6 }}>
+            <button type="button" className="btn tiny primary" disabled={busy || offline} title={offline ? "مرورگر آفلاین است" : "ارسال آخرین گزارش روزانه (HTML کامل) به کانال گزارش‌ها"} onClick={() => { if (window.confirm("آخرین گزارش روزانه به کانال گزارش‌ها ارسال شود؟")) void act("channel.sendReport"); }}>📤 ارسال گزارش روزانه به کانال</button>
+            <button type="button" className="btn tiny primary" disabled={busy || offline} title={offline ? "مرورگر آفلاین است" : "گرفتن بکاپ تازه و ارسال ZIP به کانال بکاپ"} onClick={() => { if (window.confirm("یک بکاپ تازه گرفته و به کانال بکاپ ارسال شود؟")) void act("channel.sendBackup"); }}>📤 ارسال بکاپ به کانال</button>
+          </div>
+          <div className="note" style={{ fontSize: 12 }}>گزارش روزانه (HTML کامل با همان سربرگ رسمی) به کانال گزارش‌ها و بکاپ تازه (ZIP شامل رسید sha256) به کانال بکاپ ارسال می‌شود؛ هر ارسال موفق یا ناموفق در دفتر فعالیت ثبت می‌شود.</div>
+        </div>
+      )}
       <div className="note" style={{ fontSize: 12.5 }}>توکن هرگز به مرورگر برگردانده نمی‌شود. تا زمان دریافت توکن از کارفرما، گزارش‌های «ارسال» در صف می‌مانند و با «تلاش مجدد» ارسال می‌شوند.</div>
     </Panel>
   );
