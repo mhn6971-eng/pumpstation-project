@@ -1,7 +1,7 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.5   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 31eafe8
-تاریخ تولید: 2026-11-05   |   118 فایل   |   25,055 خط
+نسخهٔ برنامه: 1.4.5   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: d3b5ebf
+تاریخ تولید: 2026-11-05   |   118 فایل   |   25,074 خط
 ==============================================================================
 
 این فایل، «نسخهٔ خوانا»ی کل کد برنامه است؛ هر فایل کامل و بدون حذف درج شده و
@@ -68,7 +68,7 @@
 
   ۴) مسیرهای API (src/app/api)
      src/app/api/auth/route.ts                            147 خط
-     src/app/api/actions/route.ts                         1047 خط
+     src/app/api/actions/route.ts                         1048 خط
      src/app/api/state/route.ts                           48 خط
      src/app/api/history/route.ts                         31 خط
      src/app/api/totals/route.ts                          48 خط
@@ -86,7 +86,7 @@
      src/app/not-found.tsx                                14 خط
      src/app/report/[id]/page.tsx                         232 خط
      src/app/totals/page.tsx                              81 خط
-     src/app/globals.css                                  2154 خط
+     src/app/globals.css                                  2160 خط
      src/proxy.ts                                         142 خط
      src/instrumentation.ts                               32 خط
      src/instrumentation.node.ts                          31 خط
@@ -135,7 +135,7 @@
      audit/audit3.mjs                                     199 خط
      audit/audit4.mjs                                     91 خط
      audit/audit5.mjs                                     302 خط
-     audit/audit6.mjs                                     290 خط
+     audit/audit6.mjs                                     302 خط
      audit/bulk.mjs                                       108 خط
      audit/perf.mjs                                       27 خط
      audit/conc.mjs                                       17 خط
@@ -13777,7 +13777,7 @@ export async function DELETE(request: Request) {
   }
 }
 
-── FILE: src/app/api/actions/route.ts  (1047 خط) ──
+── FILE: src/app/api/actions/route.ts  (1048 خط) ──
 
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -14204,6 +14204,7 @@ export async function POST(request: Request) {
         const row = (await db.select().from(equipment).where(eq(equipment.id, id)).limit(1))[0];
         if (!row) throw new Error("تجهیز پیدا نشد");
         if (row.isMotor) throw new Error("موتورهای اصلی حذف‌شدنی نیستند");
+        if (row.safetyCritical) throw new Error("تجهیز ایمنی‌حیاتی حذف‌شدنی نیست؛ فقط مشخصات آن را ویرایش کنید");
         await db.update(equipment).set({ deletedAt: jalaliNow(), updatedAt: jalaliNow() }).where(eq(equipment.id, id));
         await logActivity(shiftKey, "حذف (نرم) تجهیز", `${row.tag} — ${str(p.reason, 300)}`);
         return Response.json({ ok: true, message: "تجهیز از فهرست برداشته شد (سابقه حفظ می‌شود)" });
@@ -15827,7 +15828,7 @@ export default async function TotalsPage({ searchParams }: { searchParams: Promi
   );
 }
 
-── FILE: src/app/globals.css  (2154 خط) ──
+── FILE: src/app/globals.css  (2160 خط) ──
 
 @import "tailwindcss";
 
@@ -16363,6 +16364,12 @@ button, input, select, textarea { font-size: inherit; }
   border-color: rgba(21, 128, 61, 0.4);
   color: #166534;
   background: #e7f6ec;
+}
+
+.interval.partial {
+  border-color: rgba(202, 138, 4, 0.5);
+  color: #854d0e;
+  background: #fff7e6;
 }
 
 .interval.missing {
@@ -18975,7 +18982,7 @@ export default function Dashboard() {
             const missing = it.filled === 0;
             const partial = it.filled > 0 && it.filled < it.total;
             return (
-              <button key={it.index} type="button" className={`interval ${it.current ? "current" : ""} ${missing ? "missing" : partial ? "current" : "filled"} ${interval === it.index ? "selected" : ""}`} onClick={() => setInterval(it.index)} title={`${it.filled} از ${it.total} پارامتر ثبت شده`}>
+              <button key={it.index} type="button" className={`interval ${it.current ? "current" : ""} ${missing ? "missing" : partial ? "partial" : "filled"} ${interval === it.index ? "selected" : ""}`} onClick={() => setInterval(it.index)} title={`${it.filled} از ${it.total} پارامتر ثبت شده`}>
                 {it.label}
                 <span className="n">{missing ? "بدون ثبت" : `${it.filled}/${it.total}`}{it.current ? " · جاری" : ""}</span>
               </button>
@@ -24597,7 +24604,7 @@ main().catch((error) => {
   process.exit(1);
 });
 
-── FILE: audit/audit6.mjs  (290 خط) ──
+── FILE: audit/audit6.mjs  (302 خط) ──
 
 /**
  * audit6 — آزمون‌های نسخهٔ ۱٫۴٫۱ (روستر محلی، بایند شبکه، نگهبان مسیر، ورود گروهی).
@@ -24718,6 +24725,18 @@ t("spoofed headers ignored", spoof.status === 200 && !spoof.text.includes("9.9.9
 const state = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());
 const today = state.now?.day ?? "";
 t("today available", /^\d{4}\/\d{2}\/\d{2}$/.test(today), today);
+const criticalEquipment = (state.equipment ?? []).find((row) => row.safetyCritical === true);
+let criticalDeleteBlocked = false;
+if (criticalEquipment) {
+  const r = await fetch(`${BASE}/api/actions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", cookie: adm.cookie },
+    body: JSON.stringify({ action: "equipment.delete", payload: { id: criticalEquipment.id, reason: "audit6" } }),
+  });
+  const b = await r.json().catch(() => null);
+  criticalDeleteBlocked = r.status === 400 && String(b?.error ?? "").includes("ایمنی‌حیاتی");
+}
+t("safety-critical equipment cannot be soft-deleted", criticalDeleteBlocked);
 const noteText = `audit6-probe-${Date.now()}`;
 const noteRes = await fetch(`${BASE}/api/actions`, {
   method: "POST",
