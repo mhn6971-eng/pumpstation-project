@@ -1,7 +1,7 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.6   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 04bc35f
-تاریخ تولید: 2026-11-06   |   121 فایل   |   26,306 خط
+نسخهٔ برنامه: 1.4.6   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 5017fac
+تاریخ تولید: 2026-11-06   |   123 فایل   |   26,621 خط
 ==============================================================================
 
 این فایل، «نسخهٔ خوانا»ی کل کد برنامه است؛ هر فایل کامل و بدون حذف درج شده و
@@ -28,7 +28,7 @@
 
   ۲) دیتابیس و مهاجرت‌ها
      src/db/index.ts                                      101 خط
-     src/db/schema.ts                                     461 خط
+     src/db/schema.ts                                     464 خط
      src/db/seed.ts                                       290 خط
      src/lib/seed-helpers.ts                              12 خط
      data/roster.sample.json                              10 خط
@@ -38,6 +38,7 @@
      drizzle/0003_two_factor.sql                          26 خط
      drizzle/0004_mirror_ts.sql                           4 خط
      drizzle/0005_megger_pi.sql                           12 خط
+     drizzle/0006_alerts_open_unique.sql                  19 خط
 
   ۳) کتابخانهٔ منطق (src/lib)
      src/lib/version.ts                                   9 خط
@@ -47,20 +48,21 @@
      src/lib/dblock.ts                                    65 خط
      src/lib/pin.ts                                       20 خط
      src/lib/secret.ts                                    68 خط
-     src/lib/totp.ts                                      108 خط
+     src/lib/totp.ts                                      115 خط
      src/lib/auth.ts                                      131 خط
      src/lib/sessions.ts                                  215 خط
      src/lib/security.ts                                  173 خط
-     src/lib/audit.ts                                     70 خط
+     src/lib/audit.ts                                     79 خط
      src/lib/jalali.ts                                    221 خط
      src/lib/domain.ts                                    330 خط
      src/lib/state.ts                                     264 خط
-     src/lib/reporting.ts                                 207 خط
-     src/lib/backup.ts                                    304 خط
+     src/lib/motor-history.ts                             15 خط
+     src/lib/reporting.ts                                 217 خط
+     src/lib/backup.ts                                    355 خط
      src/lib/backup-validation.ts                         15 خط
-     src/lib/backup-bundle.ts                             494 خط
+     src/lib/backup-bundle.ts                             520 خط
      src/lib/mirror.ts                                    241 خط
-     src/lib/archive.ts                                   173 خط
+     src/lib/archive.ts                                   193 خط
      src/lib/roster.ts                                    117 خط
      src/lib/netbind.ts                                   110 خط
      src/lib/sqlite-cloud.ts                              41 خط
@@ -69,7 +71,7 @@
 
   ۴) مسیرهای API (src/app/api)
      src/app/api/auth/route.ts                            147 خط
-     src/app/api/actions/route.ts                         1093 خط
+     src/app/api/actions/route.ts                         1120 خط
      src/app/api/state/route.ts                           48 خط
      src/app/api/history/route.ts                         31 خط
      src/app/api/totals/route.ts                          48 خط
@@ -89,7 +91,7 @@
      src/app/report/[id]/page.tsx                         232 خط
      src/app/totals/page.tsx                              81 خط
      src/app/globals.css                                  2160 خط
-     src/proxy.ts                                         142 خط
+     src/proxy.ts                                         144 خط
      src/instrumentation.ts                               32 خط
      src/instrumentation.node.ts                          38 خط
 
@@ -113,7 +115,7 @@
      src/components/AlertsTab.tsx                         49 خط
      src/components/ProblemsTab.tsx                       27 خط
      src/components/TrainingTab.tsx                       102 خط
-     src/components/AdminTab.tsx                          913 خط
+     src/components/AdminTab.tsx                          923 خط
      src/components/TwoFactorPanel.tsx                    284 خط
      src/components/MirrorPanel.tsx                       137 خط
 
@@ -133,12 +135,12 @@
      scripts/stackblitz-warning.mjs                       14 خط
 
   ۸) آزمون‌های خودکار (audit)
-     audit/audit1.mjs                                     161 خط
-     audit/audit2.mjs                                     97 خط
-     audit/audit3.mjs                                     199 خط
+     audit/audit1.mjs                                     174 خط
+     audit/audit2.mjs                                     99 خط
+     audit/audit3.mjs                                     206 خط
      audit/audit4.mjs                                     91 خط
-     audit/audit5.mjs                                     335 خط
-     audit/audit6.mjs                                     428 خط
+     audit/audit5.mjs                                     345 خط
+     audit/audit6.mjs                                     512 خط
      audit/bulk.mjs                                       108 خط
      audit/perf.mjs                                       27 خط
      audit/conc.mjs                                       69 خط
@@ -8715,7 +8717,7 @@ const securityHeaders: { key: string; value: string }[] = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"}`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
@@ -9014,8 +9016,9 @@ export const client = {
 
 export default db;
 
-── FILE: src/db/schema.ts  (461 خط) ──
+── FILE: src/db/schema.ts  (464 خط) ──
 
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   serial,
@@ -9245,7 +9248,9 @@ export const alerts = pgTable("alerts", {
   actedShift: text("acted_shift").default("").notNull(),
   /** زمان برطرف‌شدن خودکار (وقتی مقدار به محدودهٔ مجاز برگشت) — هشدار از داشبورد کنار می‌رود */
   resolvedAt: text("resolved_at").default("").notNull(),
-});
+}, (t) => [
+  uniqueIndex("alerts_open_cell_uq").on(t.tag, t.param, t.day).where(sql`${t.actedAt} = '' AND ${t.resolvedAt} = ''`),
+]);
 
 export const activity = pgTable("activity", {
   id: serial("id").primaryKey(),
@@ -10314,6 +10319,27 @@ ALTER TABLE "megger_tests" ADD COLUMN IF NOT EXISTS "pi_rotor" double precision;
 --> statement-breakpoint
 ALTER TABLE "megger_tests" ADD COLUMN IF NOT EXISTS "unit" text NOT NULL DEFAULT 'MΩ';
 
+── FILE: drizzle/0006_alerts_open_unique.sql  (19 خط) ──
+
+-- 0006: keep alert history, but close duplicate open rows before enforcing uniqueness.
+WITH ranked AS (
+  SELECT id,
+         row_number() OVER (
+           PARTITION BY tag, param, day
+           ORDER BY (seen_at <> '') DESC, id DESC
+         ) AS rn
+  FROM alerts
+  WHERE acted_at = '' AND resolved_at = ''
+)
+UPDATE alerts AS a
+SET resolved_at = COALESCE(NULLIF(a.at, ''), 'deduplicated')
+FROM ranked AS r
+WHERE a.id = r.id AND r.rn > 1;
+--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS alerts_open_cell_uq
+  ON alerts (tag, param, day)
+  WHERE acted_at = '' AND resolved_at = '';
+
 ── FILE: src/lib/version.ts  (9 خط) ──
 
 import { readFileSync } from "node:fs";
@@ -10825,7 +10851,7 @@ export function safeEqual(a: string, b: string) {
   return timingSafeEqual(ba, bb);
 }
 
-── FILE: src/lib/totp.ts  (108 خط) ──
+── FILE: src/lib/totp.ts  (115 خط) ──
 
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
@@ -10901,13 +10927,20 @@ export function totpCode(secret: string, at: number = Date.now(), step = TOTP_ST
 export function verifyTotp(secret: string, code: string, options: { window?: number; at?: number } = {}) {
   const digits = String(code ?? "").replace(/\D/g, "");
   if (digits.length !== TOTP_DIGITS) return false;
-  const window = options.window ?? 1;
-  const at = options.at ?? Date.now();
-  for (let offset = -window; offset <= window; offset += 1) {
-    const candidate = totpCode(secret, at + offset * TOTP_STEP_SECONDS * 1000);
-    const a = Buffer.from(candidate);
-    const b = Buffer.from(digits);
-    if (a.length === b.length && timingSafeEqual(a, b)) return true;
+  try {
+    const decoded = base32Decode(secret);
+    if (decoded.length < 10) return false;
+    const window = Math.max(0, Math.min(10, Math.floor(options.window ?? 1)));
+    const at = options.at ?? Date.now();
+    for (let offset = -window; offset <= window; offset += 1) {
+      const candidate = totpCode(base32Encode(decoded), at + offset * TOTP_STEP_SECONDS * 1000);
+      const a = Buffer.from(candidate);
+      const b = Buffer.from(digits);
+      if (a.length === b.length && timingSafeEqual(a, b)) return true;
+    }
+  } catch {
+    // راز خراب/نامعتبر مثل کد نادرست رد می‌شود؛ جزئیات پیکربندی به کاربر نشت نمی‌کند.
+    return false;
   }
   return false;
 }
@@ -11460,10 +11493,10 @@ export function rateLimitedResponse(retryAfter = 60) {
   );
 }
 
-── FILE: src/lib/audit.ts  (70 خط) ──
+── FILE: src/lib/audit.ts  (79 خط) ──
 
 import { createHash } from "node:crypto";
-import { asc, desc, sql } from "drizzle-orm";
+import { desc, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { activity } from "@/db/schema";
 import { jalaliNow } from "@/lib/jalali";
@@ -11510,12 +11543,21 @@ export type ChainReport = {
 
 /** بررسی زنجیره از قدیم به جدید؛ فقط آخرین `limit` ردیف بررسی می‌شود */
 export async function verifyActivityChain(limit = 5000): Promise<ChainReport> {
-  const rows = await db
+  const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.floor(limit)) : 5000;
+  const descending = await db
     .select({ id: activity.id, at: activity.at, shiftKey: activity.shiftKey, action: activity.action, detail: activity.detail, prevHash: activity.prevHash, hash: activity.hash })
     .from(activity)
-    .orderBy(asc(activity.id));
-  const slice = rows.slice(-limit);
-  let prev = slice.length && slice[0].id === rows[0]?.id ? GENESIS : rows[Math.max(0, rows.length - slice.length - 1)]?.hash || GENESIS;
+    .orderBy(desc(activity.id))
+    .limit(safeLimit);
+  const slice = descending.reverse();
+  const firstId = slice[0]?.id;
+  const predecessor = firstId === undefined ? [] : await db
+    .select({ hash: activity.hash })
+    .from(activity)
+    .where(lt(activity.id, firstId))
+    .orderBy(desc(activity.id))
+    .limit(1);
+  let prev = predecessor[0]?.hash || GENESIS;
   let legacy = 0;
   for (const row of slice) {
     if (!row.hash) {
@@ -12353,14 +12395,32 @@ export async function logActivity(shiftKey: string, action: string, detail = "",
   await appendActivity(d, shiftKey, action, detail);
 }
 
-── FILE: src/lib/reporting.ts  (207 خط) ──
+── FILE: src/lib/motor-history.ts  (15 خط) ──
 
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+export type MotorStateHistoryEntry = {
+  id: number;
+  fromState: string;
+  toState: string;
+  at: string;
+};
+
+/** Reconstruct a motor's state at the end of a day from its ordered transition log. */
+export function motorStateAtDayEnd(currentState: string, entries: MotorStateHistoryEntry[], dayEnd: string): string {
+  const ordered = [...entries].sort((a, b) => a.at.localeCompare(b.at) || a.id - b.id);
+  const before = ordered.filter((entry) => entry.at <= dayEnd).at(-1);
+  if (before) return before.toState;
+  return ordered.find((entry) => entry.at > dayEnd)?.fromState ?? currentState;
+}
+
+── FILE: src/lib/reporting.ts  (217 خط) ──
+
+import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { db } from "@/db";
 import {
   equipment,
   dailyTotals,
   motors,
+  motorStateLogs,
   equipmentReports,
   operatorNotes,
   reports,
@@ -12375,6 +12435,7 @@ import {
 import { getProcessThresholds, thresholdSeverity } from "@/lib/state";
 import { jalaliNow, operationalDay } from "@/lib/jalali";
 import { MOTORS, MOTOR_PARAMS, PROCESS_PARAMS, STATUS_FA } from "@/lib/domain";
+import { motorStateAtDayEnd } from "@/lib/motor-history";
 
 export const REPORT_KINDS: Record<string, string> = {
   trend: "گزارش روند پارامتر",
@@ -12391,7 +12452,7 @@ type ShiftLike = { key: string; label: string; members: string[] };
 
 export async function buildOperationalPayload(kind: "daily" | "aux", day: string, shift: ShiftLike) {
   const op = operationalDay();
-  const [processRows, totalRows, motorRows, equipmentRows, serviceRows, noteRows, thresholds] = await Promise.all([
+  const [processRows, totalRows, motorRows, equipmentRows, serviceRows, noteRows, thresholds, stateLogs] = await Promise.all([
     db.select().from(processReadingsAll).where(eq(processReadingsAll.day, day)),
     db.select().from(dailyTotals).where(eq(dailyTotals.day, day)).limit(1),
     db.select().from(motors),
@@ -12399,9 +12460,17 @@ export async function buildOperationalPayload(kind: "daily" | "aux", day: string
     db.select().from(equipmentReports).orderBy(desc(equipmentReports.id)).limit(200),
     db.select().from(operatorNotes).where(eq(operatorNotes.day, day)).orderBy(desc(operatorNotes.id)).limit(1),
     getProcessThresholds(),
+    db.select({ id: motorStateLogs.id, tag: motorStateLogs.tag, fromState: motorStateLogs.fromState, toState: motorStateLogs.toState, at: motorStateLogs.at })
+      .from(motorStateLogs).where(inArray(motorStateLogs.tag, MOTORS.map((motor) => motor.tag)))
+      .orderBy(asc(motorStateLogs.at), asc(motorStateLogs.id)),
   ]);
   const total = totalRows[0];
   const note = noteRows[0];
+  const dayEnd = `${day} 23:59:59`;
+  const stateLogsByTag = new Map<string, typeof stateLogs>();
+  for (const entry of stateLogs) stateLogsByTag.set(entry.tag, [...(stateLogsByTag.get(entry.tag) ?? []), entry]);
+  const historicalState = (motor: (typeof motorRows)[number]) =>
+    motorStateAtDayEnd(motor.state, stateLogsByTag.get(motor.tag) ?? [], dayEnd);
 
   const process = PROCESS_PARAMS.map((p) => {
     const rows = processRows.filter((r) => r.tag === p.tag).sort((a, b) => b.intervalIndex - a.intervalIndex);
@@ -12426,9 +12495,9 @@ export async function buildOperationalPayload(kind: "daily" | "aux", day: string
     shift: { key: shift.key, label: shift.label, members: shift.members },
     process,
     total: total?.value ?? null,
-    motorsOn: motorRows.filter((m) => m.state === "on").map((m) => m.tag),
-    motorsOff: motorRows.filter((m) => m.state === "off").map((m) => m.tag),
-    motorsService: motorRows.filter((m) => m.state === "service").map((m) => m.tag),
+    motorsOn: motorRows.filter((m) => historicalState(m) === "on").map((m) => m.tag),
+    motorsOff: motorRows.filter((m) => historicalState(m) === "off").map((m) => m.tag),
+    motorsService: motorRows.filter((m) => historicalState(m) === "service").map((m) => m.tag),
     note: note?.text ?? "",
     equipment: equipmentRows
       .filter((e) => e.isAux)
@@ -12562,7 +12631,7 @@ export async function buildTrendPayload(
   return { scope, tag, param, compare: false, label: `${tag} — ${meta.label} (${meta.key})`, unit: meta.unit, from, to, grouped: grouped ? "day" : "interval", points: points.slice(0, 5000), truncated: points.length > 5000, stats: trendStats(points) };
 }
 
-── FILE: src/lib/backup.ts  (304 خط) ──
+── FILE: src/lib/backup.ts  (355 خط) ──
 
 import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
@@ -12601,6 +12670,7 @@ import {
 import { jalaliNow, jalaliStamp } from "@/lib/jalali";
 import { getAllSettings, saveSettings } from "@/db/seed";
 import { assertCompleteSnapshot } from "@/lib/backup-validation";
+import { badRequest } from "@/lib/errors";
 
 /**
  * snapshot JSON جدول‌های عملیاتی (به‌جز جدول‌های آرشیو و فایل‌های جانبی)، روزانه و دستی.
@@ -12677,11 +12747,23 @@ function stripBinaries(snapshot: Snapshot): Snapshot {
 
 /** رازهای بازگشت‌پذیر نباید از دستگاه خارج شوند؛ توکن‌ها محلی دوباره وارد می‌شوند. */
 function stripBackupSecrets(snapshot: Snapshot): Snapshot {
-  const rows = snapshot.channels;
-  if (!Array.isArray(rows)) return snapshot;
   return {
     ...snapshot,
-    channels: rows.map((row) => ({ ...(row as Record<string, unknown>), token: "" })),
+    ...(Array.isArray(snapshot.channels)
+      ? { channels: snapshot.channels.map((row) => ({ ...(row as Record<string, unknown>), token: "" })) }
+      : {}),
+    ...(Array.isArray(snapshot.shifts)
+      ? {
+          shifts: snapshot.shifts.map((row) => ({
+            ...(row as Record<string, unknown>),
+            totpSecret: "",
+            totpPending: "",
+            totpEnabled: false,
+            totpBackupCodes: [],
+            totpEnabledAt: "",
+          })),
+        }
+      : {}),
   };
 }
 
@@ -12722,12 +12804,32 @@ async function restoreTables(snapshot: Snapshot, tables: Record<string, unknown>
   if (mismatched.length) throw new Error(`بازیابی ناقص بود: ${mismatched.join("، ")}`);
 }
 
+async function preserveLocalTotp(snapshot: Snapshot): Promise<Snapshot> {
+  const localShifts = await db.select().from(shifts);
+  const localTotp = new Map(localShifts.map((row) => [row.key, row]));
+  const rows = Array.isArray(snapshot.shifts) ? snapshot.shifts as Record<string, unknown>[] : [];
+  return {
+    ...snapshot,
+    shifts: rows.map((row) => {
+      const local = localTotp.get(String(row.key ?? ""));
+      return {
+        ...row,
+        totpSecret: local?.totpSecret ?? "",
+        totpPending: local?.totpPending ?? "",
+        totpEnabled: local?.totpEnabled ?? false,
+        totpBackupCodes: local?.totpBackupCodes ?? [],
+        totpEnabledAt: local?.totpEnabledAt ?? "",
+      };
+    }),
+  };
+}
+
 export async function restoreAll(snapshot: Snapshot) {
-  return restoreTables(snapshot, TABLES, SERIAL_TABLES);
+  return restoreTables(await preserveLocalTotp(snapshot), TABLES, SERIAL_TABLES);
 }
 
 export async function restoreBundleAll(snapshot: Snapshot) {
-  return restoreTables(snapshot, BUNDLE_TABLES, BUNDLE_SERIAL_TABLES);
+  return restoreTables(await preserveLocalTotp(snapshot), BUNDLE_TABLES, BUNDLE_SERIAL_TABLES);
 }
 
 export function hashPayload(payload: unknown) {
@@ -12770,9 +12872,16 @@ export async function verifyFileBackup(file: string) {
   const json = await readFile(/*turbopackIgnore: true*/ full, "utf8");
   const sha = (await readFile(/*turbopackIgnore: true*/ `${full}.sha256`, "utf8").catch(() => ""))?.trim();
   const actual = createHash("sha256").update(json).digest("hex");
-  const payload = JSON.parse(json) as Snapshot;
+  let payload: Snapshot;
+  try {
+    payload = JSON.parse(json) as Snapshot;
+  } catch {
+    throw badRequest("ساختار JSON بک‌آپ خراب است و قابل بررسی نیست");
+  }
+  const checksumPresent = Boolean(sha);
+  const checksumOk = checksumPresent && sha === actual;
   const counts = Object.fromEntries(Object.entries(payload).map(([k, v]) => [k, Array.isArray(v) ? v.length : 0]));
-  return { file: safe, checksumOk: !sha || sha === actual, counts, bytes: Buffer.byteLength(json, "utf8") };
+  return { file: safe, checksumPresent, checksumOk, counts, bytes: Buffer.byteLength(json, "utf8") };
 }
 
 /** بررسی فایل‌های پیوست کاتالوگ؛ JSON به‌تنهایی PDFهای جدا از دیتابیس را حمل نمی‌کند. */
@@ -12802,12 +12911,21 @@ export async function restoreFromFile(file: string, opts: { force?: boolean } = 
   const json = await readFile(/*turbopackIgnore: true*/ full, "utf8");
   const sha = (await readFile(/*turbopackIgnore: true*/ `${full}.sha256`, "utf8").catch(() => "")).trim();
   const actual = createHash("sha256").update(json).digest("hex");
-  if (sha && sha !== actual && !opts.force) {
-    throw new Error("چک‌سام فایل با محتوای آن نمی‌خواند؛ برای جلوگیری از بازیابی مخدوش متوقف شد");
+  if (!sha && !opts.force) {
+    throw badRequest("فایل .sha256 کنار بک‌آپ پیدا نشد؛ بازیابی متوقف شد. فقط با تأیید صریح و مسئولیت خودتان force را فعال کنید.");
   }
-  const payload = JSON.parse(json) as Snapshot;
+  if (sha && sha !== actual && !opts.force) {
+    throw badRequest("چک‌سام فایل با محتوای آن نمی‌خواند؛ برای جلوگیری از بازیابی مخدوش متوقف شد");
+  }
+  let payload: Snapshot;
+  try {
+    payload = JSON.parse(json) as Snapshot;
+  } catch {
+    throw badRequest("ساختار JSON بک‌آپ خراب است و قابل بازیابی نیست");
+  }
   // هر جدول باید حاضر باشد؛ snapshot ناقص نباید دادهٔ فعلی را با دادهٔ قدیمی مخلوط کند.
   assertCompleteSnapshot(payload, Object.keys(TABLES));
+  const localShifts = await db.select().from(shifts);
   const localChannels = await db.select({ key: channels.key, provider: channels.provider, chatId: channels.chatId, token: channels.token }).from(channels);
   const channelsNeedSetup: string[] = [];
   const restoredChannels: Record<string, unknown>[] = (payload.channels as Record<string, unknown>[]).map((row) => {
@@ -12824,7 +12942,9 @@ export async function restoreFromFile(file: string, opts: { force?: boolean } = 
   const catalogFiles = await inspectCatalogFiles(payload);
   return {
     file: safe,
-    checksumOk: !sha || sha === actual,
+    checksumPresent: Boolean(sha),
+    checksumOk: Boolean(sha) && sha === actual,
+    totpPreserved: localShifts.filter((row) => row.totpEnabled).map((row) => row.key),
     rows: Object.values(payload).reduce((a, b) => a + (Array.isArray(b) ? b.length : 0), 0),
     catalogFiles,
     channelsNeedSetup,
@@ -12885,7 +13005,7 @@ export function assertCompleteSnapshot(
   }
 }
 
-── FILE: src/lib/backup-bundle.ts  (494 خط) ──
+── FILE: src/lib/backup-bundle.ts  (520 خط) ──
 
 import { createHash, randomBytes } from "node:crypto";
 import { constants, createReadStream, createWriteStream } from "node:fs";
@@ -12897,11 +13017,12 @@ import { once } from "node:events";
 import { createInterface } from "node:readline";
 import path from "node:path";
 import { db } from "@/db";
-import { archiveRuns, catalogs, channels } from "@/db/schema";
+import { archiveRuns, catalogs, channels, shifts } from "@/db/schema";
 import { APP_VERSION } from "@/lib/version";
 import { ARCHIVE_DIR } from "@/lib/archive";
 import { BUNDLE_SERIAL_TABLES, BUNDLE_TABLES, BACKUP_DIR, CATALOG_DIR } from "@/lib/backup";
 import { gt, sql } from "drizzle-orm";
+import { badRequest } from "@/lib/errors";
 
 export const BUNDLE_DIR = path.join(BACKUP_DIR, "bundles");
 const FORMAT = "pumpstation-recovery-bundle";
@@ -12980,6 +13101,13 @@ async function addAsset(stage: string, source: string, relativePath: string, ass
 function transformExportRow(table: string, raw: Record<string, unknown>, assets: BundleAsset[], missingCatalogFiles: string[], coldFiles: Set<string>, missingColdFiles: Set<string>) {
   const row = { ...raw };
   if (table === "channels") row.token = "";
+  if (table === "shifts") {
+    row.totpSecret = "";
+    row.totpPending = "";
+    row.totpEnabled = false;
+    row.totpBackupCodes = [];
+    row.totpEnabledAt = "";
+  }
   if (table === "catalogs") {
     const storedPath = String(row.path ?? "");
     if (storedPath) {
@@ -13293,7 +13421,11 @@ async function restoreSnapshotFromBundle(root: string, manifest: BundleManifest,
     }
   }
 
+  let localTotpKeys: string[] = [];
   await db.transaction(async (tx) => {
+    const localShifts = await tx.select().from(shifts);
+    const totpMap = new Map(localShifts.map((item) => [item.key, item]));
+    localTotpKeys = localShifts.filter((item) => item.totpEnabled).map((item) => item.key);
     const localChannels = await tx.select({ key: channels.key, provider: channels.provider, chatId: channels.chatId, token: channels.token }).from(channels);
     const tokenMap = new Map(localChannels.map((item) => [`${item.key}\0${item.provider}\0${item.chatId}`, item.token]));
     for (const item of manifest.tables) {
@@ -13310,6 +13442,14 @@ async function restoreSnapshotFromBundle(root: string, manifest: BundleManifest,
           const key = `${String(row.key ?? "")}\0${String(row.provider ?? "")}\0${String(row.chatId ?? "")}`;
           const token = tokenMap.get(key) ?? "";
           row.token = token;
+        }
+        if (item.table === "shifts") {
+          const local = totpMap.get(String(row.key ?? ""));
+          row.totpSecret = local?.totpSecret ?? "";
+          row.totpPending = local?.totpPending ?? "";
+          row.totpEnabled = local?.totpEnabled ?? false;
+          row.totpBackupCodes = local?.totpBackupCodes ?? [];
+          row.totpEnabledAt = local?.totpEnabledAt ?? "";
         }
         if (item.table === "catalogs" && row.path) {
           const restored = catalogNames.get(safeLeaf(String(row.path)));
@@ -13335,16 +13475,21 @@ async function restoreSnapshotFromBundle(root: string, manifest: BundleManifest,
       if ((row?.count ?? 0) !== item.rows) throw new Error(`تعداد ردیف‌های بازیابی‌شدهٔ ${item.table} نادرست است`);
     }
   });
+  return localTotpKeys;
 }
 
 /** بازیابی بسته؛ یک snapshot ایمنی ساخته و فایل‌های هدف با نام یکتا نصب می‌شوند. */
 export async function restoreBackupBundle(name: string, opts: { allowIncomplete?: boolean } = {}) {
   const verified = await verifyAt(BUNDLE_DIR, name);
-  if (!verified.manifest.complete && !opts.allowIncomplete) throw new Error("بسته PDFهای مفقود دارد؛ برای ادامه باید هشدار را صریحاً تأیید کنید");
+  const hasMissingAssets = verified.manifest.missingCatalogFiles.length > 0 || verified.manifest.missingColdFiles.length > 0;
+  if (hasMissingAssets && !opts.allowIncomplete) {
+    throw badRequest("بسته فایل PDF یا آرشیو سرد مفقود دارد؛ برای ادامه باید هشدار را صریحاً تأیید کنید");
+  }
   const safety = await writeBackupBundle();
-  await restoreSnapshotFromBundle(BUNDLE_DIR, verified.manifest, name);
+  const totpPreserved = await restoreSnapshotFromBundle(BUNDLE_DIR, verified.manifest, name);
   const channelsNeedSetup = (await db.select().from(channels)).filter((row) => row.enabled && !row.token).map((row) => row.key);
   const warnings = [
+    "رازها و کدهای TOTP در بستهٔ خارجی ذخیره نمی‌شوند؛ تنظیمات دستگاه مقصد حفظ شد. در دستگاه تازه، ورود دوعاملی را دوباره تنظیم کنید.",
     ...verified.manifest.missingCatalogFiles.map((file) => `PDF مفقود/ناسازگار: ${file}`),
     ...verified.manifest.missingColdFiles.map((file) => `فایل سرد مفقود: ${file}`),
   ];
@@ -13355,6 +13500,7 @@ export async function restoreBackupBundle(name: string, opts: { allowIncomplete?
     rows: Object.values(verified.counts).reduce((sum, count) => sum + count, 0),
     warnings,
     channelsNeedSetup,
+    totpPreserved,
     safetyBundle: safety.name,
   };
 }
@@ -13624,11 +13770,12 @@ export async function verifyMirrorToken(candidate: string) {
 // برای استفاده در تست‌ها/ابزارها
 export const _internal = { and, gte };
 
-── FILE: src/lib/archive.ts  (173 خط) ──
+── FILE: src/lib/archive.ts  (193 خط) ──
 
 import { createHash } from "node:crypto";
+import { once } from "node:events";
 import { createWriteStream } from "node:fs";
-import { mkdir, stat } from "node:fs/promises";
+import { mkdir, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { createGzip } from "node:zlib";
 import { asc, inArray, lt, sql } from "drizzle-orm";
@@ -13673,16 +13820,23 @@ function writer(file: string) {
     stream.on("error", reject);
     gzip.on("error", reject);
   });
+  // A later archive/write error may happen before close() awaits this promise.
+  void done.catch(() => undefined);
   return {
     async line(obj: unknown) {
       const text = `${JSON.stringify(obj)}\n`;
       hash.update(text);
-      if (!gzip.write(text)) await new Promise<void>((r) => gzip.once("drain", () => r()));
+      if (!gzip.write(text)) await once(gzip, "drain");
     },
     async close() {
-      await new Promise<void>((resolve) => gzip.end(resolve));
+      gzip.end();
       await done;
       return hash.digest("hex");
+    },
+    async abort(error?: Error) {
+      gzip.destroy(error);
+      stream.destroy(error);
+      await done.catch(() => undefined);
     },
   };
 }
@@ -13719,56 +13873,68 @@ export async function archiveOlderThan(years: number, shiftKey: string): Promise
   let motorRows = 0;
   let processRows = 0;
 
-  // موتور
-  for (;;) {
-    const rows = await db
-      .select()
-      .from(motorReadings)
-      .where(lt(motorReadings.day, cutoffDay))
-      .orderBy(asc(motorReadings.id))
-      .limit(CHUNK);
-    if (!rows.length) break;
-    for (const r of rows) await w.line({ t: "motor", ...r });
-    await db.transaction(async (tx) => {
-      await tx.insert(motorReadingsArchive).values(rows.map((r) => ({ ...r, id: r.id }))).onConflictDoNothing();
-      await tx.delete(motorReadings).where(inArray(motorReadings.id, rows.map((r) => r.id)));
-    });
-    motorRows += rows.length;
-    if (rows.length < CHUNK) break;
+  let sha256: string;
+  try {
+    // موتور
+    for (;;) {
+      const rows = await db
+        .select()
+        .from(motorReadings)
+        .where(lt(motorReadings.day, cutoffDay))
+        .orderBy(asc(motorReadings.id))
+        .limit(CHUNK);
+      if (!rows.length) break;
+      for (const r of rows) await w.line({ t: "motor", ...r });
+      await db.transaction(async (tx) => {
+        await tx.insert(motorReadingsArchive).values(rows.map((r) => ({ ...r, id: r.id }))).onConflictDoNothing();
+        await tx.delete(motorReadings).where(inArray(motorReadings.id, rows.map((r) => r.id)));
+      });
+      motorRows += rows.length;
+      if (rows.length < CHUNK) break;
+    }
+
+    // فرایند
+    for (;;) {
+      const rows = await db
+        .select()
+        .from(processReadings)
+        .where(lt(processReadings.day, cutoffDay))
+        .orderBy(asc(processReadings.id))
+        .limit(CHUNK);
+      if (!rows.length) break;
+      for (const r of rows) await w.line({ t: "process", ...r });
+      await db.transaction(async (tx) => {
+        await tx.insert(processReadingsArchive).values(rows.map((r) => ({ ...r, id: r.id }))).onConflictDoNothing();
+        await tx.delete(processReadings).where(inArray(processReadings.id, rows.map((r) => r.id)));
+      });
+      processRows += rows.length;
+      if (rows.length < CHUNK) break;
+    }
+    sha256 = await w.close();
+  } catch (error) {
+    await w.abort(error instanceof Error ? error : undefined);
+    await rm(file, { force: true }).catch(() => undefined);
+    throw error;
   }
 
-  // فرایند
-  for (;;) {
-    const rows = await db
-      .select()
-      .from(processReadings)
-      .where(lt(processReadings.day, cutoffDay))
-      .orderBy(asc(processReadings.id))
-      .limit(CHUNK);
-    if (!rows.length) break;
-    for (const r of rows) await w.line({ t: "process", ...r });
-    await db.transaction(async (tx) => {
-      await tx.insert(processReadingsArchive).values(rows.map((r) => ({ ...r, id: r.id }))).onConflictDoNothing();
-      await tx.delete(processReadings).where(inArray(processReadings.id, rows.map((r) => r.id)));
-    });
-    processRows += rows.length;
-    if (rows.length < CHUNK) break;
-  }
-
-  const sha256 = await w.close();
   const info = await stat(/*turbopackIgnore: true*/ file).catch(() => null);
   const bytes = info?.size ?? 0;
 
-  await db.insert(archiveRuns).values({
-    at: jalaliNow(),
-    shiftKey,
-    cutoffDay,
-    motorRows,
-    processRows,
-    file,
-    sha256,
-    bytes,
-  });
+  try {
+    await db.insert(archiveRuns).values({
+      at: jalaliNow(),
+      shiftKey,
+      cutoffDay,
+      motorRows,
+      processRows,
+      file,
+      sha256,
+      bytes,
+    });
+  } catch (error) {
+    await rm(file, { force: true }).catch(() => undefined);
+    throw error;
+  }
 
   logEvent("info", "archive", "بایگانی انجام شد", { cutoffDay, motorRows, processRows, bytes });
   return { cutoffDay, motorRows, processRows, file, sha256, bytes };
@@ -14405,10 +14571,11 @@ export async function DELETE(request: Request) {
   }
 }
 
-── FILE: src/app/api/actions/route.ts  (1093 خط) ──
+── FILE: src/app/api/actions/route.ts  (1120 خط) ──
 
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
+import { AppError, badRequest, errorResponse, forbidden } from "@/lib/errors";
 import {
   shifts,
   settings,
@@ -14463,11 +14630,11 @@ type Payload = Record<string, unknown>;
 
 function num(value: unknown): number {
   if (value === null || value === undefined || (typeof value === "string" && !value.trim())) {
-    throw new Error("مقدار عددی لازم است");
+    throw badRequest("مقدار عددی لازم است");
   }
   const n = typeof value === "string" ? Number(value.replace(/,/g, "").replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))) : Number(value);
-  if (!Number.isFinite(n)) throw new Error("مقدار عددی معتبر وارد کنید");
-  if (Math.abs(n) > 10_000_000) throw new Error("مقدار خارج از محدودهٔ منطقی است");
+  if (!Number.isFinite(n)) throw badRequest("مقدار عددی معتبر وارد کنید");
+  if (Math.abs(n) > 10_000_000) throw badRequest("مقدار خارج از محدودهٔ منطقی است");
   return n;
 }
 function optNum(value: unknown): number | null {
@@ -14479,7 +14646,7 @@ function str(value: unknown, max = 2000) {
 }
 /** اعتبارسنجی محدودهٔ فیزیکی مقدار (H4) */
 function inRange(value: number, limits: [number, number], label: string, unit: string) {
-  if (value < limits[0] || value > limits[1]) throw limitError(label, unit, limits[0], limits[1]);
+  if (value < limits[0] || value > limits[1]) throw badRequest(limitError(label, unit, limits[0], limits[1]).message);
   return value;
 }
 
@@ -14494,12 +14661,20 @@ async function runTx<T>(fn: (d: Db) => Promise<T>): Promise<T> {
  * و ثبت‌های بعدی همان هشدار را به‌روز می‌کنند، نه ردیف تازه.
  */
 async function addAlert(input: { tag: string; param: string; label: string; value: number; severity: "warning" | "critical"; message: string; day: string; shiftKey: string }, d: Db = db) {
-  const open = (await d.select().from(alerts).where(and(eq(alerts.tag, input.tag), eq(alerts.param, input.param), eq(alerts.day, input.day), eq(alerts.actedAt, ""), eq(alerts.resolvedAt, ""))).limit(1))[0];
-  if (open) {
-    await d.update(alerts).set({ value: input.value, severity: input.severity, message: input.message, at: jalaliNow(), shiftKey: input.shiftKey }).where(eq(alerts.id, open.id));
-    return;
-  }
-  await d.insert(alerts).values({ ...input, at: jalaliNow(), seenAt: "", actedAt: "", seenShift: "", actedShift: "", resolvedAt: "" });
+  await d
+    .insert(alerts)
+    .values({ ...input, at: jalaliNow(), seenAt: "", actedAt: "", seenShift: "", actedShift: "", resolvedAt: "" })
+    .onConflictDoUpdate({
+      target: [alerts.tag, alerts.param, alerts.day],
+      targetWhere: sql`${alerts.actedAt} = '' AND ${alerts.resolvedAt} = ''`,
+      set: {
+        value: sql`excluded.value`,
+        severity: sql`excluded.severity`,
+        message: sql`excluded.message`,
+        at: sql`excluded.at`,
+        shiftKey: sql`excluded.shift_key`,
+      },
+    });
 }
 
 /** وقتی مقدار به محدودهٔ مجاز برگشت، هشدارهای باز همان پارامتر بسته می‌شوند */
@@ -14572,6 +14747,7 @@ export async function POST(request: Request) {
   if (typeof p.day === "string" && p.day.trim()) {
     const candidate = p.day.trim();
     if (!isValidJalaliDay(candidate)) return Response.json({ ok: false, error: "تاریخ شمسی نامعتبر است (مثال درست: ۱۴۰۵/۰۸/۱۳)" }, { status: 400 });
+    if (candidate > op.day) return Response.json({ ok: false, error: "ثبت داده برای تاریخ آینده مجاز نیست" }, { status: 400 });
     day = candidate;
   }
   // بازهٔ نامعتبر بی‌صدا به بازهٔ جاری تبدیل نمی‌شود (M1)
@@ -14584,7 +14760,7 @@ export async function POST(request: Request) {
     interval = candidate;
   }
   const requireAdmin = () => {
-    if (!isAdmin) throw new Error("دسترسی ادمین لازم است");
+    if (!isAdmin) throw forbidden("دسترسی ادمین لازم است");
   };
 
   // ضدثبتِ تکراری: اگر همین درخواست قبلاً با موفقیت انجام شده، همان پاسخ برگردانده می‌شود
@@ -14603,7 +14779,7 @@ export async function POST(request: Request) {
       case "process.set": {
         const tag = str(p.tag, 20);
         const meta = PROCESS_PARAMS.find((x) => x.tag === tag);
-        if (!meta) throw new Error("پارامتر نامعتبر است");
+        if (!meta) throw badRequest("پارامتر نامعتبر است");
         const value = num(p.value);
         inRange(value, PROCESS_LIMITS[tag] ?? [-1e9, 1e9], meta.label, meta.unit);
         const thresholds = await getProcessThresholds();
@@ -14647,7 +14823,7 @@ export async function POST(request: Request) {
 
       case "motor.values": {
         const tag = str(p.tag, 10);
-        if (!MOTORS.some((m) => m.tag === tag)) throw new Error("موتور نامعتبر است");
+        if (!MOTORS.some((m) => m.tag === tag)) throw badRequest("موتور نامعتبر است");
         const values = (p.values ?? {}) as Record<string, unknown>;
         const cfg = await getAllSettings();
         let saved = 0;
@@ -14678,7 +14854,7 @@ export async function POST(request: Request) {
               await resolveAlerts(tag, param, day, d);
             }
           }
-          if (!saved) throw new Error("هیچ مقداری برای ثبت وارد نشده است");
+          if (!saved) throw badRequest("هیچ مقداری برای ثبت وارد نشده است");
           await logActivity(shiftKey, "ثبت داده موتور", `${tag} — ${saved} پارامتر — ${day} بازه ${interval + 1}`, d);
         });
         return Response.json({ ok: true, message: `${saved} مقدار ثبت شد` });
@@ -14687,9 +14863,9 @@ export async function POST(request: Request) {
       case "motor.state": {
         const tag = str(p.tag, 10);
         const state = str(p.state, 10);
-        if (!["on", "off", "service"].includes(state)) throw new Error("وضعیت نامعتبر است");
+        if (!["on", "off", "service"].includes(state)) throw badRequest("وضعیت نامعتبر است");
         const row = (await db.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
-        if (!row) throw new Error("موتور پیدا نشد");
+        if (!row) throw badRequest("موتور پیدا نشد");
         await db.update(motors).set({ state, stateChangedAt: jalaliNow() }).where(eq(motors.tag, tag));
         await db.insert(motorStateLogs).values({ tag, fromState: row.state, toState: state, at: jalaliNow(), shiftKey });
         await db.update(equipment).set({ status: state === "service" ? "in_service" : "ready", updatedAt: jalaliNow() }).where(eq(equipment.tag, tag));
@@ -14706,9 +14882,9 @@ export async function POST(request: Request) {
         const tag = str(p.tag, 10);
         const hours = num(p.hours);
         const row = (await db.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
-        if (!row) throw new Error("موتور پیدا نشد");
-        if (hours < row.totalHours && !isAdmin) throw new Error("شمارنده کمتر از مقدار قبلی است؛ اصلاح فقط توسط ادمین با ذکر دلیل");
-        if (hours < row.totalHours && !str(p.reason)) throw new Error("برای اصلاح شمارنده، دلیل را بنویسید");
+        if (!row) throw badRequest("موتور پیدا نشد");
+        if (hours < row.totalHours && !isAdmin) throw forbidden("شمارنده کمتر از مقدار قبلی است؛ اصلاح فقط توسط ادمین با ذکر دلیل");
+        if (hours < row.totalHours && !str(p.reason)) throw badRequest("برای اصلاح شمارنده، دلیل را بنویسید");
         await audit(shiftKey, "hours", tag, "HMI", row.totalHours, hours);
         await db.update(motors).set({ totalHours: hours }).where(eq(motors.tag, tag));
         await logActivity(shiftKey, hours < row.totalHours ? "اصلاح شمارنده HMI (ادمین)" : "ثبت شمارنده HMI", `${tag}: ${row.totalHours} ← ${hours} ${str(p.reason)}`);
@@ -14718,7 +14894,7 @@ export async function POST(request: Request) {
       case "motor.service": {
         const tag = str(p.tag, 10);
         const row = (await db.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
-        if (!row) throw new Error("موتور پیدا نشد");
+        if (!row) throw badRequest("موتور پیدا نشد");
         const hours = p.hours === undefined || p.hours === "" ? row.totalHours : num(p.hours);
         const workers = "";
         const note = str(p.note, 1500);
@@ -14744,11 +14920,11 @@ export async function POST(request: Request) {
 
       case "motor.megger": {
         const tag = str(p.tag, 10);
-        if (!MOTORS.some((m) => m.tag === tag)) throw new Error("موتور نامعتبر است");
+        if (!MOTORS.some((m) => m.tag === tag)) throw badRequest("موتور نامعتبر است");
         const testVoltage = Number(p.testVoltage ?? 1000);
-        if (![500, 1000, 2500, 5000].includes(testVoltage)) throw new Error("ولتاژ تست نامعتبر است");
+        if (![500, 1000, 2500, 5000].includes(testVoltage)) throw badRequest("ولتاژ تست نامعتبر است");
         const testVoltageRotor = p.testVoltageRotor === undefined || p.testVoltageRotor === "" || p.testVoltageRotor === null ? testVoltage : Number(p.testVoltageRotor);
-        if (![500, 1000, 2500, 5000].includes(testVoltageRotor)) throw new Error("ولتاژ تست رتور نامعتبر است");
+        if (![500, 1000, 2500, 5000].includes(testVoltageRotor)) throw badRequest("ولتاژ تست رتور نامعتبر است");
         const unit = p.unit === "GΩ" ? "GΩ" : "MΩ";
         const rec = {
           tag, day, testVoltage, testVoltageRotor, unit,
@@ -14758,7 +14934,7 @@ export async function POST(request: Request) {
           piStatorU: optNum(p.piStatorU), piStatorV: optNum(p.piStatorV), piStatorW: optNum(p.piStatorW), piRotor: optNum(p.piRotor),
           workers: "", note: str(p.note, 1000), at: jalaliNow(), shiftKey,
         };
-        if ([rec.statorU, rec.statorV, rec.statorW, rec.rotorU, rec.rotorV, rec.rotorW, rec.windingTemp, rec.pi, rec.piStatorU, rec.piStatorV, rec.piStatorW, rec.piRotor].every((v) => v === null)) throw new Error("حداقل یک مقدار تست را وارد کنید");
+        if ([rec.statorU, rec.statorV, rec.statorW, rec.rotorU, rec.rotorV, rec.rotorW, rec.windingTemp, rec.pi, rec.piStatorU, rec.piStatorV, rec.piStatorW, rec.piRotor].every((v) => v === null)) throw badRequest("حداقل یک مقدار تست را وارد کنید");
         const id = (await db.insert(meggerTests).values(rec).returning({ id: meggerTests.id }))[0].id;
         const rid = await createReport({ kind: "megger", day, shift, title: `تست مگر ${tag} — ${day}`, payload: { ...rec, meggerId: id, shiftLabel: `${shift.label} — ${shift.members.join(" و ")}`, generatedAt: jalaliNow() } });
         await logActivity(shiftKey, "ثبت تست مگر", `${tag} — ${testVoltage}/${testVoltageRotor} V`);
@@ -14767,7 +14943,7 @@ export async function POST(request: Request) {
 
       case "motor.oil": {
         const tag = str(p.tag, 10);
-        if (!MOTORS.some((m) => m.tag === tag)) throw new Error("موتور نامعتبر است");
+        if (!MOTORS.some((m) => m.tag === tag)) throw badRequest("موتور نامعتبر است");
         const rec = { tag, day, hours: optNum(p.hours) ?? 0, note: str(p.note, 1000), at: jalaliNow(), shiftKey };
         await db.insert(oilChanges).values(rec);
         const rid = await createReport({ kind: "oil", day, shift, title: `تعویض روغن ${tag} — ${day}`, payload: { ...rec, generatedAt: jalaliNow() } });
@@ -14779,10 +14955,10 @@ export async function POST(request: Request) {
         const tag = str(p.tag, 40);
         const status = str(p.status, 20);
         const reason = str(p.reason, 1500);
-        if (!["ready", "in_service"].includes(status)) throw new Error("وضعیت نامعتبر است");
+        if (!["ready", "in_service"].includes(status)) throw badRequest("وضعیت نامعتبر است");
         const row = (await db.select().from(equipment).where(eq(equipment.tag, tag)).limit(1))[0];
-        if (!row) throw new Error("تجهیز پیدا نشد");
-        if (status === "in_service" && reason.length < 3) throw new Error("برای «در حال سرویس» توضیحات/دلیل سرویس را بنویسید");
+        if (!row) throw badRequest("تجهیز پیدا نشد");
+        if (status === "in_service" && reason.length < 3) throw badRequest("برای «در حال سرویس» توضیحات/دلیل سرویس را بنویسید");
         await runTx(async (d) => {
           await d.update(equipment).set({ status, description: reason || row.description, descriptionAt: reason ? jalaliNow() : row.descriptionAt, descriptionBy: reason ? shift.label : row.descriptionBy, updatedAt: jalaliNow() }).where(eq(equipment.tag, tag));
           await d.insert(equipmentReports).values({ tag, kind: status === "in_service" ? "service" : "ready", reason: reason || "بازگشت به آماده به کار", operator: shift.label, shiftKey, at: jalaliNow() });
@@ -14797,9 +14973,9 @@ export async function POST(request: Request) {
       case "equipment.report": {
         const tag = str(p.tag, 40);
         const reason = str(p.reason, 1500);
-        if (reason.length < 3) throw new Error("متن گزارش سرویس را بنویسید");
+        if (reason.length < 3) throw badRequest("متن گزارش سرویس را بنویسید");
         const row = (await db.select().from(equipment).where(eq(equipment.tag, tag)).limit(1))[0];
-        if (!row) throw new Error("تجهیز پیدا نشد");
+        if (!row) throw badRequest("تجهیز پیدا نشد");
         await db.insert(equipmentReports).values({ tag, kind: "report", reason, operator: shift.label, shiftKey, at: jalaliNow() });
         await db.update(equipment).set({ description: reason, descriptionAt: jalaliNow(), descriptionBy: shift.label, updatedAt: jalaliNow() }).where(eq(equipment.tag, tag));
         await logActivity(shiftKey, "گزارش سرویس دستی", `${tag} — ${reason}`);
@@ -14810,20 +14986,20 @@ export async function POST(request: Request) {
         requireAdmin();
         const id = p.id ? Number(p.id) : null;
         const tag = str(p.tag, 40).toUpperCase();
-        if (tag.length < 2) throw new Error("تگ تجهیز را وارد کنید");
+        if (tag.length < 2) throw badRequest("تگ تجهیز را وارد کنید");
         const category = str(p.category, 100);
-        if (!CATEGORIES.includes(category) && !category) throw new Error("دسته را انتخاب کنید");
+        if (!CATEGORIES.includes(category) && !category) throw badRequest("دسته را انتخاب کنید");
         const data = {
           tag, name: str(p.name, 200) || tag, category, spec: str(p.spec, 400), plate: str(p.plate, 400), partNumbers: str(p.partNumbers, 600), location: str(p.location, 200),
           isAux: p.isAux === true, safetyCritical: p.safetyCritical === true, updatedAt: jalaliNow(),
         };
         const dup = (await db.select().from(equipment).where(eq(equipment.tag, tag)).limit(1))[0];
         if (id) {
-          if (dup && dup.id !== id) throw new Error("این تگ برای تجهیز دیگری ثبت شده است");
+          if (dup && dup.id !== id) throw badRequest("این تگ برای تجهیز دیگری ثبت شده است");
           await db.update(equipment).set(data).where(eq(equipment.id, id));
           await logActivity(shiftKey, "ویرایش رکورد تجهیز", tag);
         } else {
-          if (dup) throw new Error("این تگ قبلاً ثبت شده است");
+          if (dup) throw badRequest("این تگ قبلاً ثبت شده است");
           await db.insert(equipment).values({ ...data, status: "ready", description: "", descriptionAt: "", descriptionBy: "", deletedAt: "" });
           await logActivity(shiftKey, "افزودن رکورد تجهیز", `${tag} — ${category}`);
         }
@@ -14834,9 +15010,9 @@ export async function POST(request: Request) {
         requireAdmin();
         const id = Number(p.id);
         const row = (await db.select().from(equipment).where(eq(equipment.id, id)).limit(1))[0];
-        if (!row) throw new Error("تجهیز پیدا نشد");
-        if (row.isMotor) throw new Error("موتورهای اصلی حذف‌شدنی نیستند");
-        if (row.safetyCritical) throw new Error("تجهیز ایمنی‌حیاتی حذف‌شدنی نیست؛ فقط مشخصات آن را ویرایش کنید");
+        if (!row) throw badRequest("تجهیز پیدا نشد");
+        if (row.isMotor) throw badRequest("موتورهای اصلی حذف‌شدنی نیستند");
+        if (row.safetyCritical) throw badRequest("تجهیز ایمنی‌حیاتی حذف‌شدنی نیست؛ فقط مشخصات آن را ویرایش کنید");
         await db.update(equipment).set({ deletedAt: jalaliNow(), updatedAt: jalaliNow() }).where(eq(equipment.id, id));
         await logActivity(shiftKey, "حذف (نرم) تجهیز", `${row.tag} — ${str(p.reason, 300)}`);
         return Response.json({ ok: true, message: "تجهیز از فهرست برداشته شد (سابقه حفظ می‌شود)" });
@@ -14846,7 +15022,7 @@ export async function POST(request: Request) {
         requireAdmin();
         const id = Number(p.id);
         const row = (await db.select().from(catalogs).where(eq(catalogs.id, id)).limit(1))[0];
-        if (!row) throw new Error("کاتالوگ پیدا نشد");
+        if (!row) throw badRequest("کاتالوگ پیدا نشد");
         // فایل به «سطل بازیافت» منتقل می‌شود، نه پاک (M5 — قاعدهٔ «هیچ حذف فیزیکی»)
         if (row.path) {
           try {
@@ -14870,7 +15046,7 @@ export async function POST(request: Request) {
         const category = str(p.category, 100);
         const name = str(p.name, 200);
         const items = Array.isArray(p.items) ? p.items.map((x) => str(x, 200)).filter(Boolean) : [];
-        if (!name || !items.length) throw new Error("نام قالب و حداقل یک آیتم لازم است");
+        if (!name || !items.length) throw badRequest("نام قالب و حداقل یک آیتم لازم است");
         if (id) await db.update(pmTemplates).set({ category, name, items, updatedAt: jalaliNow() }).where(eq(pmTemplates.id, id));
         else await db.insert(pmTemplates).values({ category, name, items, updatedAt: jalaliNow() });
         await logActivity(shiftKey, "ویرایش قالب PM", `${category} — ${name}`);
@@ -14880,11 +15056,11 @@ export async function POST(request: Request) {
       case "pm.record": {
         const tag = str(p.tag, 40);
         const row = (await db.select().from(equipment).where(eq(equipment.tag, tag)).limit(1))[0];
-        if (!row) throw new Error("تجهیز پیدا نشد");
+        if (!row) throw badRequest("تجهیز پیدا نشد");
         const results = (p.results ?? {}) as Record<string, unknown>;
         const clean: Record<string, string> = {};
         for (const [k, v] of Object.entries(results)) clean[str(k, 200)] = str(v, 300);
-        if (!Object.keys(clean).length) throw new Error("حداقل یک آیتم چک‌لیست را تکمیل کنید");
+        if (!Object.keys(clean).length) throw badRequest("حداقل یک آیتم چک‌لیست را تکمیل کنید");
         const rec = { tag, templateName: str(p.templateName, 200), results: clean, workers: str(p.workers, 200), note: str(p.note, 1500), day, at: jalaliNow(), shiftKey };
         const rid = await runTx(async (d) => {
           const id = (await d.insert(pmRecords).values(rec).returning({ id: pmRecords.id }))[0].id;
@@ -14900,24 +15076,27 @@ export async function POST(request: Request) {
         const id = Number(p.id);
         const kind = str(p.kind, 10);
         const row = (await db.select().from(alerts).where(eq(alerts.id, id)).limit(1))[0];
-        if (!row) throw new Error("هشدار پیدا نشد");
+        if (!row) throw badRequest("هشدار پیدا نشد");
         if (kind === "seen") await db.update(alerts).set({ seenAt: jalaliNow(), seenShift: shift.label }).where(eq(alerts.id, id));
         else if (kind === "acted") await db.update(alerts).set({ actedAt: jalaliNow(), actedShift: shift.label, ...(row.seenAt ? {} : { seenAt: jalaliNow(), seenShift: shift.label }) }).where(eq(alerts.id, id));
-        else throw new Error("نوع تأیید نامعتبر است");
+        else throw badRequest("نوع تأیید نامعتبر است");
         await logActivity(shiftKey, kind === "seen" ? "تأیید «دیدم» هشدار" : "تأیید «اقدام کردم» هشدار", String(id));
         return Response.json({ ok: true });
       }
 
       case "note.save": {
         const raw = String(p.text ?? "");
-        if (raw.length > 4000) throw new Error("متن گزارش حداکثر ۴٬۰۰۰ کاراکتر است؛ لطفاً کوتاه‌تر کنید");
+        if (raw.length > 4000) throw badRequest("متن گزارش حداکثر ۴٬۰۰۰ کاراکتر است؛ لطفاً کوتاه‌تر کنید");
         const text = raw.trim();
         await runTx(async (d) => {
           // «گزارش دستی روز» یک متن مشترک برای همان روز است؛ همهٔ شیفت‌ها همان را می‌بینند
           const existing = (await d.select().from(operatorNotes).where(eq(operatorNotes.day, day)).orderBy(desc(operatorNotes.id)).limit(1))[0];
-          // قفل خوش‌بینانه (H7): اگر تب/دستگاه دیگری متن را عوض کرده، بی‌صدا رویش نوشته نمی‌شود
-          if (existing && typeof p.expected === "string" && p.expected.trim() !== (existing.text ?? "").trim()) {
-            throw new Error("این گزارش در تب یا دستگاه دیگری تغییر کرده است؛ صفحه را تازه کنید و متن خود را دوباره وارد کنید");
+          // قفل خوش‌بینانه: از overwrite بی‌صدای یادداشت مشترک بین تب‌ها/شیفت‌ها جلوگیری می‌کند.
+          if (existing && typeof p.expected !== "string") {
+            throw badRequest("نسخهٔ فعلی گزارش ارسال نشده است؛ صفحه را تازه کنید و دوباره ذخیره کنید");
+          }
+          if (existing && String(p.expected).trim() !== (existing.text ?? "").trim()) {
+            throw badRequest("این گزارش در تب یا دستگاه دیگری تغییر کرده است؛ صفحه را تازه کنید و متن خود را دوباره وارد کنید");
           }
           if (existing) await d.update(operatorNotes).set({ text, updatedAt: jalaliNow() }).where(eq(operatorNotes.id, existing.id));
           else await d.insert(operatorNotes).values({ day, shiftKey, text, updatedAt: jalaliNow() });
@@ -14928,7 +15107,7 @@ export async function POST(request: Request) {
 
       case "problem.add": {
         const text = str(p.text, 2000);
-        if (text.length < 3) throw new Error("متن گزارش مشکل را کامل‌تر بنویسید");
+        if (text.length < 3) throw badRequest("متن گزارش مشکل را کامل‌تر بنویسید");
         await db.insert(problems).values({ at: jalaliNow(), shiftKey, text, internal: false });
         await logActivity(shiftKey, "ثبت گزارش مشکل", text.slice(0, 120));
         return Response.json({ ok: true });
@@ -14948,7 +15127,7 @@ export async function POST(request: Request) {
           const tParam = str(p.param || p.tag, 20);
           const tCompare = p.compare === true;
           const { from, to } = normalizeRange(str(p.from), str(p.to), addDaysToDay(op.day, -13), op.day);
-          if (tScope === "motor" && !tCompare && !MOTORS.some((m) => m.tag === tTag)) throw new Error("موتور نامعتبر است");
+          if (tScope === "motor" && !tCompare && !MOTORS.some((m) => m.tag === tTag)) throw badRequest("موتور نامعتبر است");
           const payload = await buildTrendPayload(tScope, tTag, tParam, from, to, tCompare);
           const id = await createReport({ kind, day: to, shift, payload, title: `روند ${payload.label} — ${from} تا ${to}` });
           await logActivity(shiftKey, "ساخت گزارش روند", `${payload.label} — ${from} تا ${to}`);
@@ -14962,7 +15141,7 @@ export async function POST(request: Request) {
           await logActivity(shiftKey, "ساخت گزارش لیست تجهیزات", payload.scope);
           return Response.json({ ok: true, id });
         }
-        throw new Error("نوع گزارش نامعتبر است");
+        throw badRequest("نوع گزارش نامعتبر است");
       }
 
       case "report.send": {
@@ -15006,10 +15185,11 @@ export async function POST(request: Request) {
       case "admin.channel": {
         requireAdmin();
         const key = str(p.key, 20);
-        if (!["daily", "backup"].includes(key)) throw new Error("کانال نامعتبر است");
+        if (!["daily", "backup"].includes(key)) throw badRequest("کانال نامعتبر است");
         const existing = (await db.select().from(channels).where(eq(channels.key, key)).limit(1))[0];
+        const clearToken = p.clearToken === true;
         const token = str(p.token, 300);
-        await db.update(channels).set({ provider: str(p.provider, 10) === "eitaa" ? "eitaa" : "bale", chatId: str(p.chatId, 100), token: token || existing?.token || "", enabled: p.enabled === true }).where(eq(channels.key, key));
+        await db.update(channels).set({ provider: str(p.provider, 10) === "eitaa" ? "eitaa" : "bale", chatId: str(p.chatId, 100), token: clearToken ? "" : token || existing?.token || "", enabled: !clearToken && p.enabled === true }).where(eq(channels.key, key));
         await logActivity(shiftKey, "ویرایش کانال ارسال", key);
         return Response.json({ ok: true });
       }
@@ -15017,14 +15197,14 @@ export async function POST(request: Request) {
       case "channel.test": {
         requireAdmin();
         const key = str(p.key, 20);
-        if (!["daily", "backup"].includes(key)) throw new Error("کانال نامعتبر است");
+        if (!["daily", "backup"].includes(key)) throw badRequest("کانال نامعتبر است");
         const ch = (await db.select().from(channels).where(eq(channels.key, key)).limit(1))[0];
-        if (!ch?.enabled) throw new Error("کانال فعال نیست؛ ابتدا آن را فعال و ذخیره کنید");
-        if (!ch.token || !ch.chatId) throw new Error("توکن یا شناسه کانال خالی است؛ ابتدا ذخیره کنید");
+        if (!ch?.enabled) throw badRequest("کانال فعال نیست؛ ابتدا آن را فعال و ذخیره کنید");
+        if (!ch.token || !ch.chatId) throw badRequest("توکن یا شناسه کانال خالی است؛ ابتدا ذخیره کنید");
         try {
           await sendBotText({ provider: ch.provider === "eitaa" ? "eitaa" : "bale", token: ch.token, chatId: ch.chatId, text: `✅ اتصال سالم است\nزمان: ${jalaliNow()}\nسامانه پایش ایستگاه پمپاژ زیرزمینی — تونل انتقال آب گلاب` });
         } catch (error) {
-          throw new Error(`ارسال تستی ناموفق بود (${error instanceof Error ? error.message : "خطای شبکه"})`);
+          throw new AppError(`ارسال تستی ناموفق بود (${error instanceof Error ? error.message : "خطای شبکه"})`, 502, "upstream_error");
         }
         await logActivity(shiftKey, "تست اتصال کانال ارسال", key);
         return Response.json({ ok: true, message: "پیام تستی ارسال شد؛ کانال را بررسی کنید" });
@@ -15033,10 +15213,10 @@ export async function POST(request: Request) {
       case "channel.sendReport": {
         requireAdmin();
         const ch = (await db.select().from(channels).where(eq(channels.key, "daily")).limit(1))[0];
-        if (!ch?.enabled) throw new Error("کانال گزارش روزانه فعال نیست؛ ابتدا آن را فعال و ذخیره کنید");
-        if (!ch.token || !ch.chatId) throw new Error("توکن یا شناسه کانال گزارش روزانه خالی است؛ ابتدا ذخیره کنید");
+        if (!ch?.enabled) throw badRequest("کانال گزارش روزانه فعال نیست؛ ابتدا آن را فعال و ذخیره کنید");
+        if (!ch.token || !ch.chatId) throw badRequest("توکن یا شناسه کانال گزارش روزانه خالی است؛ ابتدا ذخیره کنید");
         const latest = (await db.select().from(reports).where(eq(reports.kind, "daily")).orderBy(desc(reports.id)).limit(1))[0];
-        if (!latest) throw new Error("هنوز گزارش روزانه‌ای ثبت نشده است؛ چیزی برای ارسال نیست");
+        if (!latest) throw badRequest("هنوز گزارش روزانه‌ای ثبت نشده است؛ چیزی برای ارسال نیست");
         const fail = async (detail: string) => {
           await logActivity(shiftKey, "ارسال ناموفق گزارش به کانال", `گزارش ${latest.id} (${latest.day}): ${detail}`);
         };
@@ -15044,12 +15224,12 @@ export async function POST(request: Request) {
         try {
           const origin = new URL(request.url).origin;
           const page = await fetch(`${origin}/report/${latest.id}`, { headers: { cookie: request.headers.get("cookie") ?? "" }, signal: AbortSignal.timeout(15000) });
-          if (!page.ok) throw new Error(`پاسخ ${page.status}`);
+          if (!page.ok) throw new AppError(`پاسخ ${page.status}`, 502, "upstream_error");
           html = await page.text();
         } catch (error) {
           const detail = error instanceof Error ? error.message : "خطای شبکه";
           await fail(detail);
-          throw new Error(`خواندن صفحهٔ گزارش ناموفق بود (${detail})`);
+          throw new AppError(`خواندن صفحهٔ گزارش ناموفق بود (${detail})`, 502, "upstream_error");
         }
         try {
           await sendBotDocument({
@@ -15063,7 +15243,7 @@ export async function POST(request: Request) {
         } catch (error) {
           const detail = error instanceof Error ? error.message : "خطای شبکه";
           await fail(detail);
-          throw new Error(`ارسال به کانال ناموفق بود (${detail})`);
+          throw new AppError(`ارسال به کانال ناموفق بود (${detail})`, 502, "upstream_error");
         }
         await logActivity(shiftKey, "ارسال گزارش روزانه به کانال", `${latest.title} (${latest.day})`);
         return Response.json({ ok: true, message: "گزارش روزانه به کانال ارسال شد" });
@@ -15072,8 +15252,8 @@ export async function POST(request: Request) {
       case "channel.sendBackup": {
         requireAdmin();
         const ch = (await db.select().from(channels).where(eq(channels.key, "backup")).limit(1))[0];
-        if (!ch?.enabled) throw new Error("کانال بکاپ فعال نیست؛ ابتدا آن را فعال و ذخیره کنید");
-        if (!ch.token || !ch.chatId) throw new Error("توکن یا شناسه کانال بکاپ خالی است؛ ابتدا ذخیره کنید");
+        if (!ch?.enabled) throw badRequest("کانال بکاپ فعال نیست؛ ابتدا آن را فعال و ذخیره کنید");
+        if (!ch.token || !ch.chatId) throw badRequest("توکن یا شناسه کانال بکاپ خالی است؛ ابتدا ذخیره کنید");
         const snap = await writeFileBackup("channel");
         const { readFile } = await import("node:fs/promises");
         const jsonBytes = await readFile(snap.file);
@@ -15095,7 +15275,7 @@ export async function POST(request: Request) {
         } catch (error) {
           const detail = error instanceof Error ? error.message : "خطای شبکه";
           await logActivity(shiftKey, "ارسال ناموفق بکاپ به کانال", detail);
-          throw new Error(`ارسال به کانال ناموفق بود (${detail})`);
+          throw new AppError(`ارسال به کانال ناموفق بود (${detail})`, 502, "upstream_error");
         }
         await logActivity(shiftKey, "ارسال بکاپ به کانال", `${base} — ${snap.rows} ردیف`);
         return Response.json({ ok: true, message: "فایل بکاپ (ZIP) به کانال ارسال شد" });
@@ -15108,8 +15288,8 @@ export async function POST(request: Request) {
         for (const key of ["serviceInterval", "vibWarn", "vibCrit", "windingWarn", "windingCrit", "bearingWarn", "bearingCrit", "currentWarn", "currentCrit"] as const) {
           if (incoming[key] !== undefined) clean[key] = num(incoming[key]);
         }
-        if (clean.serviceInterval !== undefined && clean.serviceInterval < 100) throw new Error("بازه سرویس باید حداقل ۱۰۰ ساعت باشد");
-        if (clean.vibWarn !== undefined && clean.vibCrit !== undefined && clean.vibWarn >= clean.vibCrit) throw new Error("حد هشدار لرزش باید کمتر از حد بحرانی باشد");
+        if (clean.serviceInterval !== undefined && clean.serviceInterval < 100) throw badRequest("بازه سرویس باید حداقل ۱۰۰ ساعت باشد");
+        if (clean.vibWarn !== undefined && clean.vibCrit !== undefined && clean.vibWarn >= clean.vibCrit) throw badRequest("حد هشدار لرزش باید کمتر از حد بحرانی باشد");
         await saveSettings(clean);
         await logActivity(shiftKey, "ویرایش تنظیمات/ست‌پوینت", JSON.stringify(clean));
         return Response.json({ ok: true });
@@ -15118,7 +15298,7 @@ export async function POST(request: Request) {
       case "admin.setpoints": {
         requireAdmin();
         const tag = str(p.tag, 20);
-        if (!PROCESS_PARAMS.some((x) => x.tag === tag)) throw new Error("پارامتر نامعتبر است");
+        if (!PROCESS_PARAMS.some((x) => x.tag === tag)) throw badRequest("پارامتر نامعتبر است");
         const existing = (await db.select().from(settings).where(eq(settings.key, "processSetpoints")).limit(1))[0];
         const current = (existing?.value ?? {}) as Record<string, Record<string, number | null>>;
         const patch: Record<string, number | null> = {};
@@ -15133,8 +15313,8 @@ export async function POST(request: Request) {
         requireAdmin();
         const key = str(p.key, 10);
         const pin = str(p.pin, 10);
-        if (!["A", "B", "C", "admin"].includes(key)) throw new Error("شیفت نامعتبر است");
-        if (!/^\d{4}$/.test(pin)) throw new Error("PIN باید دقیقاً چهار رقم باشد");
+        if (!["A", "B", "C", "admin"].includes(key)) throw badRequest("شیفت نامعتبر است");
+        if (!/^\d{4,6}$/.test(pin)) throw badRequest("PIN باید چهار تا شش رقم باشد");
         await db.update(shifts).set({ pin: hashPin(pin) }).where(eq(shifts.key, key));
         await logActivity(shiftKey, "تغییر PIN شیفت", key);
         return Response.json({ ok: true });
@@ -15144,7 +15324,7 @@ export async function POST(request: Request) {
         requireAdmin();
         const key = str(p.key, 10);
         const members = Array.isArray(p.members) ? p.members.map((m) => str(m, 80)).filter(Boolean).slice(0, 4) : [];
-        if (!members.length) throw new Error("حداقل یک نام لازم است");
+        if (!members.length) throw badRequest("حداقل یک نام لازم است");
         await db.update(shifts).set({ members }).where(eq(shifts.key, key));
         await logActivity(shiftKey, "ویرایش اعضای شیفت", `${key}: ${members.join(" و ")}`);
         return Response.json({ ok: true });
@@ -15153,7 +15333,7 @@ export async function POST(request: Request) {
       case "admin.shift": {
         requireAdmin();
         const key = p.key === null || p.key === "" || p.key === "auto" ? "" : str(p.key, 5);
-        if (key && !["A", "B", "C"].includes(key)) throw new Error("شیفت نامعتبر است");
+        if (key && !["A", "B", "C"].includes(key)) throw badRequest("شیفت نامعتبر است");
         await saveSettings({ shiftOverride: key });
         await logActivity(shiftKey, "تنظیم شیفت فعال", key || "چرخش خودکار");
         return Response.json({ ok: true });
@@ -15176,7 +15356,7 @@ export async function POST(request: Request) {
         requireAdmin();
         const id = Number(p.id);
         const row = (await db.select().from(backups).where(eq(backups.id, id)).limit(1))[0];
-        if (!row) throw new Error("بک‌آپ پیدا نشد");
+        if (!row) throw badRequest("بک‌آپ پیدا نشد");
         // نسخهٔ ایمنی قبل از بازیابی (هم داخلی، هم فایل) تا اگر چیزی اشتباه بود برگشت‌پذیر باشد
         await createInternalBackup("نسخه ایمنی قبل از بازیابی");
         await writeFileBackup("نسخه ایمنی قبل از بازیابی").catch(() => {});
@@ -15188,7 +15368,11 @@ export async function POST(request: Request) {
       case "backup.verify": {
         requireAdmin();
         const result = await verifyFileBackup(str(p.file, 200));
-        return Response.json({ ok: true, ...result });
+        return Response.json({
+          ok: result.checksumOk,
+          ...result,
+          ...(result.checksumOk ? {} : { error: result.checksumPresent ? "چک‌سام با فایل نمی‌خواند" : "فایل .sha256 ندارد" }),
+        }, { status: result.checksumOk ? 200 : 422 });
       }
 
       case "backup.files": {
@@ -15222,7 +15406,7 @@ export async function POST(request: Request) {
       case "backup.bundle.restore": {
         requireAdmin();
         const name = str(p.name, 160);
-        if (!name) throw new Error("نام بسته را انتخاب کنید");
+        if (!name) throw badRequest("نام بسته را انتخاب کنید");
         const result = await restoreBackupBundle(name, { allowIncomplete: p.allowIncomplete === true });
         await logActivity(shiftKey, "بازیابی بستهٔ کامل", `${name} — ${result.rows} ردیف — نسخهٔ ایمنی ${result.safetyBundle}`);
         const warnings: string[] = [...result.warnings];
@@ -15241,7 +15425,7 @@ export async function POST(request: Request) {
       case "admin.unlock": {
         requireAdmin();
         const target = str(p.key, 10) || "all";
-        if (!["A", "B", "C", "admin", "all"].includes(target)) throw new Error("شیفت نامعتبر است");
+        if (!["A", "B", "C", "admin", "all"].includes(target)) throw badRequest("شیفت نامعتبر است");
         const cleared = await clearLoginLock(target);
         await logSecurityEvent("lock_cleared", target, "admin", "رفع قفل ورود توسط ادمین");
         await logActivity(shiftKey, "رفع قفل ورود", `${target} — ${cleared} قفل`);
@@ -15262,8 +15446,8 @@ export async function POST(request: Request) {
       case "session.revoke": {
         const id = str(p.id, 64);
         const row = (await db.select().from(sessionsTable).where(eq(sessionsTable.id, id)).limit(1))[0];
-        if (!row) throw new Error("نشست پیدا نشد");
-        if (!isAdmin && row.shiftKey !== shiftKey) throw new Error("دسترسی لازم است");
+        if (!row) throw badRequest("نشست پیدا نشد");
+        if (!isAdmin && row.shiftKey !== shiftKey) throw forbidden("دسترسی لازم است");
         await revokeSession(id, isAdmin ? "ابطال توسط ادمین" : "ابطال توسط کاربر");
         await logActivity(shiftKey, "ابطال نشست", `${row.shiftKey} — ${row.ip}`);
         return Response.json({ ok: true, message: "آن دستگاه از سامانه خارج شد" });
@@ -15271,7 +15455,10 @@ export async function POST(request: Request) {
 
       case "session.revoke_others": {
         const current = await getSessionId();
-        const target = isAdmin ? str(p.key, 10) || "all" : shiftKey;
+        const requested = str(p.key, 10);
+        const target = isAdmin && requested ? requested : shiftKey;
+        if (!["A", "B", "C", "admin", "all"].includes(target)) throw badRequest("شیفت نامعتبر است");
+        if (target === "all" && (!isAdmin || p.confirmAll !== true)) throw forbidden("برای خروج از همهٔ شیفت‌ها تأیید صریح ادمین لازم است");
         const count = await revokeAllSessions(target, "خروج از سایر دستگاه‌ها", current ?? undefined);
         await logActivity(shiftKey, "خروج از سایر دستگاه‌ها", `${target} — ${count} نشست`);
         return Response.json({ ok: true, count, message: count ? `${count} نشست بسته شد` : "نشست دیگری فعال نبود" });
@@ -15333,7 +15520,7 @@ export async function POST(request: Request) {
         requireAdmin();
         const id = Number(p.id);
         const row = (await db.select().from(equipment).where(eq(equipment.id, id)).limit(1))[0];
-        if (!row) throw new Error("تجهیز پیدا نشد");
+        if (!row) throw badRequest("تجهیز پیدا نشد");
         await db.update(equipment).set({ deletedAt: "", updatedAt: jalaliNow() }).where(eq(equipment.id, id));
         await logActivity(shiftKey, "بازگرداندن تجهیز از سطل بازیافت", row.tag);
         return Response.json({ ok: true, message: `${row.tag} به فهرست برگشت` });
@@ -15348,7 +15535,7 @@ export async function POST(request: Request) {
       case "backup.restore_file": {
         requireAdmin();
         const file = str(p.file, 200);
-        if (!file) throw new Error("نام فایل را انتخاب کنید");
+        if (!file) throw badRequest("نام فایل را انتخاب کنید");
         const result = await restoreFromFile(file, { force: p.force === true });
         await logActivity(shiftKey, "بازیابی از فایل بک‌آپ", `${file} — ${result.rows} ردیف`);
         const warnings: string[] = [];
@@ -15358,6 +15545,7 @@ export async function POST(request: Request) {
         if (result.channelsNeedSetup.length) {
           warnings.push(`توکن کانال‌های ${result.channelsNeedSetup.join("، ")} در بک‌آپ ذخیره نمی‌شود؛ در پنل ادمین دوباره وارد کنید`);
         }
+        warnings.push("رازهای TOTP در بک‌آپ خارجی ذخیره نمی‌شوند؛ تنظیمات محلی حفظ شد و روی دستگاه تازه باید دوباره تنظیم شود");
         const message = warnings.length ? `داده‌ها بازگردانی شد؛ ${warnings.join(" | ")}` : "داده‌ها بازگردانی شد و فایل‌های کاتالوگ بررسی شدند";
         return Response.json({ ok: true, ...result, message });
       }
@@ -15365,7 +15553,7 @@ export async function POST(request: Request) {
       case "totp.status": {
         const target = isAdmin && p.key ? str(p.key, 10) : shiftKey;
         const row = (await db.select().from(shifts).where(eq(shifts.key, target)).limit(1))[0];
-        if (!row) throw new Error("شیفت پیدا نشد");
+        if (!row) throw badRequest("شیفت پیدا نشد");
         return Response.json({
           ok: true,
           key: target,
@@ -15381,7 +15569,7 @@ export async function POST(request: Request) {
         const target = isAdmin && p.key ? str(p.key, 10) : shiftKey;
         const secret = generateTotpSecret();
         const updated = await db.update(shifts).set({ totpPending: secret }).where(eq(shifts.key, target)).returning({ key: shifts.key });
-        if (!updated.length) throw new Error("شیفت پیدا نشد");
+        if (!updated.length) throw badRequest("شیفت پیدا نشد");
         const url = otpauthUrl({ issuer: "Pumpstation Golab", account: `${target} — ایستگاه پمپاژ گلاب`, secret });
         await logActivity(shiftKey, "شروع ثبت ورود دوعاملی", `شیفت ${target}`);
         return Response.json({
@@ -15396,10 +15584,10 @@ export async function POST(request: Request) {
       case "totp.enable": {
         const target = isAdmin && p.key ? str(p.key, 10) : shiftKey;
         const row = (await db.select().from(shifts).where(eq(shifts.key, target)).limit(1))[0];
-        if (!row) throw new Error("شیفت پیدا نشد");
-        if (!row.totpPending) throw new Error("ابتدا مرحلهٔ «ساخت راز» را انجام دهید");
+        if (!row) throw badRequest("شیفت پیدا نشد");
+        if (!row.totpPending) throw badRequest("ابتدا مرحلهٔ «ساخت راز» را انجام دهید");
         if (!verifyTotp(row.totpPending, str(p.code, 10))) {
-          throw new Error("کد وارد‌شده معتبر نیست؛ ساعت گوشی و کد ۶ رقمی را بررسی کنید");
+          throw badRequest("کد وارد‌شده معتبر نیست؛ ساعت گوشی و کد ۶ رقمی را بررسی کنید");
         }
         const codes = Array.from({ length: 10 }, () => generateBackupCode());
         await db
@@ -15424,11 +15612,11 @@ export async function POST(request: Request) {
       case "totp.disable": {
         const target = isAdmin && p.key ? str(p.key, 10) : shiftKey;
         const row = (await db.select().from(shifts).where(eq(shifts.key, target)).limit(1))[0];
-        if (!row) throw new Error("شیفت پیدا نشد");
+        if (!row) throw badRequest("شیفت پیدا نشد");
         // تأیید هویت دوباره: کاربر عادی با PIN همان شیفت، ادمین با PIN خودش (برای نجات گوشی گم‌شده)
         const authRow = isAdmin ? (await db.select().from(shifts).where(eq(shifts.key, shiftKey)).limit(1))[0] : row;
         if (!authRow || !verifyPin(str(p.pin, 10).trim(), authRow.pin)) {
-          throw new Error(isAdmin && target !== shiftKey ? "برای این کار PIN حساب ادمین را وارد کنید" : "PIN نادرست است");
+          throw badRequest(isAdmin && target !== shiftKey ? "برای این کار PIN حساب ادمین را وارد کنید" : "PIN نادرست است");
         }
         await db
           .update(shifts)
@@ -15442,10 +15630,10 @@ export async function POST(request: Request) {
       case "totp.codes": {
         const target = isAdmin && p.key ? str(p.key, 10) : shiftKey;
         const row = (await db.select().from(shifts).where(eq(shifts.key, target)).limit(1))[0];
-        if (!row) throw new Error("شیفت پیدا نشد");
-        if (!row.totpEnabled) throw new Error("ورود دوعاملی برای این شیفت فعال نیست");
+        if (!row) throw badRequest("شیفت پیدا نشد");
+        if (!row.totpEnabled) throw badRequest("ورود دوعاملی برای این شیفت فعال نیست");
         const authRow2 = isAdmin ? (await db.select().from(shifts).where(eq(shifts.key, shiftKey)).limit(1))[0] : row;
-        if (!authRow2 || !verifyPin(str(p.pin, 10).trim(), authRow2.pin)) throw new Error("PIN نادرست است");
+        if (!authRow2 || !verifyPin(str(p.pin, 10).trim(), authRow2.pin)) throw badRequest("PIN نادرست است");
         const codes = Array.from({ length: 10 }, () => generateBackupCode());
         await db.update(shifts).set({ totpBackupCodes: codes.map((c) => hashPin(normalizeBackupCode(c))) }).where(eq(shifts.key, target));
         await logActivity(shiftKey, "صدور مجدد کدهای پشتیبان", `شیفت ${target}`);
@@ -15453,13 +15641,13 @@ export async function POST(request: Request) {
       }
 
       case "mirror.status": {
-        if (!isAdmin) throw new Error("برای دیدن وضعیت آینه، دسترسی مدیریت لازم است");
+        if (!isAdmin) throw forbidden("برای دیدن وضعیت آینه، دسترسی مدیریت لازم است");
         const st = await mirrorStatus();
         return Response.json({ ...st });
       }
 
       case "mirror.now": {
-        if (!isAdmin) throw new Error("برای کپی به آینه، دسترسی مدیریت لازم است");
+        if (!isAdmin) throw forbidden("برای کپی به آینه، دسترسی مدیریت لازم است");
         const result = await mirrorLatest({ fresh: true, actor: `${user.label} (${shiftKey})` });
         await logActivity(shiftKey, "کپی بک‌آپ به آینه", result.ok ? `فایل ${result.file}` : `ناموفق: ${result.error}`);
         if (!result.ok) return Response.json({ ok: false, error: `کپی به آینه ناموفق بود: ${result.error}` }, { status: 500 });
@@ -15496,7 +15684,12 @@ export async function POST(request: Request) {
     } catch {
       /* ثبت خطای فنی نباید عملیات اصلی را متوقف کند */
     }
-    return Response.json({ ok: false, error: message }, { status: 400 });
+    return errorResponse(error, {
+      source: "api/actions",
+      path: "/api/actions",
+      requestId: request.headers.get("x-request-id") ?? undefined,
+      shiftKey,
+    });
   }
 }
 
@@ -15585,7 +15778,7 @@ export async function GET(request: Request) {
 
 ── FILE: src/app/api/totals/route.ts  (48 خط) ──
 
-import { sql } from "drizzle-orm";
+import { and, gte, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { dailyTotals } from "@/db/schema";
 import { getSessionUser } from "@/lib/auth";
@@ -15611,7 +15804,7 @@ export async function GET(request: Request) {
     .orderBy(sql`substring(${dailyTotals.day}, 1, 7) desc`);
 
   const prefix = `${year}/${pad(month)}/`;
-  const rows = await db.select().from(dailyTotals).where(sql`${dailyTotals.day} like ${`${prefix}%`}`).orderBy(dailyTotals.day);
+  const rows = await db.select().from(dailyTotals).where(and(gte(dailyTotals.day, `${prefix}01`), lte(dailyTotals.day, `${prefix}31`))).orderBy(dailyTotals.day);
   const map = new Map(rows.map((r) => [r.day, r.value]));
   const days = monthDaysOf(year, month);
   const table = Array.from({ length: days }, (_, i) => {
@@ -16527,7 +16720,7 @@ function Registry({ d }: { d: Any }) {
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { sql } from "drizzle-orm";
+import { and, gte, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { dailyTotals } from "@/db/schema";
 import { getSessionUser } from "@/lib/auth";
@@ -16557,7 +16750,7 @@ export default async function TotalsPage({ searchParams }: { searchParams: Promi
   if (!Number.isInteger(year) || year < 1300 || year > 1500) year = op.jy;
   if (!Number.isInteger(month) || month < 1 || month > 12) month = op.jm;
 
-  const rows = await db.select().from(dailyTotals).where(sql`${dailyTotals.day} like ${`${year}/${pad(month)}/%`}`).orderBy(dailyTotals.day);
+  const rows = await db.select().from(dailyTotals).where(and(gte(dailyTotals.day, `${year}/${pad(month)}/01`), lte(dailyTotals.day, `${year}/${pad(month)}/31`))).orderBy(dailyTotals.day);
   const map = new Map(rows.map((r) => [r.day, r.value]));
   const days = monthDaysOf(year, month);
   const table = Array.from({ length: days }, (_, i) => ({ d: i + 1, value: map.get(`${year}/${pad(month)}/${pad(i + 1)}`) ?? null }));
@@ -18768,7 +18961,7 @@ textarea.input {
   }
 }
 
-── FILE: src/proxy.ts  (142 خط) ──
+── FILE: src/proxy.ts  (144 خط) ──
 
 import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
@@ -18776,6 +18969,7 @@ import { lanAllowed, needsNetworkIdentityWarning, trustProxyEnabled, trustedClie
 
 /** سقف حجم بدنه برای همهٔ مسیرهای API — پیش از خواندن بدنه رد می‌شود */
 const MAX_BODY_BYTES = 256 * 1024;
+const CATALOG_MAX_BODY_BYTES = 9 * 1024 * 1024;
 
 /** سقف درخواست هر IP در دقیقه (ضدسیل ساده و ارزان) */
 const IP_LIMIT = 600;
@@ -18884,10 +19078,11 @@ export default function proxy(request: NextRequest) {
     }
 
     // سقف حجم بدنه
+    const bodyLimit = pathname === "/api/catalogs" ? CATALOG_MAX_BODY_BYTES : MAX_BODY_BYTES;
     const declared = Number(request.headers.get("content-length") ?? 0);
-    if (declared > MAX_BODY_BYTES) {
+    if (declared > bodyLimit) {
       return NextResponse.json(
-        { ok: false, error: "حجم درخواست بیش از حد مجاز است (حداکثر ۲۵۶ کیلوبایت)", requestId },
+        { ok: false, error: `حجم درخواست بیش از حد مجاز است (حداکثر ${Math.round(bodyLimit / 1024)} کیلوبایت)`, requestId },
         { status: 413, headers: { "x-request-id": requestId } },
       );
     }
@@ -21780,7 +21975,7 @@ export default function TrainingTab() {
   );
 }
 
-── FILE: src/components/AdminTab.tsx  (913 خط) ──
+── FILE: src/components/AdminTab.tsx  (923 خط) ──
 
 "use client";
 
@@ -21857,7 +22052,7 @@ export default function AdminTab() {
         }
       >
         <div className="note warn-note" style={{ marginBottom: 10 }}>
-          بک‌آپ JSON توکن کانال‌ها را عمداً حذف می‌کند و PDFها و قرائت‌های بایگانی‌شده را ندارد. برای بازیابی جامع از بستهٔ پوشه‌ای زیر استفاده کنید؛ توکن کانال‌ها پس از restore دوباره وارد می‌شوند. بسته شامل وضعیت TOTP است و باید روی رسانهٔ حفاظت‌شده نگه‌داری شود.
+          بک‌آپ JSON توکن کانال‌ها و راز/کدهای TOTP را عمداً حذف می‌کند؛ هنگام بازیابی، تنظیمات محلی همین دستگاه حفظ می‌شود. PDFها و قرائت‌های بایگانی‌شده در JSON نیستند؛ برای بازیابی جامع از بستهٔ پوشه‌ای زیر استفاده کنید. روی دستگاه تازه، توکن کانال و ورود دوعاملی را دوباره پیکربندی کنید.
         </div>
         <RecoveryBundlesPanel />
         {state.backups.length === 0 ? (
@@ -22119,9 +22314,9 @@ function ShiftPanel() {
               className="input mono"
               style={{ width: 90, fontSize: 11 }}
               placeholder="PIN جدید"
-              maxLength={4}
+              maxLength={6}
               value={pins[r.key] ?? ""}
-              onChange={(e) => setPins({ ...pins, [r.key]: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+              onChange={(e) => setPins({ ...pins, [r.key]: e.target.value.replace(/\D/g, "").slice(0, 6) })}
             />
             <div className="row" style={{ gap: 4 }}>
               <button
@@ -22132,7 +22327,7 @@ function ShiftPanel() {
               >
                 نام‌ها
               </button>
-              <button type="button" className="btn tiny warn" disabled={busy || (pins[r.key] ?? "").length !== 4} onClick={() => act("admin.pin", { key: r.key, pin: pins[r.key] })}>
+              <button type="button" className="btn tiny warn" disabled={busy || ![4, 5, 6].includes((pins[r.key] ?? "").length)} onClick={() => act("admin.pin", { key: r.key, pin: pins[r.key] })}>
                 PIN
               </button>
             </div>
@@ -22294,25 +22489,28 @@ function ReportArchivePanel() {
 function ChannelsPanel() {
   const { state, act, busy, isAdmin } = useApp();
   const offline = typeof navigator !== "undefined" && !navigator.onLine;
-  const [forms, setForms] = useState<Record<string, { provider: string; chatId: string; token: string; enabled: boolean }>>(
-    Object.fromEntries(state.channels.map((c) => [c.key, { provider: c.provider, chatId: c.chatId, token: "", enabled: c.enabled }])),
+  const [forms, setForms] = useState<Record<string, { provider: string; chatId: string; token: string; enabled: boolean; clearToken: boolean }>>(
+    Object.fromEntries(state.channels.map((c) => [c.key, { provider: c.provider, chatId: c.chatId, token: "", enabled: c.enabled, clearToken: false }])),
   );
   const pending = state.queue.filter((q) => q.status === "pending").length;
   return (
     <Panel title="کانال‌های ارسال (بله / ایتا)" icon="bolt" hint="گزارش روزانه و بک‌آپ در دو کانال جدا"
       actions={<button type="button" className="btn tiny" disabled={busy || !pending} onClick={() => act("queue.retry")}>تلاش مجدد صف ({pending})</button>}>
       {state.channels.map((c) => {
-        const f = forms[c.key] ?? { provider: "bale", chatId: "", token: "", enabled: false };
+        const f = forms[c.key] ?? { provider: "bale", chatId: "", token: "", enabled: false, clearToken: false };
         return (
           <div key={c.key} className="service-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 8, marginBottom: 8 }}>
             <div className="spread"><b>{c.key === "daily" ? "کانال گزارش روزانه" : "کانال بک‌آپ"}</b><span className={`chip ${c.enabled && c.hasToken ? "live" : "muted"}`}>{c.enabled && c.hasToken ? "فعال" : "تنظیم نشده"}</span></div>
             <div className="form-grid">
               <div className="field"><label>پیام‌رسان</label><select className="input" value={f.provider} onChange={(e) => setForms({ ...forms, [c.key]: { ...f, provider: e.target.value } })}><option value="bale">بله</option><option value="eitaa">ایتا</option></select></div>
               <div className="field"><label>شناسه کانال / chat_id</label><input className="input mono" dir="ltr" value={f.chatId} onChange={(e) => setForms({ ...forms, [c.key]: { ...f, chatId: e.target.value } })} /></div>
-              <div className="field"><label>توکن ربات {c.hasToken ? "(ذخیره شده — برای تغییر وارد کنید)" : ""}</label><input className="input mono" dir="ltr" type="password" value={f.token} onChange={(e) => setForms({ ...forms, [c.key]: { ...f, token: e.target.value } })} /></div>
+              <div className="field"><label>توکن ربات {c.hasToken ? "(ذخیره شده — برای تغییر وارد کنید)" : ""}</label><input className="input mono" dir="ltr" type="password" value={f.token} disabled={f.clearToken} onChange={(e) => setForms({ ...forms, [c.key]: { ...f, token: e.target.value } })} /></div>
             </div>
             <div className="spread">
-              <label className="row small" style={{ gap: 5 }}><input type="checkbox" checked={f.enabled} onChange={(e) => setForms({ ...forms, [c.key]: { ...f, enabled: e.target.checked } })} /> فعال</label>
+              <div className="row" style={{ gap: 10 }}>
+                <label className="row small" style={{ gap: 5 }}><input type="checkbox" checked={f.enabled && !f.clearToken} disabled={f.clearToken} onChange={(e) => setForms({ ...forms, [c.key]: { ...f, enabled: e.target.checked } })} /> فعال</label>
+                {c.hasToken && <label className="row small" style={{ gap: 5, color: "var(--red)" }}><input type="checkbox" checked={f.clearToken} onChange={(e) => setForms({ ...forms, [c.key]: { ...f, clearToken: e.target.checked, enabled: e.target.checked ? false : f.enabled } })} /> پاک‌کردن توکن ذخیره‌شده</label>}
+              </div>
               <div className="row" style={{ gap: 6 }}>
                 <button type="button" className="btn tiny" disabled={busy || !c.enabled || !c.hasToken} title="ارسال یک پیام تستی به همین کانال" onClick={() => { if (window.confirm("یک پیام تستی به این کانال ارسال شود؟")) void act("channel.test", { key: c.key }); }}>تست اتصال</button>
                 <button type="button" className="btn tiny primary" disabled={busy} onClick={() => act("admin.channel", { key: c.key, ...f })}>ذخیره کانال</button>
@@ -22453,19 +22651,21 @@ function RecoveryBundlesPanel() {
                   <td className="tiny mono">{bundle.name}</td>
                   <td className="tiny">{(bundle.bytes / 1024 / 1024).toFixed(2)} MB</td>
                   <td className="tiny" style={{ color: bundle.complete ? "var(--green)" : "var(--amber)" }}>
-                    {bundle.complete ? `${bundle.assets} فایل` : `ناقص؛ ${bundle.warnings} هشدار`}
+                    {bundle.complete && bundle.warnings === 0 ? `${bundle.assets} فایل` : `نیازمند بررسی؛ ${bundle.warnings} هشدار`}
                   </td>
                   <td>
                     <button type="button" className="btn tiny ghost" disabled={busy} onClick={async () => {
                       const result = await call("backup.bundle.verify", { name: bundle.name });
-                      toast(result.ok ? (result.complete ? "بسته سالم است و checksum همهٔ محتواها درست است" : `ساختار/چک‌سام سالم؛ ${((result.warnings as string[]) ?? []).join(" | ")}`) : String(result.error ?? "بررسی بسته ناموفق بود"), result.ok ? "ok" : "error");
+                      const warnings = (result.warnings as string[]) ?? [];
+                      toast(result.ok ? (result.complete && warnings.length === 0 ? "بسته سالم است و checksum همهٔ محتواها درست است" : `ساختار/چک‌سام سالم؛ ${warnings.join(" | ")}`) : String(result.error ?? "بررسی بسته ناموفق بود"), result.ok && warnings.length === 0 ? "ok" : "error");
                     }}>آزمون</button>
                     <button type="button" className="btn tiny ghost" disabled={busy} onClick={async () => {
-                      const text = bundle.complete
+                      const hasWarnings = bundle.warnings > 0;
+                      const text = !hasWarnings
                         ? `داده‌های جاری با «${bundle.name}» جایگزین شوند؟ پیش از بازیابی یک بستهٔ ایمنی ساخته می‌شود.`
-                        : `این بسته PDF مفقود دارد. ادامه می‌تواند کاتالوگ‌ها را ناقص برگرداند. بااین‌حال بازیابی شود؟`;
+                        : `این بسته ${bundle.warnings} هشدار دربارهٔ PDF یا فایل آرشیو سرد دارد. بازیابی ممکن است این فایل‌های جانبی را ناقص برگرداند؛ ادامه می‌دهید؟`;
                       if (!confirm(text)) return;
-                      await act("backup.bundle.restore", { name: bundle.name, allowIncomplete: !bundle.complete });
+                      await act("backup.bundle.restore", { name: bundle.name, allowIncomplete: hasWarnings });
                       await load();
                       await refresh();
                     }}>بازیابی</button>
@@ -22657,7 +22857,7 @@ function SecurityPanel() {
                         title="آزمون بازیابی این فایل (بدون اعمال تغییر)"
                         onClick={async () => {
                           const r = await call("backup.verify", { file: f.file });
-                          toast(r.ok ? "فایل سالم و قابل بازیابی است" : "فایل مشکل دارد", r.ok ? "ok" : "error");
+                          toast(r.checksumOk === true ? "فایل و چک‌سام سالم است" : r.checksumPresent ? "چک‌سام فایل ناسازگار است" : "فایل چک‌سام ندارد؛ بازیابی عادی متوقف می‌شود", r.checksumOk === true ? "ok" : "error");
                         }}
                       >
                         آزمون
@@ -22668,8 +22868,13 @@ function SecurityPanel() {
                         disabled={busy}
                         title="بازیابی داده‌ها از این فایل"
                         onClick={async () => {
-                          if (!confirm(`داده‌های فعلی با محتوای «${f.file}» جایگزین شود؟ یک نسخهٔ ایمنی خودکار گرفته می‌شود.`)) return;
-                          await act("backup.restore_file", { file: f.file });
+                          const verification = await call("backup.verify", { file: f.file });
+                          const checksumOk = verification.checksumOk === true;
+                          const proceed = checksumOk
+                            ? confirm(`داده‌های فعلی با محتوای «${f.file}» جایگزین شود؟ یک نسخهٔ ایمنی خودکار گرفته می‌شود.`)
+                            : confirm(`هشدار: ${verification.checksumPresent ? "چک‌سام با فایل نمی‌خواند" : "فایل .sha256 ندارد"}. بازیابی اجباری ریسک دارد. فقط اگر منشأ فایل را مطمئن می‌دانید ادامه دهید. فایل «${f.file}» بازیابی شود؟`);
+                          if (!proceed) return;
+                          await act("backup.restore_file", { file: f.file, ...(!checksumOk ? { force: true } : {}) });
                           void load();
                           await refresh();
                         }}
@@ -24292,13 +24497,13 @@ const SECTIONS = [
     "data/roster.sample.json",
     "drizzle/0000_woozy_omega_flight.sql", "drizzle/0001_hardening.sql",
     "drizzle/0002_resilience.sql", "drizzle/0003_two_factor.sql", "drizzle/0004_mirror_ts.sql",
-    "drizzle/0005_megger_pi.sql",
+    "drizzle/0005_megger_pi.sql", "drizzle/0006_alerts_open_unique.sql",
   ] },
   { title: "کتابخانهٔ منطق (src/lib)", files: [
     "src/lib/version.ts", "src/lib/errors.ts", "src/lib/types.ts", "src/lib/log.ts",
     "src/lib/dblock.ts", "src/lib/pin.ts", "src/lib/secret.ts", "src/lib/totp.ts",
     "src/lib/auth.ts", "src/lib/sessions.ts", "src/lib/security.ts", "src/lib/audit.ts",
-    "src/lib/jalali.ts", "src/lib/domain.ts", "src/lib/state.ts", "src/lib/reporting.ts",
+    "src/lib/jalali.ts", "src/lib/domain.ts", "src/lib/state.ts", "src/lib/motor-history.ts", "src/lib/reporting.ts",
     "src/lib/backup.ts", "src/lib/backup-validation.ts", "src/lib/backup-bundle.ts", "src/lib/mirror.ts", "src/lib/archive.ts",
     "src/lib/roster.ts", "src/lib/netbind.ts", "src/lib/sqlite-cloud.ts",
     "src/lib/bot.ts", "src/lib/zip.ts",
@@ -24399,7 +24604,7 @@ try {
     const b = readFileSync(path.join(selfDir, f), "utf8");
     if (a !== b) throw new Error(`self-test: ${f} پس از استخراج با منبع فرق دارد`);
   }
-  for (const must of ["package.json", "package-lock.json", "src/components/PmTab.tsx", "drizzle/0005_megger_pi.sql", "scripts/extract-code-all.mjs", "scripts/generate-code-all.mjs"]) {
+  for (const must of ["package.json", "package-lock.json", "src/components/PmTab.tsx", "drizzle/0005_megger_pi.sql", "drizzle/0006_alerts_open_unique.sql", "scripts/extract-code-all.mjs", "scripts/generate-code-all.mjs"]) {
     if (!listed.has(must)) throw new Error(`self-test: ${must} در بسته نیست`);
   }
   for (const f of ["audit/audit5.mjs", "scripts/mirror-backup.mjs", "scripts/pg-init.mjs", "scripts/pg-dump.mjs", "scripts/pg-import-json.mjs"]) {
@@ -24596,8 +24801,8 @@ try {
   // ۳) مهاجرت روی دیتابیس خالی
   const mig = await run("node", ["scripts/init-db.mjs"], { env: { PGLITE_DATA_DIR: dataDir } });
   if (mig.code !== 0 || !mig.stdout.includes("[migrate] done")) fail("db-migrate", tail(mig.stderr || mig.stdout));
-  if (!mig.stdout.includes("0005_megger_pi")) fail("db-migrate", "0005_megger_pi اجرا نشد");
-  ok("db-migrate", "0000..0005");
+  if (!mig.stdout.includes("0005_megger_pi") || !mig.stdout.includes("0006_alerts_open_unique")) fail("db-migrate", "0005_megger_pi یا 0006_alerts_open_unique اجرا نشد");
+  ok("db-migrate", "0000..0006");
 
   // ۴) بیلد تولیدی
   const bld = await run(npmCmd, ["run", "build"], { timeout: 900000 });
@@ -24741,8 +24946,9 @@ try {
   process.exitCode = status;
 }
 
-── FILE: audit/audit1.mjs  (161 خط) ──
+── FILE: audit/audit1.mjs  (174 خط) ──
 
+import { addDaysToDay } from "../src/lib/jalali.ts";
 const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 const out = [];
 function log(name, pass, detail) {
@@ -24845,11 +25051,15 @@ const H = (cookie) => ({ cookie });
 
   // ---------- D: authorization ----------
   const operatorAdmin = await act(A, "admin.pin", { key: "admin", pin: "1234" });
-  log("operator cannot change PIN", operatorAdmin.status === 400 && /ادمین/.test(operatorAdmin.body?.error ?? ""), `status=${operatorAdmin.status} error=${operatorAdmin.body?.error}`);
+  log("operator cannot change PIN", operatorAdmin.status === 403 && /ادمین/.test(operatorAdmin.body?.error ?? ""), `status=${operatorAdmin.status} error=${operatorAdmin.body?.error}`);
   const operatorBackup = await act(A, "backup.create", {});
-  log("operator cannot create backup", operatorBackup.status === 400, `status=${operatorBackup.status} error=${operatorBackup.body?.error}`);
+  log("operator cannot create backup", operatorBackup.status === 403, `status=${operatorBackup.status} error=${operatorBackup.body?.error}`);
   const admState = await fetch(`${BASE}/api/state`, { headers: H(ADM) }).then((r) => r.json());
   log("admin sees admin panel data", admState.me.role === "admin", `role=${admState.me.role}`);
+  const pinSix = await act(ADM, "admin.pin", { key: "B", pin: "654321" });
+  const loginSix = await fetch(`${BASE}/api/auth`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: "B", pin: "654321" }) });
+  log("six-digit PIN can be set and used", pinSix.status === 200 && loginSix.status === 200, `set=${pinSix.status} login=${loginSix.status}`);
+  await act(ADM, "admin.pin", { key: "B", pin: "2022" });
 
   // ---------- E: input validation / injection ----------
   const sqli = await act(A, "process.set", { tag: "PIT-001' OR 1=1--", value: 12, day: "1405/08/13", intervalIndex: 0 });
@@ -24865,6 +25075,10 @@ const H = (cookie) => ({ cookie });
   // (یادداشت state همیشه مال «امروز» است، پس روز تست هم امروز است تا تاریخ‌محور نشود)
   const cur = await fetch(`${BASE}/api/state`, { headers: H(A) }).then((r) => r.json());
   const noteDay = cur.now?.day ?? "1405/08/13";
+  if (String(cur.note ?? "").length > 0) {
+    const noVersion = await act(A, "note.save", { text: "بدون نسخهٔ مورد انتظار", day: noteDay });
+    log("note update without expected version is rejected", noVersion.status === 400, `status=${noVersion.status}`);
+  }
   const xss = await act(A, "note.save", { text: '<script>alert(1)</script><img src=x onerror=alert(1)>', day: noteDay, expected: cur.note ?? "" });
   const stateAfter = await fetch(`${BASE}/api/state`, { headers: H(A) }).then((r) => r.json());
   log("XSS payload stored as inert text", stateAfter.note.includes("<script>") && xss.body?.ok, `stored raw, rendered by React escaping. len=${stateAfter.note.length}`);
@@ -24875,6 +25089,10 @@ const H = (cookie) => ({ cookie });
   // ---------- F: bad day / interval handling ----------
   const badDay = await act(A, "process.set", { tag: "PIT-001", value: 5, day: "1405/13/45", intervalIndex: 0 });
   log("invalid jalali date accepted?", badDay.status === 400, `status=${badDay.status} ${badDay.body?.ok ? "ACCEPTED invalid date 1405/13/45 (bug)" : "error=" + badDay.body?.error}`);
+  const todayForDate = await fetch(`${BASE}/api/state`, { headers: H(A) }).then((r) => r.json());
+  const futureDay = addDaysToDay(todayForDate.now.day, 1);
+  const futureWrite = await act(A, "process.set", { tag: "PIT-001", value: 5, day: futureDay, intervalIndex: 0 });
+  log("future manual reading rejected", futureWrite.status === 400 && /آینده/.test(futureWrite.body?.error ?? ""), `status=${futureWrite.status}`);
 
   // ---------- G: races ----------
   const day = "1405/08/13";
@@ -24904,8 +25122,9 @@ const H = (cookie) => ({ cookie });
   console.log(JSON.stringify(out.filter((o) => !o.pass).map((o) => o.name), null, 1));
 })();
 
-── FILE: audit/audit2.mjs  (97 خط) ──
+── FILE: audit/audit2.mjs  (99 خط) ──
 
+import { addDaysToDay } from "../src/lib/jalali.ts";
 const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 const out = [];
 const log = (name, pass, detail) => { out.push({ name, pass, detail }); console.log(`${pass ? "PASS" : "FAIL"} | ${name} | ${detail}`); };
@@ -24923,13 +25142,14 @@ const state = (cookie, q = "") => fetch(`${BASE}/api/state${q}`, { headers: { co
   const A = await login("A", "1011");
   const ADM = await login("admin", "9009");
   await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: ADM.cookie }, body: JSON.stringify({ action: "admin.unlock", payload: { key: "all" } }) });
-  const day = "1405/08/14";
+  const today = (await state(A)).now.day;
+  const day = addDaysToDay(today, -1);
 
   // ---- concurrency: same cell from two "tabs" ----
   await Promise.all(Array.from({ length: 8 }, (_, i) => act(A, "motor.values", { tag: "EM-02", day, intervalIndex: 2, values: { I1: 200 + i } })));
   await Promise.all(Array.from({ length: 8 }, (_, i) => act(A, "process.set", { tag: "PIT-003", value: 3 + i, day, intervalIndex: 2 })));
   // ---- 6 parallel entries for a brand-new day total (unique(day) constraint) ----
-  const totals = await Promise.all(Array.from({ length: 6 }, (_, i) => act(A, "total.set", { value: 1000 + i, day: "1405/09/01" })));
+  const totals = await Promise.all(Array.from({ length: 6 }, (_, i) => act(A, "total.set", { value: 1000 + i, day: today })));
   log("parallel total.set on empty day", totals.every((t) => t.body?.ok), JSON.stringify(totals.map((t) => t.body?.error ?? "ok")));
 
   // ---- backup / restore round-trip ----
@@ -24937,7 +25157,7 @@ const state = (cookie, q = "") => fetch(`${BASE}/api/state${q}`, { headers: { co
   const bk = await act(ADM, "backup.create", {});
   log("create backup", bk.body?.ok === true, `id=${bk.body?.id}`);
   // add data after backup
-  const extra = await act(A, "total.set", { value: 4242, day: "1405/09/02" });
+  const extra = await act(A, "total.set", { value: 4242, day: today });
   const restore = await act(ADM, "backup.restore", { id: bk.body?.id });
   const after = await state(A);
   log("restore executes", restore.body?.ok === true, `status=${restore.status} err=${restore.body?.error ?? "-"}`);
@@ -25003,7 +25223,7 @@ const state = (cookie, q = "") => fetch(`${BASE}/api/state${q}`, { headers: { co
   console.log(JSON.stringify(out.filter((o) => !o.pass).map((o) => o.name), null, 1));
 })();
 
-── FILE: audit/audit3.mjs  (199 خط) ──
+── FILE: audit/audit3.mjs  (206 خط) ──
 
 /**
  * تست‌های نسخه ۱.۳ — تاب‌آوری، نشست سروری، ETag، شناسهٔ یکتا، CSRF، بایگانی و خروجی CSV
@@ -25081,6 +25301,13 @@ log("operator login", opA.status === 200 && opA.cookie);
   }
 
   const third = await login("B", "2022");
+  const otherAdmin = await login("admin", "9009");
+  const revokeOwnOthers = await act(admin.cookie, "session.revoke_others", {});
+  const otherAdminStatus = await fetch(`${BASE}/api/state`, { headers: { cookie: otherAdmin.cookie } }).then((r) => r.status);
+  const operatorStatus = await fetch(`${BASE}/api/state`, { headers: { cookie: third.cookie } }).then((r) => r.status);
+  const revokeAllWithoutConfirm = await act(admin.cookie, "session.revoke_others", { key: "all" });
+  log("revoke_others defaults to own admin sessions", revokeOwnOthers.status === 200 && otherAdminStatus === 401 && operatorStatus === 200, `admin=${otherAdminStatus} operator=${operatorStatus}`);
+  log("global revoke requires explicit confirmation", revokeAllWithoutConfirm.status === 403, `status=${revokeAllWithoutConfirm.status}`);
   const before = await fetch(`${BASE}/api/state`, { headers: { cookie: third.cookie } }).then((r) => r.status);
   const revokeOthers = await act(admin.cookie, "session.revoke_others", { key: "B" });
   const after = await fetch(`${BASE}/api/state`, { headers: { cookie: third.cookie } }).then((r) => r.status);
@@ -25297,7 +25524,7 @@ console.log(`\n=== summary ===\ntotal=${pass + fails.length} pass=${pass} fail=$
 if (fails.length) console.log(fails);
 process.exit(fails.length ? 1 : 0);
 
-── FILE: audit/audit5.mjs  (335 خط) ──
+── FILE: audit/audit5.mjs  (345 خط) ──
 
 #!/usr/bin/env node
 /**
@@ -25311,6 +25538,7 @@ process.exit(fails.length ? 1 : 0);
 import crypto from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
+import { verifyTotp as verifyTotpUnderTest } from "../src/lib/totp.ts";
 
 const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 const ADMIN_PIN = process.env.ADMIN_PIN ?? "9009";
@@ -25456,6 +25684,15 @@ async function main() {
   check("فعال‌سازی با کد درست", enable.res.status === 200 && enable.json?.ok === true, String(enable.res.status));
   check("۱۰ کد پشتیبان صادر می‌شود", backupCodes.length === 10, String(backupCodes.length));
   check("قالب کد پشتیبان XXXX-XXXX است", backupCodes.every((c) => /^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(c)), backupCodes[0]);
+  check("secret خراب TOTP به false تبدیل می‌شود، نه exception", verifyTotpUnderTest("not-a-valid-secret", "123456") === false);
+
+  const externalBackup = await act("backup.create");
+  const externalBackupFile = String(externalBackup.json?.file ?? "");
+  const externalBackupPayload = externalBackupFile ? JSON.parse(await readFile(externalBackupFile, "utf8")) : null;
+  const exportedShifts = externalBackupPayload?.shifts ?? [];
+  check("JSON خارجی هیچ راز/کد TOTP ندارد", exportedShifts.length > 0 && exportedShifts.every((row) => row.totpSecret === "" && row.totpPending === "" && row.totpEnabled === false && Array.isArray(row.totpBackupCodes) && row.totpBackupCodes.length === 0 && row.totpEnabledAt === ""));
+  const restoredExternalBackup = await act("backup.restore_file", { file: externalBackupFile });
+  check("بازیابی JSON محلی، TOTP فعلی را حفظ می‌کند", restoredExternalBackup.res.status === 200 && String(restoredExternalBackup.json?.message ?? "").includes("TOTP"), String(restoredExternalBackup.res.status));
 
   // ورود بدون کد
   cookie = "";
@@ -25634,7 +25871,7 @@ main().catch((error) => {
   process.exit(1);
 });
 
-── FILE: audit/audit6.mjs  (428 خط) ──
+── FILE: audit/audit6.mjs  (512 خط) ──
 
 /**
  * audit6 — آزمون‌های نسخهٔ ۱٫۴٫۱ (روستر محلی، بایند شبکه، نگهبان مسیر، ورود گروهی).
@@ -25642,17 +25879,19 @@ main().catch((error) => {
  * تاریخ‌محور نیست: روز جاری از خودِ state خوانده می‌شود.
  */
 import { execFile } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { resolveBind, trustProxyEnabled, needsNetworkIdentityWarning, trustedClientIp, trustedRequestHost, parseIpv4, ipInCidr, parseAllowList, lanAllowed } from "../src/lib/netbind.ts";
 import { assertCompleteSnapshot } from "../src/lib/backup-validation.ts";
 import { APP_VERSION } from "../src/lib/version.ts";
+import { motorStateAtDayEnd } from "../src/lib/motor-history.ts";
 import { validateRoster, loadRosterFile, resolveRoster } from "../src/lib/roster.ts";
 import { detectCloudPath, requireLocalSqlite } from "../src/lib/sqlite-cloud.ts";
 import { createServer } from "node:http";
 import { botApiBase, botSendDocumentUrl, botSendUrl, sendBotDocument, sendBotText } from "../src/lib/bot.ts";
 import { crc32, zipStored, zipDeflated } from "../src/lib/zip.ts";
 import { inflateRawSync } from "node:zlib";
+import { PGlite } from "@electric-sql/pglite";
 
 const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 const results = [];
@@ -25707,8 +25946,38 @@ const bundleKeys = bundleBlock ? [...bundleBlock[1].matchAll(/^\s*([A-Za-z]\w*)\
 t("full recovery bundle includes archived reading tables and run history", ["archiveRuns", "motorReadingsArchive", "processReadingsArchive"].every((name) => bundleKeys.includes(name)));
 const bundleSource = readFileSync("src/lib/backup-bundle.ts", "utf8");
 t("full recovery bundle streams compressed tables and hashes files", bundleSource.includes("createWriteStream") && bundleSource.includes("createGzip") && bundleSource.includes("sha256") && bundleSource.includes("jsonl"));
-t("bundle export redacts channel tokens", bundleSource.includes('if (table === "channels") row.token = ""') && bundleSource.includes('row.token !== ""'));
+t("bundle export redacts channel tokens and TOTP material", bundleSource.includes('if (table === "channels") row.token = ""') && bundleSource.includes('if (table === "shifts")') && bundleSource.includes('row.totpSecret = ""') && bundleSource.includes('row.token !== ""'));
+t("alerts use a partial unique index for one open alert per cell", schemaSource.includes('uniqueIndex("alerts_open_cell_uq")') && readFileSync("drizzle/0006_alerts_open_unique.sql", "utf8").includes("CREATE UNIQUE INDEX IF NOT EXISTS alerts_open_cell_uq"));
+t("external JSON backups redact TOTP and require a checksum", backupSource.includes('totpSecret: ""') && backupSource.includes('if (!sha && !opts.force)') && backupSource.includes('checksumPresent && sha === actual'));
+t("action errors use typed status handling", readFileSync("src/app/api/actions/route.ts", "utf8").includes('return errorResponse(error,') && readFileSync("src/app/api/actions/route.ts", "utf8").includes('throw forbidden("دسترسی ادمین لازم است")'));
 t("bundle restore validates before applying and retains matching local tokens", bundleSource.indexOf("verifyAt(BUNDLE_DIR, name)") < bundleSource.indexOf("restoreSnapshotFromBundle(BUNDLE_DIR") && bundleSource.includes("tokenMap.get(key)"));
+const migrationDedupWorks = async () => {
+  const client = new PGlite();
+  try {
+    for (const name of readdirSync("drizzle").filter((file) => /^000[0-5]_.*\.sql$/.test(file)).sort()) {
+      const sql = readFileSync(path.join("drizzle", name), "utf8");
+      for (const statement of sql.split("--> statement-breakpoint").map((part) => part.trim()).filter(Boolean)) await client.exec(statement);
+    }
+    await client.exec(`INSERT INTO alerts (at, day, tag, param, label, value, severity, message, shift_key, seen_at, acted_at, seen_shift, acted_shift, resolved_at)
+      VALUES ('1405/08/14 10:00:00', '1405/08/14', 'M-01', 'T10', 'temp', 91, 'warning', 'first', 'A', '1405/08/14 10:01:00', '', 'A', '', ''),
+             ('1405/08/14 11:00:00', '1405/08/14', 'M-01', 'T10', 'temp', 93, 'critical', 'duplicate', 'B', '', '', '', '', '')`);
+    const migration = readFileSync("drizzle/0006_alerts_open_unique.sql", "utf8");
+    for (const statement of migration.split("--> statement-breakpoint").map((part) => part.trim()).filter(Boolean)) await client.exec(statement);
+    const rows = await client.query("SELECT id, resolved_at FROM alerts ORDER BY id");
+    const open = rows.rows.filter((row) => row.resolved_at === "");
+    let duplicateRejected = false;
+    try {
+      await client.exec(`INSERT INTO alerts (at, day, tag, param, label, value, severity, message, shift_key, seen_at, acted_at, seen_shift, acted_shift, resolved_at)
+        VALUES ('1405/08/14 12:00:00', '1405/08/14', 'M-01', 'T10', 'temp', 95, 'critical', 'third', 'C', '', '', '', '', '')`);
+    } catch {
+      duplicateRejected = true;
+    }
+    return rows.rows.length === 2 && open.length === 1 && open[0].id === 1 && rows.rows[1].resolved_at !== "" && duplicateRejected;
+  } finally {
+    await client.close();
+  }
+};
+t("0006 migration preserves history, closes duplicates and enforces uniqueness", await migrationDedupWorks());
 const mirrorSource = readFileSync("src/lib/mirror.ts", "utf8");
 const pgDumpSource = readFileSync("scripts/pg-dump.mjs", "utf8");
 t("file backups are never automatically pruned", !backupSource.includes("pruneFileBackups") && !backupSource.includes("BACKUP_KEEP"));
@@ -25841,6 +26110,16 @@ for (const file of reportZipPaths) unlinkSync(file);
 const catalogDir = process.env.CATALOG_DIR ?? "files/catalogs";
 mkdirSync(catalogDir, { recursive: true });
 const catalogFilesBefore = new Set(readdirSync(catalogDir));
+const boundary = `audit6-${Date.now()}`;
+const largePdf = Buffer.concat([Buffer.from("%PDF-1.4\n"), Buffer.alloc(1024 * 1024, 0x41)]);
+const multipart = Buffer.concat([
+  Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="tag"\r\n\r\nM-01\r\n--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="audit6-1mb.pdf"\r\nContent-Type: application/pdf\r\n\r\n`),
+  largePdf,
+  Buffer.from(`\r\n--${boundary}--\r\n`),
+]);
+const largeUpload = await fetch(`${BASE}/api/catalogs`, { method: "POST", headers: { cookie: adm.cookie, "Content-Type": `multipart/form-data; boundary=${boundary}`, "Content-Length": String(multipart.length) }, body: multipart });
+const largeUploadBody = await largeUpload.json().catch(() => null);
+t("1 MiB PDF passes the proxy catalog limit", largeUpload.status === 200 && largeUploadBody?.ok === true, `status=${largeUpload.status}`);
 const catalogForm = new FormData();
 catalogForm.append("tag", "M-01");
 catalogForm.append("file", new Blob([Buffer.from("%PDF-1.4\n%%EOF")], { type: "application/pdf" }), "audit6-catalog.pdf");
@@ -25849,11 +26128,24 @@ const catalogUploadBody = await catalogUpload.json().catch(() => null);
 let missingPdfWarned = false;
 let backupTokensRedacted = false;
 let localTokenPreserved = false;
+let missingChecksumRejected = false;
+let externalTotpRedacted = false;
 if (catalogUpload.ok && catalogUploadBody?.ok) {
   const channelSet = await fetch(`${BASE}/api/actions`, {
     method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
     body: JSON.stringify({ action: "admin.channel", payload: { key: "backup", provider: "bale", chatId: "audit6-test-channel", token: "AUDIT6-SECRET", enabled: false } }),
   }).then((r) => r.json().catch(() => null));
+  const cleared = await fetch(`${BASE}/api/actions`, {
+    method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
+    body: JSON.stringify({ action: "admin.channel", payload: { key: "backup", clearToken: true, enabled: true } }),
+  });
+  const clearedState = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());
+  const tokenClearWorks = cleared.status === 200 && !clearedState.channels?.some((channel) => channel.key === "backup" && channel.hasToken && channel.enabled);
+  await fetch(`${BASE}/api/actions`, {
+    method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
+    body: JSON.stringify({ action: "admin.channel", payload: { key: "backup", provider: "bale", chatId: "audit6-test-channel", token: "AUDIT6-SECRET", enabled: false } }),
+  });
+  t("channel token can be explicitly cleared and disables channel", tokenClearWorks);
   const backupCreate = await fetch(`${BASE}/api/actions`, {
     method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
     body: JSON.stringify({ action: "backup.create", payload: {} }),
@@ -25861,6 +26153,17 @@ if (catalogUpload.ok && catalogUploadBody?.ok) {
   if (backupCreate?.file) {
     const backupPayload = JSON.parse(readFileSync(String(backupCreate.file), "utf8"));
     backupTokensRedacted = channelSet?.ok === true && backupPayload.channels?.every((channel) => channel.token === "");
+    externalTotpRedacted = backupPayload.shifts?.every((shift) => shift.totpSecret === "" && shift.totpPending === "" && shift.totpEnabled === false && Array.isArray(shift.totpBackupCodes) && shift.totpBackupCodes.length === 0 && shift.totpEnabledAt === "");
+    const checksum = `${String(backupCreate.file)}.sha256`;
+    const movedChecksum = `${checksum}.audit6`;
+    if (existsSync(checksum)) {
+      renameSync(checksum, movedChecksum);
+      const verifyMissing = await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie }, body: JSON.stringify({ action: "backup.verify", payload: { file: backupCreate.file } }) });
+      const verifyMissingBody = await verifyMissing.json().catch(() => null);
+      const restoreMissing = await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie }, body: JSON.stringify({ action: "backup.restore_file", payload: { file: backupCreate.file } }) });
+      missingChecksumRejected = verifyMissing.status === 422 && verifyMissingBody?.checksumOk === false && restoreMissing.status === 400;
+      renameSync(movedChecksum, checksum);
+    }
     const newCatalogFiles = readdirSync(catalogDir).filter((file) => !catalogFilesBefore.has(file));
     for (const file of newCatalogFiles) unlinkSync(path.join(catalogDir, file));
     const restored = await fetch(`${BASE}/api/actions`, {
@@ -25873,6 +26176,8 @@ if (catalogUpload.ok && catalogUploadBody?.ok) {
   }
 }
 t("external backup redacts bot channel tokens", backupTokensRedacted);
+t("external JSON backup redacts TOTP secret/pending/backup codes", externalTotpRedacted);
+t("backup without sidecar checksum fails verify and restore", missingChecksumRejected);
 t("restore preserves matching local channel token", localTokenPreserved);
 t("restore reports missing catalog PDF attachment", missingPdfWarned);
 const criticalEquipment = (state.equipment ?? []).find((row) => row.safetyCritical === true);
@@ -25887,6 +26192,22 @@ if (criticalEquipment) {
   criticalDeleteBlocked = r.status === 400 && String(b?.error ?? "").includes("ایمنی‌حیاتی");
 }
 t("safety-critical equipment cannot be soft-deleted", criticalDeleteBlocked);
+const syntheticMotorHistory = [
+  { id: 1, at: "1405/08/15 10:00:00", fromState: "on", toState: "off" },
+  { id: 2, at: "1405/08/16 10:00:00", fromState: "off", toState: "service" },
+];
+t("past report reconstructs state from subsequent transitions", motorStateAtDayEnd("service", syntheticMotorHistory, "1405/08/14 23:59:59") === "on");
+t("report day-end honors the latest transition on that date", motorStateAtDayEnd("service", syntheticMotorHistory, "1405/08/15 23:59:59") === "off");
+
+const currentForAlerts = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());
+const alertDay = currentForAlerts.now?.day ?? today;
+const alertWrites = await Promise.all(Array.from({ length: 6 }, () => fetch(`${BASE}/api/actions`, {
+  method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
+  body: JSON.stringify({ action: "motor.values", payload: { tag: "M-03", day: alertDay, intervalIndex: 5, values: { T10: 95 } } }),
+})));
+const afterAlerts = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());
+const openAlertCells = (afterAlerts.alerts ?? []).filter((alert) => alert.tag === "M-03" && alert.param === "T10" && alert.day === alertDay && !alert.actedAt && !alert.resolvedAt);
+t("concurrent alert writes leave at most one open row for a cell", alertWrites.every((response) => response.status === 200) && openAlertCells.length === 1, `writes=${alertWrites.map((r) => r.status).join(",")} open=${openAlertCells.length}`);
 const noteText = `audit6-probe-${Date.now()}`;
 const noteRes = await fetch(`${BASE}/api/actions`, {
   method: "POST",

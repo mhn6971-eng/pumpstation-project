@@ -5,7 +5,7 @@
     "dev": "node scripts/serve.mjs dev",
     "preview": "node scripts/init-db.mjs && node scripts/serve.mjs dev",
     "preview:lan": "node scripts/init-db.mjs && node scripts/serve.mjs dev --host lan",
-    "stackblitz": "node scripts/init-db.mjs && node node_modules/next/dist/bin/next dev -H 0.0.0.0 -p 3000 --webpack",
+    "stackblitz": "node scripts/init-db.mjs && node scripts/stackblitz-warning.mjs",
     "db:init": "node scripts/init-db.mjs",
     "db:migrate": "node scripts/init-db.mjs",
     "build": "next build",
@@ -14,7 +14,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "doctor": "node scripts/doctor.mjs",
-    "test:audit": "node audit/audit1.mjs && node audit/audit2.mjs && node audit/audit3.mjs && node audit/audit4.mjs && node audit/audit5.mjs && node audit/audit6.mjs",
+    "test:audit": "node audit/jalali.test.mjs && node audit/audit1.mjs && node audit/audit2.mjs && node audit/audit3.mjs && node audit/audit4.mjs && node audit/audit5.mjs && node audit/audit6.mjs && node audit/conc.mjs",
     "test:perf": "node audit/perf.mjs",
     "test": "npm run typecheck && npm run test:audit",
     "db:pg-init": "node scripts/pg-init.mjs",
@@ -44,5 +44,5 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   },
-  "version": "1.4.5"
+  "version": "1.4.6"
 }

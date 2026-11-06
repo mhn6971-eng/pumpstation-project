@@ -1,2 +1,10 @@
 # ورودی‌های بازبینی محلی (حاوی اطلاعات واقعی؛ هرگز کامیت نشود)
 _review-edition2/
+
+# خروجی‌های توزیع نصب ویندوز (ساخته‌شده با package-windows.ps1)
+Pumpstation-Windows-*.zip
+Pumpstation-Windows-*.zip.sha256
+dist/
+
+# runtime/npm cache برای بستهٔ نصبی آفلاین؛ فقط داخل ZIP توزیع قرار می‌گیرد
+offline-vendor/

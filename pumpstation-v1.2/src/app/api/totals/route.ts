@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { and, gte, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { dailyTotals } from "@/db/schema";
 import { getSessionUser } from "@/lib/auth";
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     .orderBy(sql`substring(${dailyTotals.day}, 1, 7) desc`);
 
   const prefix = `${year}/${pad(month)}/`;
-  const rows = await db.select().from(dailyTotals).where(sql`${dailyTotals.day} like ${`${prefix}%`}`).orderBy(dailyTotals.day);
+  const rows = await db.select().from(dailyTotals).where(and(gte(dailyTotals.day, `${prefix}01`), lte(dailyTotals.day, `${prefix}31`))).orderBy(dailyTotals.day);
   const map = new Map(rows.map((r) => [r.day, r.value]));
   const days = monthDaysOf(year, month);
   const table = Array.from({ length: days }, (_, i) => {

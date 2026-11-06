@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 /**
  * پشتیبان‌گیری روزانه از PostgreSQL با pg_dump (فرمت custom، فشرده).
- * مناسب Windows Task Scheduler / cron. نسخه‌های قدیمی خودکار پاک می‌شوند.
+ * مناسب Windows Task Scheduler / cron. هیچ نسخهٔ قدیمی به‌صورت خودکار پاک نمی‌شود.
  *
  *   DATABASE_URL=postgresql://... node scripts/pg-dump.mjs
  *
  * متغیرها:
  *   PGDUMP_DIR   پوشهٔ مقصد        (پیش‌فرض: .data/pgdump)
- *   PGDUMP_KEEP  تعداد نسخهٔ نگه‌داری (پیش‌فرض: 14)
  *   PGDUMP_BIN   مسیر pg_dump.exe  (اگر در PATH نیست)
+ * نسخه‌های قدیمی فقط با اقدام دستی ادمین حذف می‌شوند.
  *   MIRROR_DIR   اگر ست باشد، نسخهٔ تازه همان‌جا هم کپی می‌شود
  */
 import { spawn } from "node:child_process";
-import { copyFile, mkdir, readdir, stat, unlink } from "node:fs/promises";
+import { copyFile, mkdir, stat } from "node:fs/promises";
 import path from "node:path";
 
 const url = (process.env.DATABASE_URL ?? "").trim();
@@ -22,7 +22,6 @@ if (!/^postgres(ql)?:\/\//i.test(url)) {
 }
 
 const outDir = path.resolve(process.cwd(), process.env.PGDUMP_DIR ?? ".data/pgdump");
-const keep = Number(process.env.PGDUMP_KEEP ?? 14);
 const bin = process.env.PGDUMP_BIN?.trim() || "pg_dump";
 const mirrorDir = process.env.MIRROR_DIR?.trim() ? path.resolve(process.env.MIRROR_DIR) : "";
 
@@ -56,12 +55,7 @@ async function main() {
     console.log(`✔ کپی روی آینه: ${mirrorDir}`);
   }
 
-  const files = (await readdir(outDir)).filter((f) => f.endsWith(".dump")).sort();
-  for (const old of files.slice(0, Math.max(0, files.length - keep))) {
-    await unlink(path.join(outDir, old)).catch(() => {});
-    console.log(`  حذف نسخهٔ قدیمی: ${old}`);
-  }
-  console.log(`✔ نگه‌داری ${keep} نسخهٔ آخر در ${outDir}`);
+  console.log(`✔ نسخهٔ تازه ذخیره شد؛ هیچ دامپ قدیمی به‌طور خودکار حذف نمی‌شود (${outDir})`);
 }
 
 try {

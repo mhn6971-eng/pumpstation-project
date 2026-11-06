@@ -2,6 +2,8 @@ import { statfs } from "node:fs/promises";
 import { sql } from "drizzle-orm";
 import { db, usingPostgres } from "@/db";
 import { getSessionUser } from "@/lib/auth";
+import { sessionSecretStatus } from "@/lib/secret";
+import { resolveRoster } from "@/lib/roster";
 import { APP_VERSION } from "@/lib/version";
 import { listFileBackups } from "@/lib/backup";
 import { jsonResponse } from "@/lib/errors";
@@ -37,6 +39,21 @@ export async function GET(request: Request) {
 
   const warnings: string[] = [];
   const detail: Record<string, unknown> = {};
+
+  const secretStatus = sessionSecretStatus();
+  detail.sessionSecret = secretStatus;
+  if (!secretStatus.persistent) {
+    warnings.push("راز نشست فقط در حافظه است؛ با راه‌اندازی مجدد سرور همهٔ نشست‌ها باطل می‌شوند");
+  }
+
+  try {
+    const roster = resolveRoster();
+    detail.roster = { source: roster.source };
+    if (roster.source === "sample") warnings.push("از روستر نمونهٔ آزمایشی استفاده می‌شود؛ پیش از بهره‌برداری واقعی roster.local.json را بسازید");
+  } catch {
+    detail.roster = { source: "unavailable" };
+    warnings.push("روستر شیفت‌ها در دسترس یا معتبر نیست؛ ورود و بهره‌برداری را بررسی کنید");
+  }
 
   try {
     const sizeRow = await db.execute<{ size: number }>(sql`select pg_database_size(current_database())::bigint as size`);

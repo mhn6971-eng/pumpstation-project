@@ -10,6 +10,7 @@
 import crypto from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
+import { verifyTotp as verifyTotpUnderTest } from "../src/lib/totp.ts";
 
 const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 const ADMIN_PIN = process.env.ADMIN_PIN ?? "9009";
@@ -155,6 +156,15 @@ async function main() {
   check("فعال‌سازی با کد درست", enable.res.status === 200 && enable.json?.ok === true, String(enable.res.status));
   check("۱۰ کد پشتیبان صادر می‌شود", backupCodes.length === 10, String(backupCodes.length));
   check("قالب کد پشتیبان XXXX-XXXX است", backupCodes.every((c) => /^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(c)), backupCodes[0]);
+  check("secret خراب TOTP به false تبدیل می‌شود، نه exception", verifyTotpUnderTest("not-a-valid-secret", "123456") === false);
+
+  const externalBackup = await act("backup.create");
+  const externalBackupFile = String(externalBackup.json?.file ?? "");
+  const externalBackupPayload = externalBackupFile ? JSON.parse(await readFile(externalBackupFile, "utf8")) : null;
+  const exportedShifts = externalBackupPayload?.shifts ?? [];
+  check("JSON خارجی هیچ راز/کد TOTP ندارد", exportedShifts.length > 0 && exportedShifts.every((row) => row.totpSecret === "" && row.totpPending === "" && row.totpEnabled === false && Array.isArray(row.totpBackupCodes) && row.totpBackupCodes.length === 0 && row.totpEnabledAt === ""));
+  const restoredExternalBackup = await act("backup.restore_file", { file: externalBackupFile });
+  check("بازیابی JSON محلی، TOTP فعلی را حفظ می‌کند", restoredExternalBackup.res.status === 200 && String(restoredExternalBackup.json?.message ?? "").includes("TOTP"), String(restoredExternalBackup.res.status));
 
   // ورود بدون کد
   cookie = "";
@@ -236,14 +246,39 @@ async function main() {
   const badToken = await call("/api/mirror", { method: "POST", headers: { "x-mirror-token": "invalid-token-value" } });
   check("توکن نامعتبر آینه ۴۰۳ می‌گیرد", badToken.res.status === 403, String(badToken.res.status));
 
+  const historicalReading = await act("process.set", { tag: "PIT-001", value: 4.2, day: "1400/01/01", intervalIndex: 0 });
+  check("قرائت تاریخی برای آزمون آرشیو ثبت شد", historicalReading.res.status === 200, String(historicalReading.res.status));
+  const archived = await act("data.archive", { years: 1 });
+  check("قرائت تاریخی به جدول آرشیو منتقل شد", archived.res.status === 200 && Number(archived.json?.processRows ?? 0) >= 1, String(archived.json?.processRows ?? archived.res.status));
+
+  const bundleChannel = await act("admin.channel", { key: "backup", provider: "bale", chatId: "bundle-audit-channel", token: "BUNDLE-SECRET-TEST", enabled: true });
+  check("کانال آزمایشی برای سنجش redaction آماده است", bundleChannel.res.status === 200, String(bundleChannel.res.status));
+
+  const pdfForm = new FormData();
+  pdfForm.append("tag", "AUDIT-BUNDLE");
+  pdfForm.append("file", new Blob(["%PDF-1.4\\n% bundle integration test\\n"], { type: "application/pdf" }), "audit-bundle.pdf");
+  const uploadedPdf = await fetch(`${BASE}/api/catalogs`, { method: "POST", headers: { Cookie: cookie }, body: pdfForm });
+  const uploadedPdfJson = await safeJson(uploadedPdf);
+  check("PDF آزمایشی در کاتالوگ بارگذاری شد", uploadedPdf.status === 200 && Number(uploadedPdfJson?.id) > 0, String(uploadedPdfJson?.error ?? uploadedPdf.status));
+
+  const bundleCreated = await act("backup.bundle.create");
+  const bundleName = String(bundleCreated.json?.name ?? "");
+  check("بستهٔ بازیابی شامل snapshot همهٔ جدول‌ها ساخته می‌شود", bundleCreated.res.status === 200 && bundleCreated.json?.ok === true && bundleName.startsWith("pumpstation-bundle-"), String(bundleCreated.res.status));
+  const bundleVerified = await act("backup.bundle.verify", { name: bundleName });
+  check("بستهٔ بازیابی checksum جدول‌ها/فایل‌ها را تأیید می‌کند", bundleVerified.res.status === 200 && bundleVerified.json?.ok === true && bundleVerified.json?.complete === true, String(bundleVerified.json?.error ?? bundleVerified.res.status));
+  check("بسته هم قرائت بایگانی و هم PDF را دارد", Number(bundleVerified.json?.tableCounts?.processReadingsArchive ?? 0) >= 1 && Number(bundleVerified.json?.assets ?? 0) >= 2, JSON.stringify({ archive: bundleVerified.json?.tableCounts?.processReadingsArchive, assets: bundleVerified.json?.assets }));
+
   const mirrorNow = await act("mirror.now");
   check("کپی تازه روی آینه انجام شد", mirrorNow.res.status === 200 && mirrorNow.json?.ok === true, String(mirrorNow.res.status));
   check("هش کپی گزارش می‌شود", /^[0-9a-f]{64}$/.test(String(mirrorNow.json?.sha256 ?? "")), String(mirrorNow.json?.sha256 ?? "").slice(0, 12));
+  check("بستهٔ کامل نیز به آینه کپی می‌شود", mirrorNow.json?.bundle === bundleName, String(mirrorNow.json?.bundle ?? ""));
+  const mirroredBundleManifest = path.join(String(mirrorNow.json?.target ?? ""), "bundles", bundleName, "manifest.json");
+  check("manifest بسته روی آینه موجود است", await readFile(mirroredBundleManifest, "utf8").then((text) => JSON.parse(text).name === bundleName).catch(() => false));
 
   // بررسی فیزیکی: فایل روی آینه هست و هشش با مبدأ یکی است
   const mirrorDir = String(mirrorNow.json?.target ?? "");
   const fileName = String(mirrorNow.json?.file ?? "");
-  const sourcePath = path.resolve(".data/backups", fileName);
+  const sourcePath = path.resolve(process.env.BACKUP_DIR ?? ".data/backups", fileName);
   const destPath = path.resolve(mirrorDir, fileName);
   let physicallyVerified = false;
   let verifyDetail = "";
@@ -262,7 +297,7 @@ async function main() {
   const status1 = await act("mirror.status");
   check("آخرین اجرای آینه در سابقه ثبت شده", status1.json?.last?.ok === true && status1.json?.last24 >= 1, JSON.stringify({ last24: status1.json?.last24 }));
   check("حکم آینه پس از کپی سالم است", status1.json?.verdict === "ok", String(status1.json?.verdict));
-  check("نگه‌داری نسخه‌های آینه تنظیم شده", Number(status1.json?.keep) >= 1, String(status1.json?.keep));
+  check("نگه‌داری نسخه‌های آینه نامحدود است", status1.json?.keep === "نامحدود", String(status1.json?.keep));
 
   // اجرای زمان‌بند با توکن محلی (همان مسیری که Task Scheduler استفاده می‌کند)
   const tokenPath = path.resolve(process.env.MIRROR_TOKEN_FILE ?? ".data/mirror-token");
@@ -283,6 +318,14 @@ async function main() {
   check("وضعیت آینه در گزارش کامل هست", Boolean(healthFull.json?.detail?.mirror?.verdict));
   const mode = healthFull.json?.db?.mode;
   check("حالت دیتابیس با تنظیمات هم‌خوان است", mode === (process.env.DATABASE_URL ? "postgres" : "pglite"), String(mode));
+
+  const bundleRestore = await act("backup.bundle.restore", { name: bundleName });
+  check("بازیابی بسته اتمیک است و نسخهٔ ایمنی می‌سازد", bundleRestore.res.status === 200 && bundleRestore.json?.ok === true && String(bundleRestore.json?.safetyBundle ?? "").startsWith("pumpstation-bundle-"), String(bundleRestore.json?.error ?? bundleRestore.res.status));
+  check("توکن کانال مقصد یکسان هنگام restore حفظ می‌شود", !((bundleRestore.json?.channelsNeedSetup ?? [])).includes("backup"), JSON.stringify(bundleRestore.json?.channelsNeedSetup));
+  const restoredStats = await act("data.stats");
+  check("پس از بازیابی، قرائت بایگانی‌شده در دیتابیس هست", Number(restoredStats.json?.archive?.archive?.process ?? 0) >= 1, JSON.stringify(restoredStats.json?.archive?.archive));
+  const restoredPdf = await fetch(`${BASE}/api/catalogs?id=${Number(uploadedPdfJson?.id)}`, { headers: { Cookie: cookie } });
+  check("پس از بازیابی، PDF پیوست قابل دریافت است", restoredPdf.status === 200 && restoredPdf.headers.get("content-type") === "application/pdf", String(restoredPdf.status));
 
   /* ---------- پایان ---------- */
   await act("admin.unlock", { key: "all" });

@@ -7,8 +7,8 @@
  *
  * قرارداد قالب (تولیدشده با scripts/generate-code-all.mjs):
  *   ── FILE: <مسیر>  (<n> خط) ──\n\n<محتوا>\n\n
- * که <محتوا> دقیقاً خط‌های منبع بدون \n پایانی است و n = تعداد خط‌های
- * محتوا + ۱. برش با n انجام و سپس مرزبندی (خط خالی + مارکر/سربرگ/پایان)
+ *   که <محتوا> دقیقاً خط‌های منبع بدون \n پایانی است و n = تعداد خط‌های
+ * محتوا + ۱. برش با n انجام و سپس مرزبندی (خط خالی + مارکر فایل/پایان)
  * اعتبارسنجی می‌شود؛ هر انحرافی خطا می‌دهد نه خروجی خراب.
  * ورودی‌های «../...» (فایل CI بیرون از ریشهٔ برنامه) رد می‌شوند چون برای
  * ساخت/اجرا/تست لازم نیستند.
@@ -41,7 +41,7 @@ export function extractBundle(bundlePath, outDir) {
     }
     const next = lines[i + 1] ?? "";
     const restBlank = lines.slice(i + 1).join("\n").trim() === "";
-    if (!restBlank && !next.startsWith("── FILE: ") && !next.startsWith("####")) {
+    if (!restBlank && !next.startsWith("── FILE: ")) {
       throw new Error(`مرز پایانی ${rel} خراب است`);
     }
     if (rel.startsWith("../") || path.isAbsolute(rel)) {

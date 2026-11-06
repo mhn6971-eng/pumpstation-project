@@ -74,6 +74,13 @@ log("operator login", opA.status === 200 && opA.cookie);
   }
 
   const third = await login("B", "2022");
+  const otherAdmin = await login("admin", "9009");
+  const revokeOwnOthers = await act(admin.cookie, "session.revoke_others", {});
+  const otherAdminStatus = await fetch(`${BASE}/api/state`, { headers: { cookie: otherAdmin.cookie } }).then((r) => r.status);
+  const operatorStatus = await fetch(`${BASE}/api/state`, { headers: { cookie: third.cookie } }).then((r) => r.status);
+  const revokeAllWithoutConfirm = await act(admin.cookie, "session.revoke_others", { key: "all" });
+  log("revoke_others defaults to own admin sessions", revokeOwnOthers.status === 200 && otherAdminStatus === 401 && operatorStatus === 200, `admin=${otherAdminStatus} operator=${operatorStatus}`);
+  log("global revoke requires explicit confirmation", revokeAllWithoutConfirm.status === 403, `status=${revokeAllWithoutConfirm.status}`);
   const before = await fetch(`${BASE}/api/state`, { headers: { cookie: third.cookie } }).then((r) => r.status);
   const revokeOthers = await act(admin.cookie, "session.revoke_others", { key: "B" });
   const after = await fetch(`${BASE}/api/state`, { headers: { cookie: third.cookie } }).then((r) => r.status);

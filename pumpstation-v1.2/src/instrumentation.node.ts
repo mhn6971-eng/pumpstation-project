@@ -5,6 +5,13 @@
 export async function registerNode() {
   const { recordEvent } = await import("@/lib/log");
 
+  // In production, validate the roster and initialize safe defaults before serving requests.
+  // A missing/sample roster is a startup failure, not a page-level 500 after the server is live.
+  if (process.env.NODE_ENV === "production") {
+    const { ensureSeed } = await import("@/db/seed");
+    await ensureSeed();
+  }
+
   process.on("unhandledRejection", (reason) => {
     void recordEvent({ level: "error", source: "process", message: "unhandledRejection", detail: reason });
   });

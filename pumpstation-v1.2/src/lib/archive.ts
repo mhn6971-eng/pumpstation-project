@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
+import { once } from "node:events";
 import { createWriteStream } from "node:fs";
-import { mkdir, stat } from "node:fs/promises";
+import { mkdir, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { createGzip } from "node:zlib";
 import { asc, inArray, lt, sql } from "drizzle-orm";
@@ -45,16 +46,23 @@ function writer(file: string) {
     stream.on("error", reject);
     gzip.on("error", reject);
   });
+  // A later archive/write error may happen before close() awaits this promise.
+  void done.catch(() => undefined);
   return {
     async line(obj: unknown) {
       const text = `${JSON.stringify(obj)}\n`;
       hash.update(text);
-      if (!gzip.write(text)) await new Promise<void>((r) => gzip.once("drain", () => r()));
+      if (!gzip.write(text)) await once(gzip, "drain");
     },
     async close() {
-      await new Promise<void>((resolve) => gzip.end(resolve));
+      gzip.end();
       await done;
       return hash.digest("hex");
+    },
+    async abort(error?: Error) {
+      gzip.destroy(error);
+      stream.destroy(error);
+      await done.catch(() => undefined);
     },
   };
 }
@@ -91,56 +99,68 @@ export async function archiveOlderThan(years: number, shiftKey: string): Promise
   let motorRows = 0;
   let processRows = 0;
 
-  // موتور
-  for (;;) {
-    const rows = await db
-      .select()
-      .from(motorReadings)
-      .where(lt(motorReadings.day, cutoffDay))
-      .orderBy(asc(motorReadings.id))
-      .limit(CHUNK);
-    if (!rows.length) break;
-    for (const r of rows) await w.line({ t: "motor", ...r });
-    await db.transaction(async (tx) => {
-      await tx.insert(motorReadingsArchive).values(rows.map((r) => ({ ...r, id: r.id }))).onConflictDoNothing();
-      await tx.delete(motorReadings).where(inArray(motorReadings.id, rows.map((r) => r.id)));
-    });
-    motorRows += rows.length;
-    if (rows.length < CHUNK) break;
+  let sha256: string;
+  try {
+    // موتور
+    for (;;) {
+      const rows = await db
+        .select()
+        .from(motorReadings)
+        .where(lt(motorReadings.day, cutoffDay))
+        .orderBy(asc(motorReadings.id))
+        .limit(CHUNK);
+      if (!rows.length) break;
+      for (const r of rows) await w.line({ t: "motor", ...r });
+      await db.transaction(async (tx) => {
+        await tx.insert(motorReadingsArchive).values(rows.map((r) => ({ ...r, id: r.id }))).onConflictDoNothing();
+        await tx.delete(motorReadings).where(inArray(motorReadings.id, rows.map((r) => r.id)));
+      });
+      motorRows += rows.length;
+      if (rows.length < CHUNK) break;
+    }
+
+    // فرایند
+    for (;;) {
+      const rows = await db
+        .select()
+        .from(processReadings)
+        .where(lt(processReadings.day, cutoffDay))
+        .orderBy(asc(processReadings.id))
+        .limit(CHUNK);
+      if (!rows.length) break;
+      for (const r of rows) await w.line({ t: "process", ...r });
+      await db.transaction(async (tx) => {
+        await tx.insert(processReadingsArchive).values(rows.map((r) => ({ ...r, id: r.id }))).onConflictDoNothing();
+        await tx.delete(processReadings).where(inArray(processReadings.id, rows.map((r) => r.id)));
+      });
+      processRows += rows.length;
+      if (rows.length < CHUNK) break;
+    }
+    sha256 = await w.close();
+  } catch (error) {
+    await w.abort(error instanceof Error ? error : undefined);
+    await rm(file, { force: true }).catch(() => undefined);
+    throw error;
   }
 
-  // فرایند
-  for (;;) {
-    const rows = await db
-      .select()
-      .from(processReadings)
-      .where(lt(processReadings.day, cutoffDay))
-      .orderBy(asc(processReadings.id))
-      .limit(CHUNK);
-    if (!rows.length) break;
-    for (const r of rows) await w.line({ t: "process", ...r });
-    await db.transaction(async (tx) => {
-      await tx.insert(processReadingsArchive).values(rows.map((r) => ({ ...r, id: r.id }))).onConflictDoNothing();
-      await tx.delete(processReadings).where(inArray(processReadings.id, rows.map((r) => r.id)));
-    });
-    processRows += rows.length;
-    if (rows.length < CHUNK) break;
-  }
-
-  const sha256 = await w.close();
   const info = await stat(/*turbopackIgnore: true*/ file).catch(() => null);
   const bytes = info?.size ?? 0;
 
-  await db.insert(archiveRuns).values({
-    at: jalaliNow(),
-    shiftKey,
-    cutoffDay,
-    motorRows,
-    processRows,
-    file,
-    sha256,
-    bytes,
-  });
+  try {
+    await db.insert(archiveRuns).values({
+      at: jalaliNow(),
+      shiftKey,
+      cutoffDay,
+      motorRows,
+      processRows,
+      file,
+      sha256,
+      bytes,
+    });
+  } catch (error) {
+    await rm(file, { force: true }).catch(() => undefined);
+    throw error;
+  }
 
   logEvent("info", "archive", "بایگانی انجام شد", { cutoffDay, motorRows, processRows, bytes });
   return { cutoffDay, motorRows, processRows, file, sha256, bytes };

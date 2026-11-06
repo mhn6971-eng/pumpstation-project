@@ -1,4 +1,4 @@
-import * as J from "/tmp/jal/jalali.js";
+import * as J from "../src/lib/jalali.ts";
 let fails = 0;
 const eq = (name, got, want) => { const ok = JSON.stringify(got) === JSON.stringify(want); if (!ok) fails++; console.log(`${ok ? "PASS" : "FAIL"} | ${name} | got=${JSON.stringify(got)} want=${JSON.stringify(want)}`); };
 
@@ -19,8 +19,8 @@ eq("Nowruz 1405", J.toGregorian(1405, 1, 1), { gy: 2026, gm: 3, gd: 21 });
 
 // day arithmetic across year/month boundaries
 eq("addDays 1405/12/29 +1", J.addDaysToDay("1405/12/29", 1), "1406/01/01");
-eq("addDays 1404/12/30 +1 (leap→next)", J.addDaysToDay("1404/12/30", 1), "1405/01/01");
-eq("addDays 1405/01/01 -1", J.addDaysToDay("1405/01/01", -1), "1404/12/30");
+eq("addDays 1404/12/29 +1 (non-leap→next)", J.addDaysToDay("1404/12/29", 1), "1405/01/01");
+eq("addDays 1405/01/01 -1", J.addDaysToDay("1405/01/01", -1), "1404/12/29");
 eq("addDays 1405/07/01 -1", J.addDaysToDay("1405/07/01", -1), "1405/06/31");
 eq("roundtrip 1000 days", (() => { let d = "1405/08/13"; for (let i = 0; i < 1000; i++) d = J.addDaysToDay(d, 1); for (let i = 0; i < 1000; i++) d = J.addDaysToDay(d, -1); return d; })(), "1405/08/13");
 
@@ -38,3 +38,4 @@ eq("weekday at 2026-11-04", op("2026-11-04T12:30:00Z").weekday, "چهارشنب�
 eq("faDigits", J.faDigits("PIT-001 12"), "PIT-۰۰۱ ۱۲");
 
 console.log(fails ? `\n${fails} FAILED` : "\nall jalali tests passed");
+if (fails) process.exitCode = 1;

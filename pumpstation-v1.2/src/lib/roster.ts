@@ -8,7 +8,7 @@ import path from "node:path";
  *   ۱) فایل محلی `data/roster.local.json` (یا مسیر ROSTER_FILE) — اگر هست،
  *      حتماً باید معتبر باشد؛ اگر خراب باشد سرور بالا نمی‌آید تا اشتباهاً
  *      با PIN آزمایشی کار نکند.
- *   ۲) وگرنه نمونهٔ ساختگی `data/roster.sample.json` (فقط تست و توسعه).
+ *   ۲) وگرنه نمونهٔ ساختگی `data/roster.sample.json` (فقط تست و توسعه؛ در production پیش‌فرض ممنوع).
  *
  * این ماژول هیچ ایمپورتی از داخل src ندارد تا هم در سرور، هم در اسکریپت‌ها
  * و هم در تست‌ها (audit6) مستقیم قابل استفاده باشد.
@@ -23,6 +23,14 @@ export type RosterEntry = {
 };
 
 export type RosterSource = "local" | "sample";
+
+let sampleWarningPrinted = false;
+
+function warnSampleRoster(localPath: string) {
+  if (sampleWarningPrinted) return;
+  sampleWarningPrinted = true;
+  console.warn(`[roster] فایل محلی پیدا نشد یا مسیر روستر به نمونه اشاره می‌کند (${localPath}) — از روستر نمونهٔ ساختگی استفاده می‌شود؛ پیش از بهره‌برداری واقعی roster.local.json را بسازید.`);
+}
 
 export function sampleRosterPath(): string {
   return path.join(process.cwd(), "data", "roster.sample.json");
@@ -84,10 +92,25 @@ export function resolveRoster(): { roster: RosterEntry[]; source: RosterSource; 
   const local = localRosterPath();
   if (existsSync(local)) {
     const roster = loadRosterFile(local);
-    return { roster, source: "local", path: local };
+    if (process.env.NODE_ENV === "production" && process.env.ALLOW_SAMPLE_ROSTER !== "1") {
+      const samplePins = new Map(loadRosterFile(sampleRosterPath()).map((entry) => [entry.key, entry.pin]));
+      if (roster.some((entry) => samplePins.get(entry.key) === entry.pin)) {
+        throw new Error("روستر محلی هنوز PIN پیش‌فرض نمونه دارد؛ PINهای واقعی را تعیین کنید. برای آزمون کنترل‌شده فقط ALLOW_SAMPLE_ROSTER=1 را تنظیم کنید.");
+      }
+    }
+    const source: RosterSource = path.resolve(local) === path.resolve(sampleRosterPath()) ? "sample" : "local";
+    if (source === "sample") warnSampleRoster(local);
+    return { roster, source, path: local };
   }
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_SAMPLE_ROSTER !== "1") {
+    throw new Error(
+      `روستر محلی پیدا نشد (${local}). اجرای production با PINهای نمونه مسدود است؛ ` +
+        "فایل data/roster.local.json را بسازید. برای تست کنترل‌شده فقط ALLOW_SAMPLE_ROSTER=1 را تنظیم کنید.",
+    );
+  }
+
   const sample = sampleRosterPath();
   const roster = loadRosterFile(sample);
-  console.warn(`[roster] فایل محلی پیدا نشد (${local}) — از روستر نمونهٔ ساختگی استفاده می‌شود؛ پیش از بهره‌برداری واقعی roster.local.json را بسازید.`);
+  warnSampleRoster(local);
   return { roster, source: "sample", path: sample };
 }

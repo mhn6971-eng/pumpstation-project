@@ -72,13 +72,20 @@ export function totpCode(secret: string, at: number = Date.now(), step = TOTP_ST
 export function verifyTotp(secret: string, code: string, options: { window?: number; at?: number } = {}) {
   const digits = String(code ?? "").replace(/\D/g, "");
   if (digits.length !== TOTP_DIGITS) return false;
-  const window = options.window ?? 1;
-  const at = options.at ?? Date.now();
-  for (let offset = -window; offset <= window; offset += 1) {
-    const candidate = totpCode(secret, at + offset * TOTP_STEP_SECONDS * 1000);
-    const a = Buffer.from(candidate);
-    const b = Buffer.from(digits);
-    if (a.length === b.length && timingSafeEqual(a, b)) return true;
+  try {
+    const decoded = base32Decode(secret);
+    if (decoded.length < 10) return false;
+    const window = Math.max(0, Math.min(10, Math.floor(options.window ?? 1)));
+    const at = options.at ?? Date.now();
+    for (let offset = -window; offset <= window; offset += 1) {
+      const candidate = totpCode(base32Encode(decoded), at + offset * TOTP_STEP_SECONDS * 1000);
+      const a = Buffer.from(candidate);
+      const b = Buffer.from(digits);
+      if (a.length === b.length && timingSafeEqual(a, b)) return true;
+    }
+  } catch {
+    // راز خراب/نامعتبر مثل کد نادرست رد می‌شود؛ جزئیات پیکربندی به کاربر نشت نمی‌کند.
+    return false;
   }
   return false;
 }

@@ -1,23 +1,6 @@
-import SAMPLE_ROSTER_FILE from "../../data/roster.sample.json";
-
 export type EquipmentStatus = "ready" | "in_service";
-export type MotorState = "on" | "off" | "service";
+export type MotorState = "on" | "off" | "service" | "unknown";
 export type Severity = "ok" | "warning" | "critical";
-
-/**
- * روستر نمونهٔ ساختگی (نام‌ها و PINها واقعی نیستند) — فقط برای تست و توسعه.
- * نام واقعی اپراتورها و PIN واقعی در `data/roster.local.json` روی دستگاه
- * ایستگاه است و هرگز در کد و گیت نمی‌آید (src/lib/roster.ts).
- */
-export type RosterEntry = {
-  key: string;
-  label: string;
-  role: "operator" | "admin";
-  pin: string;
-  members: string[];
-};
-
-export const SAMPLE_ROSTER: RosterEntry[] = (SAMPLE_ROSTER_FILE as unknown as { roster: RosterEntry[] }).roster;
 
 export const MOTORS = [
   { tag: "M-01", pumpTag: "P-01" },
@@ -303,6 +286,7 @@ export const MOTOR_STATE_FA: Record<string, string> = {
   on: "روشن",
   off: "خاموش",
   service: "در سرویس",
+  unknown: "بررسی‌نشده",
 };
 
 export function severityRank(s: Severity) {

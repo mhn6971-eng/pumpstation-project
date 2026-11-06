@@ -34,14 +34,14 @@ const SECTIONS = [
     "data/roster.sample.json",
     "drizzle/0000_woozy_omega_flight.sql", "drizzle/0001_hardening.sql",
     "drizzle/0002_resilience.sql", "drizzle/0003_two_factor.sql", "drizzle/0004_mirror_ts.sql",
-    "drizzle/0005_megger_pi.sql",
+    "drizzle/0005_megger_pi.sql", "drizzle/0006_alerts_open_unique.sql",
   ] },
   { title: "کتابخانهٔ منطق (src/lib)", files: [
     "src/lib/version.ts", "src/lib/errors.ts", "src/lib/types.ts", "src/lib/log.ts",
     "src/lib/dblock.ts", "src/lib/pin.ts", "src/lib/secret.ts", "src/lib/totp.ts",
     "src/lib/auth.ts", "src/lib/sessions.ts", "src/lib/security.ts", "src/lib/audit.ts",
-    "src/lib/jalali.ts", "src/lib/domain.ts", "src/lib/state.ts", "src/lib/reporting.ts",
-    "src/lib/backup.ts", "src/lib/backup-validation.ts", "src/lib/mirror.ts", "src/lib/archive.ts",
+    "src/lib/jalali.ts", "src/lib/domain.ts", "src/lib/state.ts", "src/lib/motor-history.ts", "src/lib/reporting.ts",
+    "src/lib/backup.ts", "src/lib/backup-validation.ts", "src/lib/backup-bundle.ts", "src/lib/mirror.ts", "src/lib/archive.ts",
     "src/lib/roster.ts", "src/lib/netbind.ts", "src/lib/sqlite-cloud.ts",
     "src/lib/bot.ts", "src/lib/zip.ts",
   ] },
@@ -50,6 +50,7 @@ const SECTIONS = [
     "src/app/api/history/route.ts", "src/app/api/totals/route.ts",
     "src/app/api/backups/[id]/route.ts", "src/app/api/mirror/route.ts",
     "src/app/api/health/route.ts", "src/app/api/catalogs/route.ts", "src/app/api/export/route.ts",
+    "src/app/api/report-archives/route.ts",
   ] },
   { title: "صفحات، چیدمان و قلاب‌های زمان اجرا (src/app و ریشهٔ src)", files: [
     "src/app/layout.tsx", "src/app/page.tsx", "src/app/error.tsx", "src/app/loading.tsx",
@@ -70,7 +71,7 @@ const SECTIONS = [
     "scripts/init-db.mjs", "scripts/doctor.mjs", "scripts/reset-admin-pin.mjs",
     "scripts/mirror-backup.mjs", "scripts/pg-init.mjs", "scripts/pg-dump.mjs",
     "scripts/pg-import-json.mjs", "scripts/serve.mjs", "scripts/bulk-import.mjs",
-    "scripts/generate-code-all.mjs", "scripts/extract-code-all.mjs", "scripts/test-fresh-install.mjs",
+    "scripts/generate-code-all.mjs", "scripts/extract-code-all.mjs", "scripts/test-fresh-install.mjs", "scripts/stackblitz-warning.mjs",
   ] },
   { title: "آزمون‌های خودکار (audit)", files: [
     "audit/audit1.mjs", "audit/audit2.mjs", "audit/audit3.mjs", "audit/audit4.mjs",
@@ -83,8 +84,7 @@ const SECTIONS = [
   ] },
 ];
 
-const versionSrc = readFileSync("src/lib/version.ts", "utf8");
-const version = versionSrc.match(/"(\d+\.\d+\.\d+)"/)?.[1] ?? "?";
+const version = JSON.parse(readFileSync("package.json", "utf8")).version;
 const branch = execSync("git rev-parse --abbrev-ref HEAD", { encoding: "utf8" }).trim();
 const commit = execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim();
 const today = new Date().toISOString().slice(0, 10);
@@ -121,14 +121,13 @@ entries.forEach((s, i) => {
   out += "\n";
 });
 out += "==============================================================================\n\n";
-entries.forEach((s, i) => {
-  out += "##############################################################################\n";
-  out += `#  ${FA_NUM[i]}) ${s.title}\n`;
-  out += "##############################################################################\n\n";
+// در بدنه فقط مارکرهای FILE باقی می‌مانند؛ تیترهای بخش در فهرست ابتدای فایل هستند.
+// این کار جلوی چسبیدن جداکننده‌های نمایشی به محتوای فایل در پارسرهای ساده را می‌گیرد.
+for (const s of entries) {
   for (const f of s.files) {
     out += `── FILE: ${f.path}  (${f.lines} خط) ──\n\n${f.content}\n\n`;
   }
-});
+}
 
 // ---------- خودآزمایی بسته: استخراج ←→ مقایسه (اگر شکست: بدون خروجی) ----------
 writeFileSync("CODE_ALL_FA.txt.tmp", out);
@@ -142,7 +141,7 @@ try {
     const b = readFileSync(path.join(selfDir, f), "utf8");
     if (a !== b) throw new Error(`self-test: ${f} پس از استخراج با منبع فرق دارد`);
   }
-  for (const must of ["package.json", "package-lock.json", "src/components/PmTab.tsx", "drizzle/0005_megger_pi.sql", "scripts/extract-code-all.mjs", "scripts/generate-code-all.mjs"]) {
+  for (const must of ["package.json", "package-lock.json", "src/components/PmTab.tsx", "drizzle/0005_megger_pi.sql", "drizzle/0006_alerts_open_unique.sql", "scripts/extract-code-all.mjs", "scripts/generate-code-all.mjs"]) {
     if (!listed.has(must)) throw new Error(`self-test: ${must} در بسته نیست`);
   }
   for (const f of ["audit/audit5.mjs", "scripts/mirror-backup.mjs", "scripts/pg-init.mjs", "scripts/pg-dump.mjs", "scripts/pg-import-json.mjs"]) {

@@ -1,9 +1,10 @@
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { db } from "@/db";
 import {
   equipment,
   dailyTotals,
   motors,
+  motorStateLogs,
   equipmentReports,
   operatorNotes,
   reports,
@@ -18,6 +19,7 @@ import {
 import { getProcessThresholds, thresholdSeverity } from "@/lib/state";
 import { jalaliNow, operationalDay } from "@/lib/jalali";
 import { MOTORS, MOTOR_PARAMS, PROCESS_PARAMS, STATUS_FA } from "@/lib/domain";
+import { motorStateAtDayEnd } from "@/lib/motor-history";
 
 export const REPORT_KINDS: Record<string, string> = {
   trend: "گزارش روند پارامتر",
@@ -34,7 +36,7 @@ type ShiftLike = { key: string; label: string; members: string[] };
 
 export async function buildOperationalPayload(kind: "daily" | "aux", day: string, shift: ShiftLike) {
   const op = operationalDay();
-  const [processRows, totalRows, motorRows, equipmentRows, serviceRows, noteRows, thresholds] = await Promise.all([
+  const [processRows, totalRows, motorRows, equipmentRows, serviceRows, noteRows, thresholds, stateLogs] = await Promise.all([
     db.select().from(processReadingsAll).where(eq(processReadingsAll.day, day)),
     db.select().from(dailyTotals).where(eq(dailyTotals.day, day)).limit(1),
     db.select().from(motors),
@@ -42,9 +44,17 @@ export async function buildOperationalPayload(kind: "daily" | "aux", day: string
     db.select().from(equipmentReports).orderBy(desc(equipmentReports.id)).limit(200),
     db.select().from(operatorNotes).where(eq(operatorNotes.day, day)).orderBy(desc(operatorNotes.id)).limit(1),
     getProcessThresholds(),
+    db.select({ id: motorStateLogs.id, tag: motorStateLogs.tag, fromState: motorStateLogs.fromState, toState: motorStateLogs.toState, at: motorStateLogs.at })
+      .from(motorStateLogs).where(inArray(motorStateLogs.tag, MOTORS.map((motor) => motor.tag)))
+      .orderBy(asc(motorStateLogs.at), asc(motorStateLogs.id)),
   ]);
   const total = totalRows[0];
   const note = noteRows[0];
+  const dayEnd = `${day} 23:59:59`;
+  const stateLogsByTag = new Map<string, typeof stateLogs>();
+  for (const entry of stateLogs) stateLogsByTag.set(entry.tag, [...(stateLogsByTag.get(entry.tag) ?? []), entry]);
+  const historicalState = (motor: (typeof motorRows)[number]) =>
+    motorStateAtDayEnd(motor.state, stateLogsByTag.get(motor.tag) ?? [], dayEnd);
 
   const process = PROCESS_PARAMS.map((p) => {
     const rows = processRows.filter((r) => r.tag === p.tag).sort((a, b) => b.intervalIndex - a.intervalIndex);
@@ -69,9 +79,9 @@ export async function buildOperationalPayload(kind: "daily" | "aux", day: string
     shift: { key: shift.key, label: shift.label, members: shift.members },
     process,
     total: total?.value ?? null,
-    motorsOn: motorRows.filter((m) => m.state === "on").map((m) => m.tag),
-    motorsOff: motorRows.filter((m) => m.state === "off").map((m) => m.tag),
-    motorsService: motorRows.filter((m) => m.state === "service").map((m) => m.tag),
+    motorsOn: motorRows.filter((m) => historicalState(m) === "on").map((m) => m.tag),
+    motorsOff: motorRows.filter((m) => historicalState(m) === "off").map((m) => m.tag),
+    motorsService: motorRows.filter((m) => historicalState(m) === "service").map((m) => m.tag),
     note: note?.text ?? "",
     equipment: equipmentRows
       .filter((e) => e.isAux)

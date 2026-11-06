@@ -33,8 +33,8 @@ export default function MotorCard({
   const yellow = !red && m.state !== "service" && (pct >= 70 || hotWarn || vibWarn);
   const shake = m.state === "on" ? (red ? "motor-shake-hard" : yellow ? "motor-shake-light" : "") : "";
   const smoke = red && m.state === "on";
-  const severity: "ok" | "warning" | "critical" = red ? "critical" : yellow || m.state === "service" ? "warning" : "ok";
-  const reason = hotCrit ? "دمای بالا" : vibCrit ? "لرزش بالا" : pct >= 100 ? "سرویس عقب‌افتاده" : pct >= 90 ? "نزدیک سرویس" : hotWarn ? "افزایش دما" : vibWarn ? "لرزش" : pct >= 70 ? "کارکرد زیاد" : m.state === "service" ? "در سرویس" : "";
+  const severity: "ok" | "warning" | "critical" = red ? "critical" : yellow || m.state === "service" || m.state === "unknown" ? "warning" : "ok";
+  const reason = hotCrit ? "دمای بالا" : vibCrit ? "لرزش بالا" : pct >= 100 ? "سرویس عقب‌افتاده" : pct >= 90 ? "نزدیک سرویس" : hotWarn ? "افزایش دما" : vibWarn ? "لرزش" : pct >= 70 ? "کارکرد زیاد" : m.state === "service" ? "در سرویس" : m.state === "unknown" ? "وضعیت اولیه بررسی نشده" : "";
 
   const classes = ["motor-card", `motor-${m.state}`, shake, hotWarn || red ? "motor-heat" : "", smoke ? "motor-smoke" : "", red ? "tint-red critical" : yellow ? "tint-yellow warning" : "", m.state === "service" ? "service" : ""]
     .filter(Boolean)
@@ -48,7 +48,7 @@ export default function MotorCard({
         </div>
         <div className="led-wrap">
           <span className={`led ${m.state === "on" ? "green" : m.state === "service" ? "amber" : ""}`} title={m.stateFa} />
-          <span className={`led ${red ? "red" : yellow ? "amber" : ""}`} title="وضعیت هشدار" />
+          <span className={`led ${red ? "red" : yellow || m.state === "unknown" ? "amber" : ""}`} title="وضعیت هشدار" />
         </div>
       </div>
 
@@ -66,7 +66,7 @@ export default function MotorCard({
 
       {/* نوار سرویس: ساعت گذشته / بازه سرویس */}
       <div className="motor-service-row" title="ساعت کارکرد از آخرین سرویس نسبت به بازهٔ سرویس">
-        <span className={`chip ${m.state === "on" ? "live" : m.state === "service" ? "warn" : "muted"}`} style={{ padding: "4px 9px", fontSize: 12.5 }}>
+        <span className={`chip ${m.state === "on" ? "live" : m.state === "service" || m.state === "unknown" ? "warn" : "muted"}`} style={{ padding: "4px 9px", fontSize: 12.5 }}>
           {m.stateFa}
         </span>
         <div className="service-track">

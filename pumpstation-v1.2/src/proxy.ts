@@ -1,19 +1,20 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { lanAllowed, trustProxyEnabled, trustedClientIp, trustedRequestHost } from "./lib/netbind";
+import { lanAllowed, needsNetworkIdentityWarning, trustProxyEnabled, trustedClientIp, trustedRequestHost } from "./lib/netbind";
 
 /** سقف حجم بدنه برای همهٔ مسیرهای API — پیش از خواندن بدنه رد می‌شود */
 const MAX_BODY_BYTES = 256 * 1024;
+const CATALOG_MAX_BODY_BYTES = 9 * 1024 * 1024;
 
 /** سقف درخواست هر IP در دقیقه (ضدسیل ساده و ارزان) */
 const IP_LIMIT = 600;
-// اخطار پیکربندی شبکه: فقط یک‌بار در هر فرایند (LAN_ALLOW بدون پروکسیِ مورداعتماد قابل اعمال نیست)
+// اخطار پیکربندی شبکه: در بایند مستقیمِ شبکه‌ای، بدون پروکسی IP دستگاه‌ها قابل تشخیص نیست.
 declare global {
-  var __psNetWarnedLAN: boolean | undefined;
+  var __psNetWarnedClientIp: boolean | undefined;
 }
-if ((process.env.LAN_ALLOW ?? "").trim() && !trustProxyEnabled() && !globalThis.__psNetWarnedLAN) {
-  globalThis.__psNetWarnedLAN = true;
-  console.warn("[net] اخطار: LAN_ALLOW تنظیم شده ولی TRUST_PROXY=1 نیست؛ در اتصال مستقیم، IP واقعی دیده نمی‌شود و فهرست مجاز اعمال نمی‌گردد (کنترل با فایروال سیستم‌عامل است).");
+if (needsNetworkIdentityWarning(process.env.BIND, trustProxyEnabled(), process.env.LAN_ALLOW) && !globalThis.__psNetWarnedClientIp) {
+  globalThis.__psNetWarnedClientIp = true;
+  console.warn("[net] اخطار: اتصال شبکه‌ای بدون TRUST_PROXY=1؛ IP همهٔ درخواست‌های مستقیم «local» دیده می‌شود، قفل/محدودیت‌های per-IP بین دستگاه‌ها مشترک می‌شوند و LAN_ALLOW در این حالت اعمال نمی‌شود. برای شناسایی IP از پروکسی مورداعتماد استفاده کنید؛ در غیر این صورت فایروال سیستم‌عامل را محدود کنید.");
 }
 const IP_WINDOW_MS = 60_000;
 const buckets = new Map<string, { count: number; resetAt: number }>();
@@ -112,10 +113,11 @@ export default function proxy(request: NextRequest) {
     }
 
     // سقف حجم بدنه
+    const bodyLimit = pathname === "/api/catalogs" ? CATALOG_MAX_BODY_BYTES : MAX_BODY_BYTES;
     const declared = Number(request.headers.get("content-length") ?? 0);
-    if (declared > MAX_BODY_BYTES) {
+    if (declared > bodyLimit) {
       return NextResponse.json(
-        { ok: false, error: "حجم درخواست بیش از حد مجاز است (حداکثر ۲۵۶ کیلوبایت)", requestId },
+        { ok: false, error: `حجم درخواست بیش از حد مجاز است (حداکثر ${Math.round(bodyLimit / 1024)} کیلوبایت)`, requestId },
         { status: 413, headers: { "x-request-id": requestId } },
       );
     }

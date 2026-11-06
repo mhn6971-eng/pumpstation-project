@@ -27,6 +27,11 @@ export function trustProxyEnabled(env?: Record<string, string | undefined>): boo
   return v === "1" || v?.toLowerCase() === "true" || v?.toLowerCase() === "yes";
 }
 
+/** آیا بایند مستقیم یا LAN_ALLOW بدون پراکسی نیازمند هشدار دربارهٔ IP مشترک است؟ */
+export function needsNetworkIdentityWarning(bindRaw?: string, trustProxy = false, lanAllow = ""): boolean {
+  return !trustProxy && (resolveBind(bindRaw).mode !== "loopback" || Boolean(lanAllow.trim()));
+}
+
 /** IP متن از هدرها؛ در حالت مستقیم (بدون پروکسی) همیشه "local" است. */
 export function trustedClientIp(headers: { get: (name: string) => string | null }, trustProxy: boolean): string {
   if (!trustProxy) return "local";

@@ -1,3 +1,4 @@
+import { addDaysToDay } from "../src/lib/jalali.ts";
 const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 const out = [];
 const log = (name, pass, detail) => { out.push({ name, pass, detail }); console.log(`${pass ? "PASS" : "FAIL"} | ${name} | ${detail}`); };
@@ -15,13 +16,14 @@ const state = (cookie, q = "") => fetch(`${BASE}/api/state${q}`, { headers: { co
   const A = await login("A", "1011");
   const ADM = await login("admin", "9009");
   await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: ADM.cookie }, body: JSON.stringify({ action: "admin.unlock", payload: { key: "all" } }) });
-  const day = "1405/08/14";
+  const today = (await state(A)).now.day;
+  const day = addDaysToDay(today, -1);
 
   // ---- concurrency: same cell from two "tabs" ----
   await Promise.all(Array.from({ length: 8 }, (_, i) => act(A, "motor.values", { tag: "EM-02", day, intervalIndex: 2, values: { I1: 200 + i } })));
   await Promise.all(Array.from({ length: 8 }, (_, i) => act(A, "process.set", { tag: "PIT-003", value: 3 + i, day, intervalIndex: 2 })));
   // ---- 6 parallel entries for a brand-new day total (unique(day) constraint) ----
-  const totals = await Promise.all(Array.from({ length: 6 }, (_, i) => act(A, "total.set", { value: 1000 + i, day: "1405/09/01" })));
+  const totals = await Promise.all(Array.from({ length: 6 }, (_, i) => act(A, "total.set", { value: 1000 + i, day: today })));
   log("parallel total.set on empty day", totals.every((t) => t.body?.ok), JSON.stringify(totals.map((t) => t.body?.error ?? "ok")));
 
   // ---- backup / restore round-trip ----
@@ -29,7 +31,7 @@ const state = (cookie, q = "") => fetch(`${BASE}/api/state${q}`, { headers: { co
   const bk = await act(ADM, "backup.create", {});
   log("create backup", bk.body?.ok === true, `id=${bk.body?.id}`);
   // add data after backup
-  const extra = await act(A, "total.set", { value: 4242, day: "1405/09/02" });
+  const extra = await act(A, "total.set", { value: 4242, day: today });
   const restore = await act(ADM, "backup.restore", { id: bk.body?.id });
   const after = await state(A);
   log("restore executes", restore.body?.ok === true, `status=${restore.status} err=${restore.body?.error ?? "-"}`);

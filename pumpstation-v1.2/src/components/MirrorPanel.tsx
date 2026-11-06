@@ -7,7 +7,7 @@ import { Icon, Panel } from "./ui";
 type MirrorState = {
   dir: string;
   available: boolean;
-  keep: number;
+  keep: string;
   okRuns: number;
   failRuns: number;
   last24: number;
@@ -70,7 +70,7 @@ export default function MirrorPanel() {
     <Panel
       title="آینهٔ بک‌آپ (حافظهٔ بیرونی)"
       icon="database"
-      hint="کپی خودکار نسخهٔ پشتیبان روی فلش/درایو USB؛ اگر دستگاه اصلی از بین برود، نسخهٔ سالم می‌ماند"
+      hint="کپی JSON و آخرین بستهٔ بازیابی آرشیو/فایل‌ها به فلش یا درایو بیرونی"
       actions={
         <button type="button" className="btn tiny" disabled={busy} onClick={load}>
           <Icon name="refresh" size={13} /> بازخوانی
@@ -92,7 +92,7 @@ export default function MirrorPanel() {
 
           <div className="grid" style={{ gap: 6, fontSize: 12 }}>
             <div><span className="muted">مسیر آینه: </span><span className="mono tiny">{data.dir}</span></div>
-            <div><span className="muted">آخرین کپی: </span>
+            <div><span className="muted">آخرین فایل JSON: </span>
               <span className="tiny">{data.last ? `${data.last.at} — ${data.last.file} (${(data.last.bytes / 1024).toFixed(0)} KB)` : "—"}</span>
             </div>
             <div><span className="muted">کپی‌های ۲۴ ساعت گذشته: </span><span className="tiny">{data.last24}</span></div>

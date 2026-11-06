@@ -149,8 +149,8 @@ export default function AppShell({ initial }: { initial: AppState }) {
         method: "POST",
         headers: { "Content-Type": "application/json", "Idempotency-Key": key },
         body: JSON.stringify({ action, payload }),
-        // سقف ۳۰ ثانیه: روی PC ضعیف دکمه‌ها دیگر برای همیشه گیر نمی‌کنند
-        signal: AbortSignal.timeout(30000),
+        // بستهٔ کامل ممکن است دادهٔ آرشیو و فایل‌های زیادی داشته باشد؛ به آن زمان بیشتری می‌دهیم.
+        signal: AbortSignal.timeout(action.startsWith("backup.bundle.") ? 10 * 60_000 : 30_000),
       });
       if (res.status === 401) {
         window.location.replace("/");

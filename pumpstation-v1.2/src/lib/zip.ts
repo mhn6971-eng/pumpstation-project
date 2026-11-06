@@ -1,9 +1,6 @@
-/**
- * ساخت ZIP ساده (stored = بدون فشرده‌سازی، چندفایلی) بدون هیچ وابستگی.
- * کاربرد: «ارسال بکاپ به کانال بله» — فایل JSON بکاپ + رسید sha256 در یک ZIP.
- * عمداً leaf است تا در تست‌ها مستقیم قابل فراخوانی باشد.
- * اعتبارسنجی: خروجی با ابزار واقعی `unzip -l` باز شده است.
- */
+import { deflateRawSync } from "node:zlib";
+
+/** ZIP UTF-8; stored برای سازگاری بک‌آپ و deflate برای بسته‌های گزارش فشرده. */
 const CRC_TABLE = (() => {
   const t = new Uint32Array(256);
   for (let n = 0; n < 256; n += 1) {
@@ -33,8 +30,9 @@ const u32 = (v: number) => {
   return b;
 };
 
-export function zipStored(entries: ZipEntry[]): Uint8Array {
+function makeZip(entries: ZipEntry[], method: 0 | 8): Uint8Array {
   if (!entries.length) throw new Error("ZIP خالی ساخته نمی‌شود");
+  if (entries.length > 0xffff) throw new Error("تعداد فایل‌های ZIP از حد پشتیبانی‌شده بیشتر است");
   const enc = new TextEncoder();
   const now = new Date();
   const dosTime = ((now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1)) & 0xffff;
@@ -43,6 +41,7 @@ export function zipStored(entries: ZipEntry[]): Uint8Array {
   const central: Uint8Array[] = [];
   let offset = 0;
   const push = (arr: Uint8Array) => {
+    if (offset + arr.length > 0xffffffff) throw new Error("ZIP64 پشتیبانی نمی‌شود؛ اندازهٔ آرشیو از حد ۴ گیگابایت گذشته است");
     chunks.push(arr);
     offset += arr.length;
   };
@@ -51,24 +50,29 @@ export function zipStored(entries: ZipEntry[]): Uint8Array {
   for (const e of entries) {
     const name = enc.encode(e.name);
     if (!name.length || name.length > 0xffff) throw new Error(`نام نامعتبر برای ZIP: ${e.name}`);
-    const crc = crc32(e.data);
+    const data = e.data instanceof Uint8Array ? e.data : new Uint8Array(e.data);
+    const packed = method === 8 ? new Uint8Array(deflateRawSync(data, { level: 6 })) : data;
+    if (data.length > 0xffffffff || packed.length > 0xffffffff || offset > 0xffffffff) {
+      throw new Error("ZIP64 پشتیبانی نمی‌شود؛ اندازهٔ آرشیو از حد ۴ گیگابایت گذشته است");
+    }
+    const crc = crc32(data);
     const headerOffset = offset;
     push(SIG_LOCAL);
     push(u16(20));
     push(u16(0x0800)); // نام‌ها UTF-8
-    push(u16(0)); // stored
+    push(u16(method));
     push(u16(dosTime));
     push(u16(dosDate));
     push(u32(crc));
-    push(u32(e.data.length));
-    push(u32(e.data.length));
+    push(u32(packed.length));
+    push(u32(data.length));
     push(u16(name.length));
     push(u16(0));
     push(name);
-    push(e.data);
+    push(packed);
     central.push(
-      SIG_CENTRAL, u16(20), u16(20), u16(0x0800), u16(0), u16(dosTime), u16(dosDate),
-      u32(crc), u32(e.data.length), u32(e.data.length), u16(name.length),
+      SIG_CENTRAL, u16(20), u16(20), u16(0x0800), u16(method), u16(dosTime), u16(dosDate),
+      u32(crc), u32(packed.length), u32(data.length), u16(name.length),
       u16(0), u16(0), u16(0), u16(0), u32(0), u32(headerOffset), name,
     );
   }
@@ -90,4 +94,14 @@ export function zipStored(entries: ZipEntry[]): Uint8Array {
     p += c.length;
   }
   return out;
+}
+
+/** ZIP بدون فشرده‌سازی؛ برای بستهٔ بک‌آپ که خودش JSON فشرده/چک‌سام دارد. */
+export function zipStored(entries: ZipEntry[]): Uint8Array {
+  return makeZip(entries, 0);
+}
+
+/** ZIP با DEFLATE واقعی؛ برای آرشیوهای گزارش روزانه. */
+export function zipDeflated(entries: ZipEntry[]): Uint8Array {
+  return makeZip(entries, 8);
 }

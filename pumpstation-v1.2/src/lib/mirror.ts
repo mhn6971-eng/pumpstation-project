@@ -6,6 +6,7 @@ import { and, desc, eq, gte } from "drizzle-orm";
 import { db } from "@/db";
 import { backupMirrorRuns } from "@/db/schema";
 import { BACKUP_DIR, createInternalBackup, listFileBackups, writeFileBackup } from "./backup";
+import { copyLatestBundleTo } from "./backup-bundle";
 
 /**
  * آینهٔ بک‌آپ: کپی خودکار آخرین نسخهٔ بک‌آپ روی حافظهٔ بیرونی (فلش/درایو USB/شبکهٔ محلی).
@@ -14,7 +15,6 @@ import { BACKUP_DIR, createInternalBackup, listFileBackups, writeFileBackup } fr
  */
 
 export const MIRROR_DIR = path.resolve(process.cwd(), process.env.MIRROR_DIR ?? ".data/mirror");
-const MIRROR_KEEP = Number(process.env.MIRROR_KEEP ?? 30);
 const STALE_HOURS = Number(process.env.MIRROR_STALE_HOURS ?? 30);
 
 export type MirrorRun = {
@@ -47,14 +47,6 @@ export async function mirrorAvailable() {
     return true;
   } catch {
     return false;
-  }
-}
-
-async function pruneMirror() {
-  const files = (await readdir(/*turbopackIgnore: true*/ MIRROR_DIR)).filter((f) => f.endsWith(".json")).sort();
-  for (const old of files.slice(0, Math.max(0, files.length - MIRROR_KEEP))) {
-    await unlink(/*turbopackIgnore: true*/ path.join(MIRROR_DIR, old)).catch(() => {});
-    await unlink(/*turbopackIgnore: true*/ path.join(MIRROR_DIR, `${old}.sha256`)).catch(() => {});
   }
 }
 
@@ -106,13 +98,14 @@ async function mirrorLatestOnce(opts: { fresh?: boolean; actor?: string } = {}) 
       writeFile(/*turbopackIgnore: true*/ `${destination}.sha256`, a, "utf8"),
     );
 
+    const bundle = await copyLatestBundleTo(MIRROR_DIR);
+
     await writeFile(
       /*turbopackIgnore: true*/
       path.join(MIRROR_DIR, "last-mirror.txt"),
-      `file=${file}\nat=${stamp}\nbytes=${info.size}\nsha256=${a}\n`,
+      `file=${file}\nat=${stamp}\nbytes=${info.size}\nsha256=${a}\nbundle=${bundle?.name ?? ""}\nbundleBytes=${bundle?.bytes ?? 0}\n`,
       "utf8",
     );
-    await pruneMirror();
 
     await db.insert(backupMirrorRuns).values({
       at,
@@ -123,7 +116,7 @@ async function mirrorLatestOnce(opts: { fresh?: boolean; actor?: string } = {}) 
       ok: true,
       error: "",
     });
-    return { ok: true as const, file, bytes: info.size, sha256: a, target: MIRROR_DIR, at };
+    return { ok: true as const, file, bytes: info.size, sha256: a, bundle: bundle?.name ?? null, bundleBytes: bundle?.bytes ?? 0, target: MIRROR_DIR, at };
   } catch (error) {
     const message = error instanceof Error ? error.message : "خطای نامشخص";
     await db
@@ -157,7 +150,7 @@ export async function ensureMirrorFresh(maxAgeHours = STALE_HOURS) {
 export type MirrorStatus = {
   dir: string;
   available: boolean;
-  keep: number;
+  keep: string;
   last: MirrorRun | null;
   okRuns: number;
   failRuns: number;
@@ -177,7 +170,10 @@ export async function mirrorStatus(): Promise<MirrorStatus> {
   const failRuns = rows.filter((r) => !r.ok).length;
   let files: string[] = [];
   try {
-    files = (await readdir(/*turbopackIgnore: true*/ MIRROR_DIR)).filter((f) => f.endsWith(".json")).sort().reverse().slice(0, 10);
+    const entries = await readdir(/*turbopackIgnore: true*/ MIRROR_DIR, { withFileTypes: true });
+    const jsonFiles = entries.filter((entry) => entry.isFile() && entry.name.endsWith(".json")).map((entry) => entry.name);
+    const bundleEntries = await readdir(path.join(MIRROR_DIR, "bundles"), { withFileTypes: true }).catch(() => []);
+    files = [...jsonFiles.sort().reverse().slice(0, 10), ...bundleEntries.filter((entry) => entry.isDirectory()).map((entry) => `بسته: ${entry.name}`).sort().reverse().slice(0, 10)];
   } catch {
     files = [];
   }
@@ -201,7 +197,7 @@ export async function mirrorStatus(): Promise<MirrorStatus> {
     }
   }
 
-  return { dir: MIRROR_DIR, available, keep: MIRROR_KEEP, last, okRuns, failRuns, last24, files, verdict, message };
+  return { dir: MIRROR_DIR, available, keep: "نامحدود", last, okRuns, failRuns, last24, files, verdict, message };
 }
 
 /** برای اسکریپت زمان‌بند ویندوز: بک‌آپ + آینه در یک قدم، خروجی متنی برای لاگ */

@@ -4,14 +4,19 @@
  * تاریخ‌محور نیست: روز جاری از خودِ state خوانده می‌شود.
  */
 import { execFile } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
-import { resolveBind, trustProxyEnabled, trustedClientIp, trustedRequestHost, parseIpv4, ipInCidr, parseAllowList, lanAllowed } from "../src/lib/netbind.ts";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import { resolveBind, trustProxyEnabled, needsNetworkIdentityWarning, trustedClientIp, trustedRequestHost, parseIpv4, ipInCidr, parseAllowList, lanAllowed } from "../src/lib/netbind.ts";
 import { assertCompleteSnapshot } from "../src/lib/backup-validation.ts";
+import { APP_VERSION } from "../src/lib/version.ts";
+import { motorStateAtDayEnd } from "../src/lib/motor-history.ts";
 import { validateRoster, loadRosterFile, resolveRoster } from "../src/lib/roster.ts";
 import { detectCloudPath, requireLocalSqlite } from "../src/lib/sqlite-cloud.ts";
 import { createServer } from "node:http";
 import { botApiBase, botSendDocumentUrl, botSendUrl, sendBotDocument, sendBotText } from "../src/lib/bot.ts";
-import { crc32, zipStored } from "../src/lib/zip.ts";
+import { crc32, zipStored, zipDeflated } from "../src/lib/zip.ts";
+import { inflateRawSync } from "node:zlib";
+import { PGlite } from "@electric-sql/pglite";
 
 const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 const results = [];
@@ -35,6 +40,7 @@ t("bind lan", resolveBind("lan").host === "0.0.0.0");
 t("bind custom ip", resolveBind("192.168.1.10").mode === "custom");
 t("bind invalid throws", throws(() => resolveBind("nonsense")));
 t("trust proxy 1/true/unset", trustProxyEnabled({ TRUST_PROXY: "1" }) && trustProxyEnabled({ TRUST_PROXY: "true" }) && !trustProxyEnabled({}));
+t("direct LAN without proxy warns even when LAN_ALLOW is empty", needsNetworkIdentityWarning("lan", false, "") && needsNetworkIdentityWarning("0.0.0.0", false, "") && !needsNetworkIdentityWarning("lan", true, "") && !needsNetworkIdentityWarning("", false, ""));
 t("direct mode ignores headers", trustedClientIp(headersOf({ "x-forwarded-for": "1.2.3.4", "x-real-ip": "5.6.7.8" }), false) === "local");
 t("trusted real-ip wins", trustedClientIp(headersOf({ "x-forwarded-for": "1.2.3.4", "x-real-ip": "9.9.9.9" }), true) === "9.9.9.9");
 t("trusted xff first", trustedClientIp(headersOf({ "x-forwarded-for": "10.9.9.5, 9.9.9.9" }), true) === "10.9.9.5");
@@ -52,8 +58,88 @@ t("backup snapshot requires every table", (() => {
   assertCompleteSnapshot({ shifts: [], settings: [], motors: [] }, ["shifts", "settings", "motors"]);
   return throws(() => assertCompleteSnapshot({ shifts: [], settings: [] }, ["shifts", "settings", "motors"]));
 })());
+const schemaSource = readFileSync("src/db/schema.ts", "utf8");
+const backupSource = readFileSync("src/lib/backup.ts", "utf8");
+const schemaTables = [...schemaSource.matchAll(/^export const (\w+) = pgTable\(/gm)].map((m) => m[1]);
+const backupBlock = backupSource.match(/export const TABLES = \{([\s\S]*?)\n\};/);
+const backupKeys = backupBlock ? [...backupBlock[1].matchAll(/^\s*([A-Za-z]\w*)\s*,?\s*$/gm)].map((m) => m[1]) : [];
+const intentionallyUnbacked = ["backups", "securityEvents", "sessions", "authLocks", "appEvents", "idempotencyKeys", "archiveRuns", "motorReadingsArchive", "processReadingsArchive", "backupMirrorRuns"];
+const coverageSet = new Set([...backupKeys, ...intentionallyUnbacked]);
+t("backup inventory explicitly classifies every schema table", schemaTables.length > 0 && schemaTables.every((name) => coverageSet.has(name)) && [...coverageSet].every((name) => schemaTables.includes(name)) && backupKeys.every((name) => !intentionallyUnbacked.includes(name)));
+const bundleBlock = backupSource.match(/export const BUNDLE_TABLES = \{([\s\S]*?)\n\};/);
+const bundleKeys = bundleBlock ? [...bundleBlock[1].matchAll(/^\s*([A-Za-z]\w*)\s*,?\s*$/gm)].map((m) => m[1]) : [];
+t("full recovery bundle includes archived reading tables and run history", ["archiveRuns", "motorReadingsArchive", "processReadingsArchive"].every((name) => bundleKeys.includes(name)));
+const bundleSource = readFileSync("src/lib/backup-bundle.ts", "utf8");
+t("full recovery bundle streams compressed tables and hashes files", bundleSource.includes("createWriteStream") && bundleSource.includes("createGzip") && bundleSource.includes("sha256") && bundleSource.includes("jsonl"));
+t("bundle export redacts channel tokens and TOTP material", bundleSource.includes('if (table === "channels") row.token = ""') && bundleSource.includes('if (table === "shifts")') && bundleSource.includes('row.totpSecret = ""') && bundleSource.includes('row.token !== ""'));
+t("alerts use a partial unique index for one open alert per cell", schemaSource.includes('uniqueIndex("alerts_open_cell_uq")') && readFileSync("drizzle/0006_alerts_open_unique.sql", "utf8").includes("CREATE UNIQUE INDEX IF NOT EXISTS alerts_open_cell_uq"));
+t("external JSON backups redact TOTP and require a checksum", backupSource.includes('totpSecret: ""') && backupSource.includes('if (!sha && !opts.force)') && backupSource.includes('checksumPresent && sha === actual'));
+t("action errors use typed status handling", readFileSync("src/app/api/actions/route.ts", "utf8").includes('return errorResponse(error,') && readFileSync("src/app/api/actions/route.ts", "utf8").includes('throw forbidden("دسترسی ادمین لازم است")'));
+t("bundle restore validates before applying and retains matching local tokens", bundleSource.indexOf("verifyAt(BUNDLE_DIR, name)") < bundleSource.indexOf("restoreSnapshotFromBundle(BUNDLE_DIR") && bundleSource.includes("tokenMap.get(key)"));
+const migrationDedupWorks = async () => {
+  const client = new PGlite();
+  try {
+    for (const name of readdirSync("drizzle").filter((file) => /^000[0-5]_.*\.sql$/.test(file)).sort()) {
+      const sql = readFileSync(path.join("drizzle", name), "utf8");
+      for (const statement of sql.split("--> statement-breakpoint").map((part) => part.trim()).filter(Boolean)) await client.exec(statement);
+    }
+    await client.exec(`INSERT INTO alerts (at, day, tag, param, label, value, severity, message, shift_key, seen_at, acted_at, seen_shift, acted_shift, resolved_at)
+      VALUES ('1405/08/14 10:00:00', '1405/08/14', 'M-01', 'T10', 'temp', 91, 'warning', 'first', 'A', '1405/08/14 10:01:00', '', 'A', '', ''),
+             ('1405/08/14 11:00:00', '1405/08/14', 'M-01', 'T10', 'temp', 93, 'critical', 'duplicate', 'B', '', '', '', '', '')`);
+    const migration = readFileSync("drizzle/0006_alerts_open_unique.sql", "utf8");
+    for (const statement of migration.split("--> statement-breakpoint").map((part) => part.trim()).filter(Boolean)) await client.exec(statement);
+    const rows = await client.query("SELECT id, resolved_at FROM alerts ORDER BY id");
+    const open = rows.rows.filter((row) => row.resolved_at === "");
+    let duplicateRejected = false;
+    try {
+      await client.exec(`INSERT INTO alerts (at, day, tag, param, label, value, severity, message, shift_key, seen_at, acted_at, seen_shift, acted_shift, resolved_at)
+        VALUES ('1405/08/14 12:00:00', '1405/08/14', 'M-01', 'T10', 'temp', 95, 'critical', 'third', 'C', '', '', '', '', '')`);
+    } catch {
+      duplicateRejected = true;
+    }
+    return rows.rows.length === 2 && open.length === 1 && open[0].id === 1 && rows.rows[1].resolved_at !== "" && duplicateRejected;
+  } finally {
+    await client.close();
+  }
+};
+t("0006 migration preserves history, closes duplicates and enforces uniqueness", await migrationDedupWorks());
+const mirrorSource = readFileSync("src/lib/mirror.ts", "utf8");
+const pgDumpSource = readFileSync("scripts/pg-dump.mjs", "utf8");
+t("file backups are never automatically pruned", !backupSource.includes("pruneFileBackups") && !backupSource.includes("BACKUP_KEEP"));
+t("mirror copies are never automatically pruned", !mirrorSource.includes("pruneMirror") && !mirrorSource.includes("MIRROR_KEEP"));
+t("PostgreSQL dumps are never automatically pruned", !pgDumpSource.includes("PGDUMP_KEEP") && !pgDumpSource.includes("حذف نسخهٔ قدیمی"));
+const tableDeclarations = [...schemaSource.matchAll(/^export const (\w+) = pgTable\("([^"]+)", \{/gm)];
+const tableDefinitions = tableDeclarations.map((match, index) => ({
+  key: match[1],
+  sqlName: match[2],
+  source: schemaSource.slice(match.index, tableDeclarations[index + 1]?.index ?? schemaSource.length),
+}));
+const expectedSerialTables = tableDefinitions.filter((table) => backupKeys.includes(table.key) && /id:\s*serial\("id"\)/.test(table.source)).map((table) => table.sqlName);
+const serialBlock = backupSource.match(/const SERIAL_TABLES = \[([\s\S]*?)\];/);
+const actualSerialTables = serialBlock ? [...serialBlock[1].matchAll(/"([^"]+)"/g)].map((match) => match[1]) : [];
+t("SERIAL_TABLES matches serial id columns in backed-up tables", expectedSerialTables.length > 0 && expectedSerialTables.length === actualSerialTables.length && expectedSerialTables.every((name) => actualSerialTables.includes(name)));
+const pkgVersion = JSON.parse(readFileSync("package.json", "utf8")).version;
+t("app version comes from package.json", readFileSync("src/lib/version.ts", "utf8").includes("packageJson.version") && APP_VERSION === pkgVersion);
+t("login does not print test PINs", !/1111|2222|3333|9999/.test(readFileSync("src/components/Login.tsx", "utf8")));
 
 // ---------- ب) روستر ----------
+const oldRosterEnv = { node: process.env.NODE_ENV, file: process.env.ROSTER_FILE };
+process.env.NODE_ENV = "production";
+process.env.ROSTER_FILE = "/tmp/audit6-no-local-roster.json";
+delete process.env.ALLOW_SAMPLE_ROSTER;
+t("production refuses missing local roster", throws(() => resolveRoster()));
+process.env.ALLOW_SAMPLE_ROSTER = "1";
+t("explicit test opt-in allows sample roster", resolveRoster().source === "sample");
+writeFileSync("/tmp/audit6-sample-local.json", readFileSync("data/roster.sample.json", "utf8"));
+process.env.ROSTER_FILE = "/tmp/audit6-sample-local.json";
+delete process.env.ALLOW_SAMPLE_ROSTER;
+t("production refuses sample PINs even in local roster file", throws(() => resolveRoster()));
+process.env.ALLOW_SAMPLE_ROSTER = "1";
+t("explicit opt-in allows local sample roster for tests", resolveRoster().source === "local");
+if (oldRosterEnv.node === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = oldRosterEnv.node;
+if (oldRosterEnv.file === undefined) delete process.env.ROSTER_FILE; else process.env.ROSTER_FILE = oldRosterEnv.file;
+process.env.ALLOW_SAMPLE_ROSTER = "1";
+process.env.ROSTER_FILE = "/tmp/audit6-no-local-roster.json";
 const sample = resolveRoster();
 t("sample roster resolves", sample.source === "sample" && sample.roster.length === 4);
 t("sample test PINs", sample.roster.find((e) => e.key === "A")?.pin === "1011" && sample.roster.find((e) => e.key === "admin")?.pin === "9009");
@@ -86,6 +172,17 @@ t("cloud paths detected",
 t("normal paths pass", detectCloudPath(".data/pglite") === null && detectCloudPath("/tmp/sandbox/ps") === null);
 t("cloud path throws", throws(() => requireLocalSqlite("/x/Dropbox/ps")));
 t("cloud override works", (() => { requireLocalSqlite("/x/Dropbox/ps", { PGLITE_ALLOW_CLOUD: "1" }); return true; })());
+const blockedSecretPath = `/tmp/audit6-secret-blocked-${process.pid}`;
+writeFileSync(blockedSecretPath, "not-a-directory");
+const secretFallback = await new Promise((resolve) => {
+  execFile(process.execPath, ["--input-type=module", "-e", 'const m = await import("./src/lib/secret.ts"); console.log(JSON.stringify(m.sessionSecretStatus()));'], {
+    cwd: process.cwd(),
+    env: { ...process.env, SESSION_SECRET: "", SESSION_SECRET_DIR: blockedSecretPath },
+    timeout: 15000,
+  }, (error, stdout, stderr) => resolve({ code: error ? 1 : 0, stdout: String(stdout ?? ""), stderr: String(stderr ?? "") }));
+});
+rmSync(blockedSecretPath, { force: true });
+t("session secret fallback is reported and logged", secretFallback.code === 0 && secretFallback.stdout.includes('"persistent":false') && secretFallback.stdout.includes('"source":"memory"') && secretFallback.stderr.includes("هشدار جدی"));
 
 // ---------- د) HTTP ----------
 async function login(key, pin, extraHeaders = {}) {
@@ -99,6 +196,9 @@ async function login(key, pin, extraHeaders = {}) {
 }
 const adm = await login("admin", "9009");
 t("login with test PIN", adm.status === 200 && !!adm.cookie);
+const fullHealth = await fetch(`${BASE}/api/health?full=1`, { headers: { cookie: adm.cookie } }).then((r) => r.json().catch(() => null));
+t("health reports persistent session-secret status", typeof fullHealth?.detail?.sessionSecret?.persistent === "boolean" && ["env", "file", "memory"].includes(fullHealth.detail.sessionSecret.source));
+t("health warns when sample roster is active", fullHealth?.detail?.roster?.source === "sample" ? fullHealth.warnings?.some((w) => String(w).includes("روستر نمونه")) : fullHealth?.detail?.roster?.source === "local");
 const csrfSpoof = await fetch(`${BASE}/api/actions`, {
   method: "POST",
   headers: { "Content-Type": "application/json", cookie: adm.cookie, Origin: "http://evil.test", "X-Forwarded-Host": "evil.test" },
@@ -117,6 +217,94 @@ t("spoofed headers ignored", spoof.status === 200 && !spoof.text.includes("9.9.9
 const state = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());
 const today = state.now?.day ?? "";
 t("today available", /^\d{4}\/\d{2}\/\d{2}$/.test(today), today);
+const reportZipPaths = [];
+for (const kind of ["process", "pm"]) {
+  const response = await fetch(`${BASE}/api/report-archives`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", cookie: adm.cookie },
+    body: JSON.stringify({ kind, day: today }),
+  });
+  const fileName = response.headers.get("x-report-archive-filename") ?? "";
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  const folder = path.resolve(kind === "process" ? (process.env.PROCESS_REPORT_DIR ?? ".data/report-archives/process") : (process.env.PM_REPORT_DIR ?? ".data/report-archives/PM"));
+  const savedPath = path.join(folder, fileName);
+  if (fileName) reportZipPaths.push(savedPath);
+  t(`${kind} report ZIP is compressed, downloaded, and saved`, response.status === 200 && response.headers.get("content-type") === "application/zip" && bytes[0] === 0x50 && bytes[1] === 0x4b && fileName.endsWith(".zip") && existsSync(savedPath), `status=${response.status} file=${fileName}`);
+}
+for (const file of reportZipPaths) unlinkSync(file);
+const catalogDir = process.env.CATALOG_DIR ?? "files/catalogs";
+mkdirSync(catalogDir, { recursive: true });
+const catalogFilesBefore = new Set(readdirSync(catalogDir));
+const boundary = `audit6-${Date.now()}`;
+const largePdf = Buffer.concat([Buffer.from("%PDF-1.4\n"), Buffer.alloc(1024 * 1024, 0x41)]);
+const multipart = Buffer.concat([
+  Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="tag"\r\n\r\nM-01\r\n--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="audit6-1mb.pdf"\r\nContent-Type: application/pdf\r\n\r\n`),
+  largePdf,
+  Buffer.from(`\r\n--${boundary}--\r\n`),
+]);
+const largeUpload = await fetch(`${BASE}/api/catalogs`, { method: "POST", headers: { cookie: adm.cookie, "Content-Type": `multipart/form-data; boundary=${boundary}`, "Content-Length": String(multipart.length) }, body: multipart });
+const largeUploadBody = await largeUpload.json().catch(() => null);
+t("1 MiB PDF passes the proxy catalog limit", largeUpload.status === 200 && largeUploadBody?.ok === true, `status=${largeUpload.status}`);
+const catalogForm = new FormData();
+catalogForm.append("tag", "M-01");
+catalogForm.append("file", new Blob([Buffer.from("%PDF-1.4\n%%EOF")], { type: "application/pdf" }), "audit6-catalog.pdf");
+const catalogUpload = await fetch(`${BASE}/api/catalogs`, { method: "POST", headers: { cookie: adm.cookie }, body: catalogForm });
+const catalogUploadBody = await catalogUpload.json().catch(() => null);
+let missingPdfWarned = false;
+let backupTokensRedacted = false;
+let localTokenPreserved = false;
+let missingChecksumRejected = false;
+let externalTotpRedacted = false;
+if (catalogUpload.ok && catalogUploadBody?.ok) {
+  const channelSet = await fetch(`${BASE}/api/actions`, {
+    method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
+    body: JSON.stringify({ action: "admin.channel", payload: { key: "backup", provider: "bale", chatId: "audit6-test-channel", token: "AUDIT6-SECRET", enabled: false } }),
+  }).then((r) => r.json().catch(() => null));
+  const cleared = await fetch(`${BASE}/api/actions`, {
+    method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
+    body: JSON.stringify({ action: "admin.channel", payload: { key: "backup", clearToken: true, enabled: true } }),
+  });
+  const clearedState = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());
+  const tokenClearWorks = cleared.status === 200 && !clearedState.channels?.some((channel) => channel.key === "backup" && channel.hasToken && channel.enabled);
+  await fetch(`${BASE}/api/actions`, {
+    method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
+    body: JSON.stringify({ action: "admin.channel", payload: { key: "backup", provider: "bale", chatId: "audit6-test-channel", token: "AUDIT6-SECRET", enabled: false } }),
+  });
+  t("channel token can be explicitly cleared and disables channel", tokenClearWorks);
+  const backupCreate = await fetch(`${BASE}/api/actions`, {
+    method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
+    body: JSON.stringify({ action: "backup.create", payload: {} }),
+  }).then((r) => r.json().catch(() => null));
+  if (backupCreate?.file) {
+    const backupPayload = JSON.parse(readFileSync(String(backupCreate.file), "utf8"));
+    backupTokensRedacted = channelSet?.ok === true && backupPayload.channels?.every((channel) => channel.token === "");
+    externalTotpRedacted = backupPayload.shifts?.every((shift) => shift.totpSecret === "" && shift.totpPending === "" && shift.totpEnabled === false && Array.isArray(shift.totpBackupCodes) && shift.totpBackupCodes.length === 0 && shift.totpEnabledAt === "");
+    const checksum = `${String(backupCreate.file)}.sha256`;
+    const movedChecksum = `${checksum}.audit6`;
+    if (existsSync(checksum)) {
+      renameSync(checksum, movedChecksum);
+      const verifyMissing = await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie }, body: JSON.stringify({ action: "backup.verify", payload: { file: backupCreate.file } }) });
+      const verifyMissingBody = await verifyMissing.json().catch(() => null);
+      const restoreMissing = await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie }, body: JSON.stringify({ action: "backup.restore_file", payload: { file: backupCreate.file } }) });
+      missingChecksumRejected = verifyMissing.status === 422 && verifyMissingBody?.checksumOk === false && restoreMissing.status === 400;
+      renameSync(movedChecksum, checksum);
+    }
+    const newCatalogFiles = readdirSync(catalogDir).filter((file) => !catalogFilesBefore.has(file));
+    for (const file of newCatalogFiles) unlinkSync(path.join(catalogDir, file));
+    const restored = await fetch(`${BASE}/api/actions`, {
+      method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
+      body: JSON.stringify({ action: "backup.restore_file", payload: { file: backupCreate.file } }),
+    }).then((r) => r.json().catch(() => null));
+    missingPdfWarned = (restored?.catalogFiles?.missing ?? []).some((item) => String(item).includes("audit6-catalog.pdf")) && String(restored?.message ?? "").includes("PDF");
+    const restoredState = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());
+    localTokenPreserved = restoredState.channels?.some((channel) => channel.key === "backup" && channel.hasToken);
+  }
+}
+t("external backup redacts bot channel tokens", backupTokensRedacted);
+t("external JSON backup redacts TOTP secret/pending/backup codes", externalTotpRedacted);
+t("backup without sidecar checksum fails verify and restore", missingChecksumRejected);
+t("restore preserves matching local channel token", localTokenPreserved);
+t("restore reports missing catalog PDF attachment", missingPdfWarned);
 const criticalEquipment = (state.equipment ?? []).find((row) => row.safetyCritical === true);
 let criticalDeleteBlocked = false;
 if (criticalEquipment) {
@@ -129,6 +317,22 @@ if (criticalEquipment) {
   criticalDeleteBlocked = r.status === 400 && String(b?.error ?? "").includes("ایمنی‌حیاتی");
 }
 t("safety-critical equipment cannot be soft-deleted", criticalDeleteBlocked);
+const syntheticMotorHistory = [
+  { id: 1, at: "1405/08/15 10:00:00", fromState: "on", toState: "off" },
+  { id: 2, at: "1405/08/16 10:00:00", fromState: "off", toState: "service" },
+];
+t("past report reconstructs state from subsequent transitions", motorStateAtDayEnd("service", syntheticMotorHistory, "1405/08/14 23:59:59") === "on");
+t("report day-end honors the latest transition on that date", motorStateAtDayEnd("service", syntheticMotorHistory, "1405/08/15 23:59:59") === "off");
+
+const currentForAlerts = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());
+const alertDay = currentForAlerts.now?.day ?? today;
+const alertWrites = await Promise.all(Array.from({ length: 6 }, () => fetch(`${BASE}/api/actions`, {
+  method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
+  body: JSON.stringify({ action: "motor.values", payload: { tag: "M-03", day: alertDay, intervalIndex: 5, values: { T10: 95 } } }),
+})));
+const afterAlerts = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());
+const openAlertCells = (afterAlerts.alerts ?? []).filter((alert) => alert.tag === "M-03" && alert.param === "T10" && alert.day === alertDay && !alert.actedAt && !alert.resolvedAt);
+t("concurrent alert writes leave at most one open row for a cell", alertWrites.every((response) => response.status === 200) && openAlertCells.length === 1, `writes=${alertWrites.map((r) => r.status).join(",")} open=${openAlertCells.length}`);
 const noteText = `audit6-probe-${Date.now()}`;
 const noteRes = await fetch(`${BASE}/api/actions`, {
   method: "POST",
@@ -167,7 +371,7 @@ const serveBogus = await run(["scripts/serve.mjs", "bogus"]);
 t("serve.mjs bogus mode exits 1", serveBogus.code === 1);
 const serveBadBind = await run(["scripts/serve.mjs", "dev"], { BIND: "nonsense" });
 t("serve.mjs invalid BIND exits 1", serveBadBind.code === 1 && serveBadBind.stderr.includes("BIND"));
-const serveCloud = await run(["scripts/serve.mjs", "dev"], { PGLITE_DATA_DIR: "/tmp/OneDrive-x/ps" });
+const serveCloud = await run(["scripts/serve.mjs", "dev"], { DATABASE_URL: "", PGLITE_DATA_DIR: "/tmp/OneDrive-x/ps" });
 t("serve.mjs cloud path exits 1", serveCloud.code === 1 && serveCloud.stderr.includes("OneDrive"));
 
 // ---------- و) ربات بله/ایتا (mock محلی، بدون اینترنت) ----------
@@ -221,8 +425,8 @@ for (let i = 0; i < 25; i += 1) { try { unlinkSync(`.data/backups/archive/audit6
 t("archive keeps 25 versions", archRes.status === 200 && archBody?.ok === true && dummiesLeft === 25, `left=${dummiesLeft}`);
 
 // ---------- ح) shebang خط اول اسکریپت‌ها ----------
-const SHEBANG_FILES = ["audit/audit5.mjs", "scripts/mirror-backup.mjs", "scripts/pg-init.mjs", "scripts/pg-dump.mjs", "scripts/pg-import-json.mjs"];
-t("shebang first line in 5 scripts", SHEBANG_FILES.every((f) => readFileSync(f, "utf8").split("\n")[0] === "#!/usr/bin/env node"));
+const SHEBANG_FILES = ["audit/audit5.mjs", "scripts/mirror-backup.mjs", "scripts/pg-init.mjs", "scripts/pg-dump.mjs", "scripts/pg-import-json.mjs", "scripts/stackblitz-warning.mjs"];
+t("shebang first line in 6 scripts", SHEBANG_FILES.every((f) => readFileSync(f, "utf8").split("\n")[0] === "#!/usr/bin/env node"));
 
 // ---------- ط) مهاجرت تازه شامل شش ستون مگر است (معادل 0005_fix_megger) ----------
 const migDir = "/tmp/audit6-mig";
@@ -292,6 +496,12 @@ const zipOut = zipStored([{ name: "a.json", data: new TextEncoder().encode('{"a"
 const zipText = Buffer.from(zipOut).toString("latin1");
 const eocdAt = zipOut.length - 22;
 t("zip stored structure", zipOut[0] === 0x50 && zipOut[1] === 0x4b && zipText.includes("a.json") && zipText.includes("b.sha256") && zipOut[eocdAt] === 0x50 && zipOut[eocdAt + 1] === 0x4b && zipOut[eocdAt + 2] === 0x05 && zipOut[eocdAt + 3] === 0x06 && zipOut[eocdAt + 8] === 2 && zipOut[eocdAt + 10] === 2);
+const deflated = zipDeflated([{ name: "sample.json", data: new TextEncoder().encode('{"value":"گزارش فرایندی"}') }]);
+const dv = new DataView(deflated.buffer, deflated.byteOffset, deflated.byteLength);
+const deflatedNameLength = dv.getUint16(26, true);
+const deflatedPayloadStart = 30 + deflatedNameLength + dv.getUint16(28, true);
+const restoredText = inflateRawSync(deflated.subarray(deflatedPayloadStart, deflatedPayloadStart + dv.getUint32(18, true))).toString("utf8");
+t("zip deflate data round-trips UTF-8", dv.getUint16(8, true) === 8 && restoredText.includes("گزارش فرایندی"));
 
 // ---------- جمع‌بندی ----------
 const pass = results.filter((r) => r.ok).length;

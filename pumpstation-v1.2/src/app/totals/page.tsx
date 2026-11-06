@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { sql } from "drizzle-orm";
+import { and, gte, lte, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { dailyTotals } from "@/db/schema";
 import { getSessionUser } from "@/lib/auth";
@@ -30,7 +30,7 @@ export default async function TotalsPage({ searchParams }: { searchParams: Promi
   if (!Number.isInteger(year) || year < 1300 || year > 1500) year = op.jy;
   if (!Number.isInteger(month) || month < 1 || month > 12) month = op.jm;
 
-  const rows = await db.select().from(dailyTotals).where(sql`${dailyTotals.day} like ${`${year}/${pad(month)}/%`}`).orderBy(dailyTotals.day);
+  const rows = await db.select().from(dailyTotals).where(and(gte(dailyTotals.day, `${year}/${pad(month)}/01`), lte(dailyTotals.day, `${year}/${pad(month)}/31`))).orderBy(dailyTotals.day);
   const map = new Map(rows.map((r) => [r.day, r.value]));
   const days = monthDaysOf(year, month);
   const table = Array.from({ length: days }, (_, i) => ({ d: i + 1, value: map.get(`${year}/${pad(month)}/${pad(i + 1)}`) ?? null }));

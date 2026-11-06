@@ -1,24 +1,16 @@
 @echo off
+setlocal
 chcp 65001 >nul
-title Pumpstation - shortcut setup
-set "ROOT=%~dp0"
-set "TARGET=%ROOT%launch-pumpstation.bat"
-set "ICON=%ROOT%pumpstation-v1.2\public\brand\logo.ico"
-set "LINK=%USERPROFILE%\Desktop\پمپاژخانه گلاب.lnk"
-
+set "TARGET=%LOCALAPPDATA%\Programs\Pumpstation\launch-pumpstation.ps1"
 if not exist "%TARGET%" (
-  echo [ERROR] launch-pumpstation.bat not found next to this file.
+  echo ابتدا install-windows.bat را اجرا کنید؛ نصب‌کننده میانبر دسکتاپ می‌سازد.
   pause
   exit /b 1
 )
-
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$s=New-Object -ComObject WScript.Shell; $l=$s.CreateShortcut($env:LINK); $l.TargetPath=$env:TARGET; $l.WorkingDirectory=$env:ROOT; $l.IconLocation=$env:ICON; $l.WindowStyle=7; $l.Description='Pumpstation Golab'; $l.Save()"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$s=New-Object -ComObject WScript.Shell; $l=$s.CreateShortcut((Join-Path ([Environment]::GetFolderPath('Desktop')) 'Pumpstation.lnk')); $l.TargetPath=Join-Path $PSHOME 'powershell.exe'; $l.Arguments='-NoProfile -ExecutionPolicy Bypass -File ' + [char]34 + $env:TARGET + [char]34; $l.WorkingDirectory=(Split-Path -Parent $env:TARGET); $l.IconLocation=$env:SystemRoot + '\System32\shell32.dll,220'; $l.Save()"
 if errorlevel 1 (
-  echo [ERROR] Could not create the shortcut.
+  echo ساخت میانبر ناموفق بود.
   pause
   exit /b 1
 )
-
-echo DONE. A shortcut was created on your Desktop.
-echo From now on, just double-click it to open the program.
-pause
+echo میانبر Pumpstation روی دسکتاپ ساخته شد.

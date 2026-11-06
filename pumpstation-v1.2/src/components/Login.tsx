@@ -112,9 +112,6 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
             {busy ? "در حال ورود…" : "ورود به سامانه"}
           </button>
 
-          <div className="note" style={{ marginTop: 12 }}>
-            برای تست: شیفت A = ۱۱۱۱ · شیفت B = ۲۲۲۲ · شیفت C = ۳۳۳۳ · ادمین = ۹۹۹۹
-          </div>
           <p className="tiny muted" style={{ marginTop: 10, textAlign: "center" }}>{ORG_NAME} — در گزارش‌ها نام شیفت و اپراتورهای همان شیفت ثبت می‌شود.</p>
         </form>
       </div>

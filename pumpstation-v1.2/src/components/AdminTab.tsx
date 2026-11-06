@@ -58,10 +58,12 @@ export default function AdminTab() {
         <PmTemplatesPanel />
       </div>
 
+      <ReportArchivePanel />
+
       <Panel
-        title="بک‌آپ کامل و بازیابی"
+        title="بک‌آپ پایگاه‌داده و بازیابی"
         icon="database"
-        hint="اسنپ‌شات همهٔ جدول‌ها؛ پیش از هر بازیابی نسخه ایمنی ساخته می‌شود"
+        hint="اسنپ‌شات جدول‌های پیکربندی‌شده؛ پیش از هر بازیابی نسخهٔ ایمنی ساخته می‌شود"
         actions={
           <>
             <button type="button" className="btn primary" disabled={busy} onClick={() => act("backup.create")}>
@@ -70,6 +72,10 @@ export default function AdminTab() {
           </>
         }
       >
+        <div className="note warn-note" style={{ marginBottom: 10 }}>
+          بک‌آپ JSON توکن کانال‌ها و راز/کدهای TOTP را عمداً حذف می‌کند؛ هنگام بازیابی، تنظیمات محلی همین دستگاه حفظ می‌شود. PDFها و قرائت‌های بایگانی‌شده در JSON نیستند؛ برای بازیابی جامع از بستهٔ پوشه‌ای زیر استفاده کنید. روی دستگاه تازه، توکن کانال و ورود دوعاملی را دوباره پیکربندی کنید.
+        </div>
+        <RecoveryBundlesPanel />
         {state.backups.length === 0 ? (
           <div className="empty">هنوز بک‌آپی ساخته نشده است. اولین بک‌آپ را بسازید.</div>
         ) : (
@@ -329,9 +335,9 @@ function ShiftPanel() {
               className="input mono"
               style={{ width: 90, fontSize: 11 }}
               placeholder="PIN جدید"
-              maxLength={4}
+              maxLength={6}
               value={pins[r.key] ?? ""}
-              onChange={(e) => setPins({ ...pins, [r.key]: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+              onChange={(e) => setPins({ ...pins, [r.key]: e.target.value.replace(/\D/g, "").slice(0, 6) })}
             />
             <div className="row" style={{ gap: 4 }}>
               <button
@@ -342,7 +348,7 @@ function ShiftPanel() {
               >
                 نام‌ها
               </button>
-              <button type="button" className="btn tiny warn" disabled={busy || (pins[r.key] ?? "").length !== 4} onClick={() => act("admin.pin", { key: r.key, pin: pins[r.key] })}>
+              <button type="button" className="btn tiny warn" disabled={busy || ![4, 5, 6].includes((pins[r.key] ?? "").length)} onClick={() => act("admin.pin", { key: r.key, pin: pins[r.key] })}>
                 PIN
               </button>
             </div>
@@ -449,28 +455,83 @@ function RestoreConfirm({ id, label, createdAt }: { id: number; label: string; c
 }
 
 
+function ReportArchivePanel() {
+  const { state, isAdmin } = useApp();
+  const [day, setDay] = useState(state.now.day);
+  const [busy, setBusy] = useState("");
+
+  async function createZip(kind: "process" | "pm") {
+    setBusy(kind);
+    try {
+      const response = await fetch("/api/report-archives", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, day }),
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        window.alert(error?.error ?? `ساخت ZIP ناموفق بود (${response.status})`);
+        return;
+      }
+      const blob = await response.blob();
+      const name = response.headers.get("x-report-archive-filename") ?? `${kind}-${day.replaceAll("/", "-")}.zip`;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      window.alert(`فایل فشرده ساخته و در پوشهٔ گزارشات ذخیره شد:\n${name}`);
+    } catch {
+      window.alert("ساخت ZIP انجام نشد؛ اتصال، فضای درایو و دسترسی پوشه را بررسی کنید.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  if (!isAdmin) return null;
+  return (
+    <Panel title="آرشیو ZIP گزارش‌ها" icon="file" hint="خروجی فشردهٔ گزارش‌های فرآیندی یا PM؛ هم دانلود می‌شود و هم در پوشهٔ گزارشات ثبت می‌ماند">
+      <div className="row" style={{ gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+        <label className="field" style={{ minWidth: 180, flex: "0 1 220px" }}>
+          <span>تاریخ شمسی</span>
+          <input className="input mono" dir="ltr" value={day} onChange={(event) => setDay(event.target.value)} placeholder="1405/08/15" />
+        </label>
+        <button type="button" className="btn primary" disabled={Boolean(busy)} onClick={() => void createZip("process")}>{busy === "process" ? "در حال ساخت…" : "ZIP گزارش فرآیندی"}</button>
+        <button type="button" className="btn primary" disabled={Boolean(busy)} onClick={() => void createZip("pm")}>{busy === "pm" ? "در حال ساخت…" : "ZIP گزارش PM"}</button>
+      </div>
+      <div className="note small">ZIPها در پوشه‌های «گزارشات فرایند» و «PM» روی درایو داده ذخیره می‌شوند. ساخت هر ZIP یک نسخهٔ تازه می‌سازد و نسخه‌های قبلی را حذف نمی‌کند.</div>
+    </Panel>
+  );
+}
+
 function ChannelsPanel() {
   const { state, act, busy, isAdmin } = useApp();
   const offline = typeof navigator !== "undefined" && !navigator.onLine;
-  const [forms, setForms] = useState<Record<string, { provider: string; chatId: string; token: string; enabled: boolean }>>(
-    Object.fromEntries(state.channels.map((c) => [c.key, { provider: c.provider, chatId: c.chatId, token: "", enabled: c.enabled }])),
+  const [forms, setForms] = useState<Record<string, { provider: string; chatId: string; token: string; enabled: boolean; clearToken: boolean }>>(
+    Object.fromEntries(state.channels.map((c) => [c.key, { provider: c.provider, chatId: c.chatId, token: "", enabled: c.enabled, clearToken: false }])),
   );
   const pending = state.queue.filter((q) => q.status === "pending").length;
   return (
     <Panel title="کانال‌های ارسال (بله / ایتا)" icon="bolt" hint="گزارش روزانه و بک‌آپ در دو کانال جدا"
       actions={<button type="button" className="btn tiny" disabled={busy || !pending} onClick={() => act("queue.retry")}>تلاش مجدد صف ({pending})</button>}>
       {state.channels.map((c) => {
-        const f = forms[c.key] ?? { provider: "bale", chatId: "", token: "", enabled: false };
+        const f = forms[c.key] ?? { provider: "bale", chatId: "", token: "", enabled: false, clearToken: false };
         return (
           <div key={c.key} className="service-item" style={{ flexDirection: "column", alignItems: "stretch", gap: 8, marginBottom: 8 }}>
             <div className="spread"><b>{c.key === "daily" ? "کانال گزارش روزانه" : "کانال بک‌آپ"}</b><span className={`chip ${c.enabled && c.hasToken ? "live" : "muted"}`}>{c.enabled && c.hasToken ? "فعال" : "تنظیم نشده"}</span></div>
             <div className="form-grid">
               <div className="field"><label>پیام‌رسان</label><select className="input" value={f.provider} onChange={(e) => setForms({ ...forms, [c.key]: { ...f, provider: e.target.value } })}><option value="bale">بله</option><option value="eitaa">ایتا</option></select></div>
               <div className="field"><label>شناسه کانال / chat_id</label><input className="input mono" dir="ltr" value={f.chatId} onChange={(e) => setForms({ ...forms, [c.key]: { ...f, chatId: e.target.value } })} /></div>
-              <div className="field"><label>توکن ربات {c.hasToken ? "(ذخیره شده — برای تغییر وارد کنید)" : ""}</label><input className="input mono" dir="ltr" type="password" value={f.token} onChange={(e) => setForms({ ...forms, [c.key]: { ...f, token: e.target.value } })} /></div>
+              <div className="field"><label>توکن ربات {c.hasToken ? "(ذخیره شده — برای تغییر وارد کنید)" : ""}</label><input className="input mono" dir="ltr" type="password" value={f.token} disabled={f.clearToken} onChange={(e) => setForms({ ...forms, [c.key]: { ...f, token: e.target.value } })} /></div>
             </div>
             <div className="spread">
-              <label className="row small" style={{ gap: 5 }}><input type="checkbox" checked={f.enabled} onChange={(e) => setForms({ ...forms, [c.key]: { ...f, enabled: e.target.checked } })} /> فعال</label>
+              <div className="row" style={{ gap: 10 }}>
+                <label className="row small" style={{ gap: 5 }}><input type="checkbox" checked={f.enabled && !f.clearToken} disabled={f.clearToken} onChange={(e) => setForms({ ...forms, [c.key]: { ...f, enabled: e.target.checked } })} /> فعال</label>
+                {c.hasToken && <label className="row small" style={{ gap: 5, color: "var(--red)" }}><input type="checkbox" checked={f.clearToken} onChange={(e) => setForms({ ...forms, [c.key]: { ...f, clearToken: e.target.checked, enabled: e.target.checked ? false : f.enabled } })} /> پاک‌کردن توکن ذخیره‌شده</label>}
+              </div>
               <div className="row" style={{ gap: 6 }}>
                 <button type="button" className="btn tiny" disabled={busy || !c.enabled || !c.hasToken} title="ارسال یک پیام تستی به همین کانال" onClick={() => { if (window.confirm("یک پیام تستی به این کانال ارسال شود؟")) void act("channel.test", { key: c.key }); }}>تست اتصال</button>
                 <button type="button" className="btn tiny primary" disabled={busy} onClick={() => act("admin.channel", { key: c.key, ...f })}>ذخیره کانال</button>
@@ -557,6 +618,88 @@ type SessionRow = {
 };
 
 type BackupFile = { file: string; bytes: number; modifiedAt: string; sha256: string | null };
+type RecoveryBundle = { name: string; createdAt: string; bytes: number; rows: number; assets: number; complete: boolean; warnings: number };
+
+function RecoveryBundlesPanel() {
+  const { act, busy, toast, refresh } = useApp();
+  const [bundles, setBundles] = useState<RecoveryBundle[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  const call = async (action: string, payload: Record<string, unknown> = {}) => {
+    const res = await fetch("/api/actions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, payload }),
+      signal: AbortSignal.timeout(120000),
+    });
+    return (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  };
+
+  const load = async () => {
+    const result = await call("backup.bundle.files");
+    setBundles((result.bundles as RecoveryBundle[]) ?? []);
+    setLoaded(true);
+  };
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
+    // فقط یک‌بار هنگام بازشدن پنل
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div style={{ margin: "12px 0" }}>
+      <div className="row" style={{ justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+        <h4 style={{ margin: 0 }}>بستهٔ بازیابی آرشیو و فایل‌ها</h4>
+        <div className="row" style={{ gap: 6 }}>
+          <button type="button" className="btn tiny" disabled={busy} onClick={() => void load()}>بازخوانی</button>
+          <button type="button" className="btn tiny primary" disabled={busy} onClick={async () => { await act("backup.bundle.create"); await load(); }}>
+            <Icon name="archive" size={12} /> ساخت بستهٔ بازیابی
+          </button>
+        </div>
+      </div>
+      <div className="tiny muted" style={{ marginBottom: 6 }}>
+        پوشهٔ قابل‌انتقال شامل جدول‌های آرشیو، فایل‌های سرد و PDFهاست؛ نگه‌داری خودکار نامحدود است. با «آینهٔ بک‌آپ» آخرین بسته هم کپی می‌شود.
+      </div>
+      {!loaded ? <div className="tiny muted">در حال خواندن بسته‌ها…</div> : !bundles.length ? <div className="empty">هنوز بستهٔ بازیابی ساخته نشده است.</div> : (
+        <div className="table-wrap" style={{ maxHeight: 220 }}>
+          <table className="data">
+            <thead><tr><th>بسته</th><th>حجم</th><th>سلامت</th><th></th></tr></thead>
+            <tbody>
+              {bundles.map((bundle) => (
+                <tr key={bundle.name}>
+                  <td className="tiny mono">{bundle.name}</td>
+                  <td className="tiny">{(bundle.bytes / 1024 / 1024).toFixed(2)} MB</td>
+                  <td className="tiny" style={{ color: bundle.complete ? "var(--green)" : "var(--amber)" }}>
+                    {bundle.complete && bundle.warnings === 0 ? `${bundle.assets} فایل` : `نیازمند بررسی؛ ${bundle.warnings} هشدار`}
+                  </td>
+                  <td>
+                    <button type="button" className="btn tiny ghost" disabled={busy} onClick={async () => {
+                      const result = await call("backup.bundle.verify", { name: bundle.name });
+                      const warnings = (result.warnings as string[]) ?? [];
+                      toast(result.ok ? (result.complete && warnings.length === 0 ? "بسته سالم است و checksum همهٔ محتواها درست است" : `ساختار/چک‌سام سالم؛ ${warnings.join(" | ")}`) : String(result.error ?? "بررسی بسته ناموفق بود"), result.ok && warnings.length === 0 ? "ok" : "error");
+                    }}>آزمون</button>
+                    <button type="button" className="btn tiny ghost" disabled={busy} onClick={async () => {
+                      const hasWarnings = bundle.warnings > 0;
+                      const text = !hasWarnings
+                        ? `داده‌های جاری با «${bundle.name}» جایگزین شوند؟ پیش از بازیابی یک بستهٔ ایمنی ساخته می‌شود.`
+                        : `این بسته ${bundle.warnings} هشدار دربارهٔ PDF یا فایل آرشیو سرد دارد. بازیابی ممکن است این فایل‌های جانبی را ناقص برگرداند؛ ادامه می‌دهید؟`;
+                      if (!confirm(text)) return;
+                      await act("backup.bundle.restore", { name: bundle.name, allowIncomplete: hasWarnings });
+                      await load();
+                      await refresh();
+                    }}>بازیابی</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function SecurityPanel() {
   const { act, busy, toast, refresh } = useApp();
@@ -671,7 +814,7 @@ function SecurityPanel() {
 
       <div className="row" style={{ gap: 8, flexWrap: "wrap", marginTop: 10 }}>
         <button type="button" className="btn tiny primary" disabled={busy} onClick={() => void act("backup.create")}>
-          <Icon name="save" size={12} /> بک‌آپ کامل فوری
+          <Icon name="save" size={12} /> بک‌آپ فوری
         </button>
         <button type="button" className="btn tiny" disabled={busy} onClick={async () => { await act("data.optimize"); void load(); }}>
           <Icon name="settings" size={12} /> بهینه‌سازی دیتابیس
@@ -735,7 +878,7 @@ function SecurityPanel() {
                         title="آزمون بازیابی این فایل (بدون اعمال تغییر)"
                         onClick={async () => {
                           const r = await call("backup.verify", { file: f.file });
-                          toast(r.ok ? "فایل سالم و قابل بازیابی است" : "فایل مشکل دارد", r.ok ? "ok" : "error");
+                          toast(r.checksumOk === true ? "فایل و چک‌سام سالم است" : r.checksumPresent ? "چک‌سام فایل ناسازگار است" : "فایل چک‌سام ندارد؛ بازیابی عادی متوقف می‌شود", r.checksumOk === true ? "ok" : "error");
                         }}
                       >
                         آزمون
@@ -744,10 +887,15 @@ function SecurityPanel() {
                         type="button"
                         className="btn tiny ghost"
                         disabled={busy}
-                        title="بازیابی کامل از این فایل"
+                        title="بازیابی داده‌ها از این فایل"
                         onClick={async () => {
-                          if (!confirm(`داده‌های فعلی با محتوای «${f.file}» جایگزین شود؟ یک نسخهٔ ایمنی خودکار گرفته می‌شود.`)) return;
-                          await act("backup.restore_file", { file: f.file });
+                          const verification = await call("backup.verify", { file: f.file });
+                          const checksumOk = verification.checksumOk === true;
+                          const proceed = checksumOk
+                            ? confirm(`داده‌های فعلی با محتوای «${f.file}» جایگزین شود؟ یک نسخهٔ ایمنی خودکار گرفته می‌شود.`)
+                            : confirm(`هشدار: ${verification.checksumPresent ? "چک‌سام با فایل نمی‌خواند" : "فایل .sha256 ندارد"}. بازیابی اجباری ریسک دارد. فقط اگر منشأ فایل را مطمئن می‌دانید ادامه دهید. فایل «${f.file}» بازیابی شود؟`);
+                          if (!proceed) return;
+                          await act("backup.restore_file", { file: f.file, ...(!checksumOk ? { force: true } : {}) });
                           void load();
                           await refresh();
                         }}

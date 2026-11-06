@@ -1,3 +1,4 @@
+import { addDaysToDay } from "../src/lib/jalali.ts";
 const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 const out = [];
 function log(name, pass, detail) {
@@ -100,11 +101,15 @@ const H = (cookie) => ({ cookie });
 
   // ---------- D: authorization ----------
   const operatorAdmin = await act(A, "admin.pin", { key: "admin", pin: "1234" });
-  log("operator cannot change PIN", operatorAdmin.status === 400 && /ادمین/.test(operatorAdmin.body?.error ?? ""), `status=${operatorAdmin.status} error=${operatorAdmin.body?.error}`);
+  log("operator cannot change PIN", operatorAdmin.status === 403 && /ادمین/.test(operatorAdmin.body?.error ?? ""), `status=${operatorAdmin.status} error=${operatorAdmin.body?.error}`);
   const operatorBackup = await act(A, "backup.create", {});
-  log("operator cannot create backup", operatorBackup.status === 400, `status=${operatorBackup.status} error=${operatorBackup.body?.error}`);
+  log("operator cannot create backup", operatorBackup.status === 403, `status=${operatorBackup.status} error=${operatorBackup.body?.error}`);
   const admState = await fetch(`${BASE}/api/state`, { headers: H(ADM) }).then((r) => r.json());
   log("admin sees admin panel data", admState.me.role === "admin", `role=${admState.me.role}`);
+  const pinSix = await act(ADM, "admin.pin", { key: "B", pin: "654321" });
+  const loginSix = await fetch(`${BASE}/api/auth`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: "B", pin: "654321" }) });
+  log("six-digit PIN can be set and used", pinSix.status === 200 && loginSix.status === 200, `set=${pinSix.status} login=${loginSix.status}`);
+  await act(ADM, "admin.pin", { key: "B", pin: "2022" });
 
   // ---------- E: input validation / injection ----------
   const sqli = await act(A, "process.set", { tag: "PIT-001' OR 1=1--", value: 12, day: "1405/08/13", intervalIndex: 0 });
@@ -120,6 +125,10 @@ const H = (cookie) => ({ cookie });
   // (یادداشت state همیشه مال «امروز» است، پس روز تست هم امروز است تا تاریخ‌محور نشود)
   const cur = await fetch(`${BASE}/api/state`, { headers: H(A) }).then((r) => r.json());
   const noteDay = cur.now?.day ?? "1405/08/13";
+  if (String(cur.note ?? "").length > 0) {
+    const noVersion = await act(A, "note.save", { text: "بدون نسخهٔ مورد انتظار", day: noteDay });
+    log("note update without expected version is rejected", noVersion.status === 400, `status=${noVersion.status}`);
+  }
   const xss = await act(A, "note.save", { text: '<script>alert(1)</script><img src=x onerror=alert(1)>', day: noteDay, expected: cur.note ?? "" });
   const stateAfter = await fetch(`${BASE}/api/state`, { headers: H(A) }).then((r) => r.json());
   log("XSS payload stored as inert text", stateAfter.note.includes("<script>") && xss.body?.ok, `stored raw, rendered by React escaping. len=${stateAfter.note.length}`);
@@ -130,6 +139,10 @@ const H = (cookie) => ({ cookie });
   // ---------- F: bad day / interval handling ----------
   const badDay = await act(A, "process.set", { tag: "PIT-001", value: 5, day: "1405/13/45", intervalIndex: 0 });
   log("invalid jalali date accepted?", badDay.status === 400, `status=${badDay.status} ${badDay.body?.ok ? "ACCEPTED invalid date 1405/13/45 (bug)" : "error=" + badDay.body?.error}`);
+  const todayForDate = await fetch(`${BASE}/api/state`, { headers: H(A) }).then((r) => r.json());
+  const futureDay = addDaysToDay(todayForDate.now.day, 1);
+  const futureWrite = await act(A, "process.set", { tag: "PIT-001", value: 5, day: futureDay, intervalIndex: 0 });
+  log("future manual reading rejected", futureWrite.status === 400 && /آینده/.test(futureWrite.body?.error ?? ""), `status=${futureWrite.status}`);
 
   // ---------- G: races ----------
   const day = "1405/08/13";

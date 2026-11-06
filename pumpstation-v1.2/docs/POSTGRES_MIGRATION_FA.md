@@ -54,7 +54,7 @@ dir .data\backups          # آخرین pumpstation-*.json و .sha256 را بر�
 $env:DATABASE_URL = "postgresql://psuser:SECRET@127.0.0.1:5432/pumpstation"
 node scripts/pg-init.mjs
 ```
-خروجی مورد انتظار: `[migrate] applied 0000…` تا `0004…` و در پایان شمارش جدول‌ها.
+خروجی مورد انتظار: مهاجرت‌های `0000` تا `0006` (از جمله `0006_alerts_open_unique`) و در پایان شمارش جدول‌ها. مهاجرت 0006 یکتایی هشدارهای باز را اعمال می‌کند.
 
 ### گام ۳ — انتقال داده
 ```powershell
@@ -93,7 +93,7 @@ $env:MIRROR_DIR   = "E:\pumpstation-mirror"     # فلش یا درایو بیر�
 node scripts/pg-dump.mjs
 ```
 - خروجی: `.data/pgdump/pumpstation-YYYYMMDD-HHMMSS.dump` (فرمت custom، فشرده ۹).
-- نگه‌داری پیش‌فرض: ۱۴ نسخهٔ آخر (`PGDUMP_KEEP`).
+- همهٔ دامپ‌ها نگه‌داری می‌شوند؛ پاک‌سازی خودکار وجود ندارد. حذف نسخه فقط دستی و پس از بررسی کپی سالم مجاز است.
 - اگر `MIRROR_DIR` ست باشد، نسخهٔ تازه همان‌جا هم کپی می‌شود.
 - اگر `pg_dump` در PATH نبود: `set PGDUMP_BIN=C:\Program Files\PostgreSQL\16\bin\pg_dump.exe`.
 

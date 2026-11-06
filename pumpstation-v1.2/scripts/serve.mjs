@@ -61,7 +61,7 @@ if (host === "0.0.0.0") {
 const child = spawn(
   process.execPath,
   ["node_modules/next/dist/bin/next", mode, "-H", host, "-p", String(port), ...passthrough],
-  { stdio: "inherit", cwd: process.cwd() },
+  { stdio: "inherit", cwd: process.cwd(), env: { ...process.env, BIND: host } },
 );
 child.on("exit", (code, signal) => {
   if (signal) process.exit(1);

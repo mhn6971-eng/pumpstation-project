@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   serial,
@@ -227,7 +228,9 @@ export const alerts = pgTable("alerts", {
   actedShift: text("acted_shift").default("").notNull(),
   /** زمان برطرف‌شدن خودکار (وقتی مقدار به محدودهٔ مجاز برگشت) — هشدار از داشبورد کنار می‌رود */
   resolvedAt: text("resolved_at").default("").notNull(),
-});
+}, (t) => [
+  uniqueIndex("alerts_open_cell_uq").on(t.tag, t.param, t.day).where(sql`${t.actedAt} = '' AND ${t.resolvedAt} = ''`),
+]);
 
 export const activity = pgTable("activity", {
   id: serial("id").primaryKey(),

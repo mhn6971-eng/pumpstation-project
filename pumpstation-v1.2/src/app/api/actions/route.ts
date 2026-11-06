@@ -1,5 +1,6 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
+import { AppError, badRequest, errorResponse, forbidden } from "@/lib/errors";
 import {
   shifts,
   settings,
@@ -39,6 +40,7 @@ import { generateBackupCode, generateTotpSecret, normalizeBackupCode, otpauthUrl
 import { ensureSeed, getAllSettings, saveSettings } from "@/db/seed";
 import { ensureMirrorFresh, mirrorLatest, mirrorStatus } from "@/lib/mirror";
 import { createInternalBackup, ensureDailyFileBackup, listFileBackups, restoreAll, restoreFromFile, verifyFileBackup, writeFileBackup, type Snapshot } from "@/lib/backup";
+import { listBackupBundles, restoreBackupBundle, verifyBackupBundle, writeBackupBundle } from "@/lib/backup-bundle";
 import { bodyTooLarge, clearLoginLock, logSecurityEvent, rateLimitedResponse, tooLargeResponse, writeRateLimited } from "@/lib/security";
 import { effectiveShift, getProcessThresholds, logActivity, thresholdSeverity } from "@/lib/state";
 import { buildOperationalPayload, buildRegistryPayload, buildTrendPayload, createReport, latestMotorRecords, normalizeRange, REPORT_KINDS } from "@/lib/reporting";
@@ -53,11 +55,11 @@ type Payload = Record<string, unknown>;
 
 function num(value: unknown): number {
   if (value === null || value === undefined || (typeof value === "string" && !value.trim())) {
-    throw new Error("مقدار عددی لازم است");
+    throw badRequest("مقدار عددی لازم است");
   }
   const n = typeof value === "string" ? Number(value.replace(/,/g, "").replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)))) : Number(value);
-  if (!Number.isFinite(n)) throw new Error("مقدار عددی معتبر وارد کنید");
-  if (Math.abs(n) > 10_000_000) throw new Error("مقدار خارج از محدودهٔ منطقی است");
+  if (!Number.isFinite(n)) throw badRequest("مقدار عددی معتبر وارد کنید");
+  if (Math.abs(n) > 10_000_000) throw badRequest("مقدار خارج از محدودهٔ منطقی است");
   return n;
 }
 function optNum(value: unknown): number | null {
@@ -69,7 +71,7 @@ function str(value: unknown, max = 2000) {
 }
 /** اعتبارسنجی محدودهٔ فیزیکی مقدار (H4) */
 function inRange(value: number, limits: [number, number], label: string, unit: string) {
-  if (value < limits[0] || value > limits[1]) throw limitError(label, unit, limits[0], limits[1]);
+  if (value < limits[0] || value > limits[1]) throw badRequest(limitError(label, unit, limits[0], limits[1]).message);
   return value;
 }
 
@@ -84,12 +86,20 @@ async function runTx<T>(fn: (d: Db) => Promise<T>): Promise<T> {
  * و ثبت‌های بعدی همان هشدار را به‌روز می‌کنند، نه ردیف تازه.
  */
 async function addAlert(input: { tag: string; param: string; label: string; value: number; severity: "warning" | "critical"; message: string; day: string; shiftKey: string }, d: Db = db) {
-  const open = (await d.select().from(alerts).where(and(eq(alerts.tag, input.tag), eq(alerts.param, input.param), eq(alerts.day, input.day), eq(alerts.actedAt, ""), eq(alerts.resolvedAt, ""))).limit(1))[0];
-  if (open) {
-    await d.update(alerts).set({ value: input.value, severity: input.severity, message: input.message, at: jalaliNow(), shiftKey: input.shiftKey }).where(eq(alerts.id, open.id));
-    return;
-  }
-  await d.insert(alerts).values({ ...input, at: jalaliNow(), seenAt: "", actedAt: "", seenShift: "", actedShift: "", resolvedAt: "" });
+  await d
+    .insert(alerts)
+    .values({ ...input, at: jalaliNow(), seenAt: "", actedAt: "", seenShift: "", actedShift: "", resolvedAt: "" })
+    .onConflictDoUpdate({
+      target: [alerts.tag, alerts.param, alerts.day],
+      targetWhere: sql`${alerts.actedAt} = '' AND ${alerts.resolvedAt} = ''`,
+      set: {
+        value: sql`excluded.value`,
+        severity: sql`excluded.severity`,
+        message: sql`excluded.message`,
+        at: sql`excluded.at`,
+        shiftKey: sql`excluded.shift_key`,
+      },
+    });
 }
 
 /** وقتی مقدار به محدودهٔ مجاز برگشت، هشدارهای باز همان پارامتر بسته می‌شوند */
@@ -162,6 +172,7 @@ export async function POST(request: Request) {
   if (typeof p.day === "string" && p.day.trim()) {
     const candidate = p.day.trim();
     if (!isValidJalaliDay(candidate)) return Response.json({ ok: false, error: "تاریخ شمسی نامعتبر است (مثال درست: ۱۴۰۵/۰۸/۱۳)" }, { status: 400 });
+    if (candidate > op.day) return Response.json({ ok: false, error: "ثبت داده برای تاریخ آینده مجاز نیست" }, { status: 400 });
     day = candidate;
   }
   // بازهٔ نامعتبر بی‌صدا به بازهٔ جاری تبدیل نمی‌شود (M1)
@@ -174,7 +185,7 @@ export async function POST(request: Request) {
     interval = candidate;
   }
   const requireAdmin = () => {
-    if (!isAdmin) throw new Error("دسترسی ادمین لازم است");
+    if (!isAdmin) throw forbidden("دسترسی ادمین لازم است");
   };
 
   // ضدثبتِ تکراری: اگر همین درخواست قبلاً با موفقیت انجام شده، همان پاسخ برگردانده می‌شود
@@ -193,7 +204,7 @@ export async function POST(request: Request) {
       case "process.set": {
         const tag = str(p.tag, 20);
         const meta = PROCESS_PARAMS.find((x) => x.tag === tag);
-        if (!meta) throw new Error("پارامتر نامعتبر است");
+        if (!meta) throw badRequest("پارامتر نامعتبر است");
         const value = num(p.value);
         inRange(value, PROCESS_LIMITS[tag] ?? [-1e9, 1e9], meta.label, meta.unit);
         const thresholds = await getProcessThresholds();
@@ -220,6 +231,9 @@ export async function POST(request: Request) {
         const value = num(p.value);
         inRange(value, TOTAL_LIMITS, "توتال روزانه", "m³");
         await runTx(async (d) => {
+          // PostgreSQL permits concurrent transactions to both observe an empty day;
+          // serialize this day before the read/insert to avoid a unique(day) race.
+          await d.execute(sql`select pg_advisory_xact_lock(hashtext(${`daily-total:${day}`}))`);
           const existing = (await d.select().from(dailyTotals).where(eq(dailyTotals.day, day)).limit(1))[0];
           if (existing) {
             await audit(shiftKey, "total", "TOTAL-FIT", "total", existing.value, value, d);
@@ -234,7 +248,7 @@ export async function POST(request: Request) {
 
       case "motor.values": {
         const tag = str(p.tag, 10);
-        if (!MOTORS.some((m) => m.tag === tag)) throw new Error("موتور نامعتبر است");
+        if (!MOTORS.some((m) => m.tag === tag)) throw badRequest("موتور نامعتبر است");
         const values = (p.values ?? {}) as Record<string, unknown>;
         const cfg = await getAllSettings();
         let saved = 0;
@@ -265,7 +279,7 @@ export async function POST(request: Request) {
               await resolveAlerts(tag, param, day, d);
             }
           }
-          if (!saved) throw new Error("هیچ مقداری برای ثبت وارد نشده است");
+          if (!saved) throw badRequest("هیچ مقداری برای ثبت وارد نشده است");
           await logActivity(shiftKey, "ثبت داده موتور", `${tag} — ${saved} پارامتر — ${day} بازه ${interval + 1}`, d);
         });
         return Response.json({ ok: true, message: `${saved} مقدار ثبت شد` });
@@ -274,9 +288,9 @@ export async function POST(request: Request) {
       case "motor.state": {
         const tag = str(p.tag, 10);
         const state = str(p.state, 10);
-        if (!Object.keys(MOTOR_STATE_FA).includes(state)) throw new Error("وضعیت نامعتبر است");
+        if (!["on", "off", "service"].includes(state)) throw badRequest("وضعیت نامعتبر است");
         const row = (await db.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
-        if (!row) throw new Error("موتور پیدا نشد");
+        if (!row) throw badRequest("موتور پیدا نشد");
         await db.update(motors).set({ state, stateChangedAt: jalaliNow() }).where(eq(motors.tag, tag));
         await db.insert(motorStateLogs).values({ tag, fromState: row.state, toState: state, at: jalaliNow(), shiftKey });
         await db.update(equipment).set({ status: state === "service" ? "in_service" : "ready", updatedAt: jalaliNow() }).where(eq(equipment.tag, tag));
@@ -293,9 +307,9 @@ export async function POST(request: Request) {
         const tag = str(p.tag, 10);
         const hours = num(p.hours);
         const row = (await db.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
-        if (!row) throw new Error("موتور پیدا نشد");
-        if (hours < row.totalHours && !isAdmin) throw new Error("شمارنده کمتر از مقدار قبلی است؛ اصلاح فقط توسط ادمین با ذکر دلیل");
-        if (hours < row.totalHours && !str(p.reason)) throw new Error("برای اصلاح شمارنده، دلیل را بنویسید");
+        if (!row) throw badRequest("موتور پیدا نشد");
+        if (hours < row.totalHours && !isAdmin) throw forbidden("شمارنده کمتر از مقدار قبلی است؛ اصلاح فقط توسط ادمین با ذکر دلیل");
+        if (hours < row.totalHours && !str(p.reason)) throw badRequest("برای اصلاح شمارنده، دلیل را بنویسید");
         await audit(shiftKey, "hours", tag, "HMI", row.totalHours, hours);
         await db.update(motors).set({ totalHours: hours }).where(eq(motors.tag, tag));
         await logActivity(shiftKey, hours < row.totalHours ? "اصلاح شمارنده HMI (ادمین)" : "ثبت شمارنده HMI", `${tag}: ${row.totalHours} ← ${hours} ${str(p.reason)}`);
@@ -305,7 +319,7 @@ export async function POST(request: Request) {
       case "motor.service": {
         const tag = str(p.tag, 10);
         const row = (await db.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
-        if (!row) throw new Error("موتور پیدا نشد");
+        if (!row) throw badRequest("موتور پیدا نشد");
         const hours = p.hours === undefined || p.hours === "" ? row.totalHours : num(p.hours);
         const workers = "";
         const note = str(p.note, 1500);
@@ -331,11 +345,11 @@ export async function POST(request: Request) {
 
       case "motor.megger": {
         const tag = str(p.tag, 10);
-        if (!MOTORS.some((m) => m.tag === tag)) throw new Error("موتور نامعتبر است");
+        if (!MOTORS.some((m) => m.tag === tag)) throw badRequest("موتور نامعتبر است");
         const testVoltage = Number(p.testVoltage ?? 1000);
-        if (![500, 1000, 2500, 5000].includes(testVoltage)) throw new Error("ولتاژ تست نامعتبر است");
+        if (![500, 1000, 2500, 5000].includes(testVoltage)) throw badRequest("ولتاژ تست نامعتبر است");
         const testVoltageRotor = p.testVoltageRotor === undefined || p.testVoltageRotor === "" || p.testVoltageRotor === null ? testVoltage : Number(p.testVoltageRotor);
-        if (![500, 1000, 2500, 5000].includes(testVoltageRotor)) throw new Error("ولتاژ تست رتور نامعتبر است");
+        if (![500, 1000, 2500, 5000].includes(testVoltageRotor)) throw badRequest("ولتاژ تست رتور نامعتبر است");
         const unit = p.unit === "GΩ" ? "GΩ" : "MΩ";
         const rec = {
           tag, day, testVoltage, testVoltageRotor, unit,
@@ -345,7 +359,7 @@ export async function POST(request: Request) {
           piStatorU: optNum(p.piStatorU), piStatorV: optNum(p.piStatorV), piStatorW: optNum(p.piStatorW), piRotor: optNum(p.piRotor),
           workers: "", note: str(p.note, 1000), at: jalaliNow(), shiftKey,
         };
-        if ([rec.statorU, rec.statorV, rec.statorW, rec.rotorU, rec.rotorV, rec.rotorW, rec.windingTemp, rec.pi, rec.piStatorU, rec.piStatorV, rec.piStatorW, rec.piRotor].every((v) => v === null)) throw new Error("حداقل یک مقدار تست را وارد کنید");
+        if ([rec.statorU, rec.statorV, rec.statorW, rec.rotorU, rec.rotorV, rec.rotorW, rec.windingTemp, rec.pi, rec.piStatorU, rec.piStatorV, rec.piStatorW, rec.piRotor].every((v) => v === null)) throw badRequest("حداقل یک مقدار تست را وارد کنید");
         const id = (await db.insert(meggerTests).values(rec).returning({ id: meggerTests.id }))[0].id;
         const rid = await createReport({ kind: "megger", day, shift, title: `تست مگر ${tag} — ${day}`, payload: { ...rec, meggerId: id, shiftLabel: `${shift.label} — ${shift.members.join(" و ")}`, generatedAt: jalaliNow() } });
         await logActivity(shiftKey, "ثبت تست مگر", `${tag} — ${testVoltage}/${testVoltageRotor} V`);
@@ -354,7 +368,7 @@ export async function POST(request: Request) {
 
       case "motor.oil": {
         const tag = str(p.tag, 10);
-        if (!MOTORS.some((m) => m.tag === tag)) throw new Error("موتور نامعتبر است");
+        if (!MOTORS.some((m) => m.tag === tag)) throw badRequest("موتور نامعتبر است");
         const rec = { tag, day, hours: optNum(p.hours) ?? 0, note: str(p.note, 1000), at: jalaliNow(), shiftKey };
         await db.insert(oilChanges).values(rec);
         const rid = await createReport({ kind: "oil", day, shift, title: `تعویض روغن ${tag} — ${day}`, payload: { ...rec, generatedAt: jalaliNow() } });
@@ -366,10 +380,10 @@ export async function POST(request: Request) {
         const tag = str(p.tag, 40);
         const status = str(p.status, 20);
         const reason = str(p.reason, 1500);
-        if (!["ready", "in_service"].includes(status)) throw new Error("وضعیت نامعتبر است");
+        if (!["ready", "in_service"].includes(status)) throw badRequest("وضعیت نامعتبر است");
         const row = (await db.select().from(equipment).where(eq(equipment.tag, tag)).limit(1))[0];
-        if (!row) throw new Error("تجهیز پیدا نشد");
-        if (status === "in_service" && reason.length < 3) throw new Error("برای «در حال سرویس» توضیحات/دلیل سرویس را بنویسید");
+        if (!row) throw badRequest("تجهیز پیدا نشد");
+        if (status === "in_service" && reason.length < 3) throw badRequest("برای «در حال سرویس» توضیحات/دلیل سرویس را بنویسید");
         await runTx(async (d) => {
           await d.update(equipment).set({ status, description: reason || row.description, descriptionAt: reason ? jalaliNow() : row.descriptionAt, descriptionBy: reason ? shift.label : row.descriptionBy, updatedAt: jalaliNow() }).where(eq(equipment.tag, tag));
           await d.insert(equipmentReports).values({ tag, kind: status === "in_service" ? "service" : "ready", reason: reason || "بازگشت به آماده به کار", operator: shift.label, shiftKey, at: jalaliNow() });
@@ -384,9 +398,9 @@ export async function POST(request: Request) {
       case "equipment.report": {
         const tag = str(p.tag, 40);
         const reason = str(p.reason, 1500);
-        if (reason.length < 3) throw new Error("متن گزارش سرویس را بنویسید");
+        if (reason.length < 3) throw badRequest("متن گزارش سرویس را بنویسید");
         const row = (await db.select().from(equipment).where(eq(equipment.tag, tag)).limit(1))[0];
-        if (!row) throw new Error("تجهیز پیدا نشد");
+        if (!row) throw badRequest("تجهیز پیدا نشد");
         await db.insert(equipmentReports).values({ tag, kind: "report", reason, operator: shift.label, shiftKey, at: jalaliNow() });
         await db.update(equipment).set({ description: reason, descriptionAt: jalaliNow(), descriptionBy: shift.label, updatedAt: jalaliNow() }).where(eq(equipment.tag, tag));
         await logActivity(shiftKey, "گزارش سرویس دستی", `${tag} — ${reason}`);
@@ -397,20 +411,20 @@ export async function POST(request: Request) {
         requireAdmin();
         const id = p.id ? Number(p.id) : null;
         const tag = str(p.tag, 40).toUpperCase();
-        if (tag.length < 2) throw new Error("تگ تجهیز را وارد کنید");
+        if (tag.length < 2) throw badRequest("تگ تجهیز را وارد کنید");
         const category = str(p.category, 100);
-        if (!CATEGORIES.includes(category) && !category) throw new Error("دسته را انتخاب کنید");
+        if (!CATEGORIES.includes(category) && !category) throw badRequest("دسته را انتخاب کنید");
         const data = {
           tag, name: str(p.name, 200) || tag, category, spec: str(p.spec, 400), plate: str(p.plate, 400), partNumbers: str(p.partNumbers, 600), location: str(p.location, 200),
           isAux: p.isAux === true, safetyCritical: p.safetyCritical === true, updatedAt: jalaliNow(),
         };
         const dup = (await db.select().from(equipment).where(eq(equipment.tag, tag)).limit(1))[0];
         if (id) {
-          if (dup && dup.id !== id) throw new Error("این تگ برای تجهیز دیگری ثبت شده است");
+          if (dup && dup.id !== id) throw badRequest("این تگ برای تجهیز دیگری ثبت شده است");
           await db.update(equipment).set(data).where(eq(equipment.id, id));
           await logActivity(shiftKey, "ویرایش رکورد تجهیز", tag);
         } else {
-          if (dup) throw new Error("این تگ قبلاً ثبت شده است");
+          if (dup) throw badRequest("این تگ قبلاً ثبت شده است");
           await db.insert(equipment).values({ ...data, status: "ready", description: "", descriptionAt: "", descriptionBy: "", deletedAt: "" });
           await logActivity(shiftKey, "افزودن رکورد تجهیز", `${tag} — ${category}`);
         }
@@ -421,9 +435,9 @@ export async function POST(request: Request) {
         requireAdmin();
         const id = Number(p.id);
         const row = (await db.select().from(equipment).where(eq(equipment.id, id)).limit(1))[0];
-        if (!row) throw new Error("تجهیز پیدا نشد");
-        if (row.isMotor) throw new Error("موتورهای اصلی حذف‌شدنی نیستند");
-        if (row.safetyCritical) throw new Error("تجهیز ایمنی‌حیاتی حذف‌شدنی نیست؛ فقط مشخصات آن را ویرایش کنید");
+        if (!row) throw badRequest("تجهیز پیدا نشد");
+        if (row.isMotor) throw badRequest("موتورهای اصلی حذف‌شدنی نیستند");
+        if (row.safetyCritical) throw badRequest("تجهیز ایمنی‌حیاتی حذف‌شدنی نیست؛ فقط مشخصات آن را ویرایش کنید");
         await db.update(equipment).set({ deletedAt: jalaliNow(), updatedAt: jalaliNow() }).where(eq(equipment.id, id));
         await logActivity(shiftKey, "حذف (نرم) تجهیز", `${row.tag} — ${str(p.reason, 300)}`);
         return Response.json({ ok: true, message: "تجهیز از فهرست برداشته شد (سابقه حفظ می‌شود)" });
@@ -433,7 +447,7 @@ export async function POST(request: Request) {
         requireAdmin();
         const id = Number(p.id);
         const row = (await db.select().from(catalogs).where(eq(catalogs.id, id)).limit(1))[0];
-        if (!row) throw new Error("کاتالوگ پیدا نشد");
+        if (!row) throw badRequest("کاتالوگ پیدا نشد");
         // فایل به «سطل بازیافت» منتقل می‌شود، نه پاک (M5 — قاعدهٔ «هیچ حذف فیزیکی»)
         if (row.path) {
           try {
@@ -457,7 +471,7 @@ export async function POST(request: Request) {
         const category = str(p.category, 100);
         const name = str(p.name, 200);
         const items = Array.isArray(p.items) ? p.items.map((x) => str(x, 200)).filter(Boolean) : [];
-        if (!name || !items.length) throw new Error("نام قالب و حداقل یک آیتم لازم است");
+        if (!name || !items.length) throw badRequest("نام قالب و حداقل یک آیتم لازم است");
         if (id) await db.update(pmTemplates).set({ category, name, items, updatedAt: jalaliNow() }).where(eq(pmTemplates.id, id));
         else await db.insert(pmTemplates).values({ category, name, items, updatedAt: jalaliNow() });
         await logActivity(shiftKey, "ویرایش قالب PM", `${category} — ${name}`);
@@ -467,11 +481,11 @@ export async function POST(request: Request) {
       case "pm.record": {
         const tag = str(p.tag, 40);
         const row = (await db.select().from(equipment).where(eq(equipment.tag, tag)).limit(1))[0];
-        if (!row) throw new Error("تجهیز پیدا نشد");
+        if (!row) throw badRequest("تجهیز پیدا نشد");
         const results = (p.results ?? {}) as Record<string, unknown>;
         const clean: Record<string, string> = {};
         for (const [k, v] of Object.entries(results)) clean[str(k, 200)] = str(v, 300);
-        if (!Object.keys(clean).length) throw new Error("حداقل یک آیتم چک‌لیست را تکمیل کنید");
+        if (!Object.keys(clean).length) throw badRequest("حداقل یک آیتم چک‌لیست را تکمیل کنید");
         const rec = { tag, templateName: str(p.templateName, 200), results: clean, workers: str(p.workers, 200), note: str(p.note, 1500), day, at: jalaliNow(), shiftKey };
         const rid = await runTx(async (d) => {
           const id = (await d.insert(pmRecords).values(rec).returning({ id: pmRecords.id }))[0].id;
@@ -487,24 +501,27 @@ export async function POST(request: Request) {
         const id = Number(p.id);
         const kind = str(p.kind, 10);
         const row = (await db.select().from(alerts).where(eq(alerts.id, id)).limit(1))[0];
-        if (!row) throw new Error("هشدار پیدا نشد");
+        if (!row) throw badRequest("هشدار پیدا نشد");
         if (kind === "seen") await db.update(alerts).set({ seenAt: jalaliNow(), seenShift: shift.label }).where(eq(alerts.id, id));
         else if (kind === "acted") await db.update(alerts).set({ actedAt: jalaliNow(), actedShift: shift.label, ...(row.seenAt ? {} : { seenAt: jalaliNow(), seenShift: shift.label }) }).where(eq(alerts.id, id));
-        else throw new Error("نوع تأیید نامعتبر است");
+        else throw badRequest("نوع تأیید نامعتبر است");
         await logActivity(shiftKey, kind === "seen" ? "تأیید «دیدم» هشدار" : "تأیید «اقدام کردم» هشدار", String(id));
         return Response.json({ ok: true });
       }
 
       case "note.save": {
         const raw = String(p.text ?? "");
-        if (raw.length > 4000) throw new Error("متن گزارش حداکثر ۴٬۰۰۰ کاراکتر است؛ لطفاً کوتاه‌تر کنید");
+        if (raw.length > 4000) throw badRequest("متن گزارش حداکثر ۴٬۰۰۰ کاراکتر است؛ لطفاً کوتاه‌تر کنید");
         const text = raw.trim();
         await runTx(async (d) => {
           // «گزارش دستی روز» یک متن مشترک برای همان روز است؛ همهٔ شیفت‌ها همان را می‌بینند
           const existing = (await d.select().from(operatorNotes).where(eq(operatorNotes.day, day)).orderBy(desc(operatorNotes.id)).limit(1))[0];
-          // قفل خوش‌بینانه (H7): اگر تب/دستگاه دیگری متن را عوض کرده، بی‌صدا رویش نوشته نمی‌شود
-          if (existing && typeof p.expected === "string" && p.expected.trim() !== (existing.text ?? "").trim()) {
-            throw new Error("این گزارش در تب یا دستگاه دیگری تغییر کرده است؛ صفحه را تازه کنید و متن خود را دوباره وارد کنید");
+          // قفل خوش‌بینانه: از overwrite بی‌صدای یادداشت مشترک بین تب‌ها/شیفت‌ها جلوگیری می‌کند.
+          if (existing && typeof p.expected !== "string") {
+            throw badRequest("نسخهٔ فعلی گزارش ارسال نشده است؛ صفحه را تازه کنید و دوباره ذخیره کنید");
+          }
+          if (existing && String(p.expected).trim() !== (existing.text ?? "").trim()) {
+            throw badRequest("این گزارش در تب یا دستگاه دیگری تغییر کرده است؛ صفحه را تازه کنید و متن خود را دوباره وارد کنید");
           }
           if (existing) await d.update(operatorNotes).set({ text, updatedAt: jalaliNow() }).where(eq(operatorNotes.id, existing.id));
           else await d.insert(operatorNotes).values({ day, shiftKey, text, updatedAt: jalaliNow() });
@@ -515,7 +532,7 @@ export async function POST(request: Request) {
 
       case "problem.add": {
         const text = str(p.text, 2000);
-        if (text.length < 3) throw new Error("متن گزارش مشکل را کامل‌تر بنویسید");
+        if (text.length < 3) throw badRequest("متن گزارش مشکل را کامل‌تر بنویسید");
         await db.insert(problems).values({ at: jalaliNow(), shiftKey, text, internal: false });
         await logActivity(shiftKey, "ثبت گزارش مشکل", text.slice(0, 120));
         return Response.json({ ok: true });
@@ -535,7 +552,7 @@ export async function POST(request: Request) {
           const tParam = str(p.param || p.tag, 20);
           const tCompare = p.compare === true;
           const { from, to } = normalizeRange(str(p.from), str(p.to), addDaysToDay(op.day, -13), op.day);
-          if (tScope === "motor" && !tCompare && !MOTORS.some((m) => m.tag === tTag)) throw new Error("موتور نامعتبر است");
+          if (tScope === "motor" && !tCompare && !MOTORS.some((m) => m.tag === tTag)) throw badRequest("موتور نامعتبر است");
           const payload = await buildTrendPayload(tScope, tTag, tParam, from, to, tCompare);
           const id = await createReport({ kind, day: to, shift, payload, title: `روند ${payload.label} — ${from} تا ${to}` });
           await logActivity(shiftKey, "ساخت گزارش روند", `${payload.label} — ${from} تا ${to}`);
@@ -549,7 +566,7 @@ export async function POST(request: Request) {
           await logActivity(shiftKey, "ساخت گزارش لیست تجهیزات", payload.scope);
           return Response.json({ ok: true, id });
         }
-        throw new Error("نوع گزارش نامعتبر است");
+        throw badRequest("نوع گزارش نامعتبر است");
       }
 
       case "report.send": {
@@ -593,10 +610,11 @@ export async function POST(request: Request) {
       case "admin.channel": {
         requireAdmin();
         const key = str(p.key, 20);
-        if (!["daily", "backup"].includes(key)) throw new Error("کانال نامعتبر است");
+        if (!["daily", "backup"].includes(key)) throw badRequest("کانال نامعتبر است");
         const existing = (await db.select().from(channels).where(eq(channels.key, key)).limit(1))[0];
+        const clearToken = p.clearToken === true;
         const token = str(p.token, 300);
-        await db.update(channels).set({ provider: str(p.provider, 10) === "eitaa" ? "eitaa" : "bale", chatId: str(p.chatId, 100), token: token || existing?.token || "", enabled: p.enabled === true }).where(eq(channels.key, key));
+        await db.update(channels).set({ provider: str(p.provider, 10) === "eitaa" ? "eitaa" : "bale", chatId: str(p.chatId, 100), token: clearToken ? "" : token || existing?.token || "", enabled: !clearToken && p.enabled === true }).where(eq(channels.key, key));
         await logActivity(shiftKey, "ویرایش کانال ارسال", key);
         return Response.json({ ok: true });
       }
@@ -604,14 +622,14 @@ export async function POST(request: Request) {
       case "channel.test": {
         requireAdmin();
         const key = str(p.key, 20);
-        if (!["daily", "backup"].includes(key)) throw new Error("کانال نامعتبر است");
+        if (!["daily", "backup"].includes(key)) throw badRequest("کانال نامعتبر است");
         const ch = (await db.select().from(channels).where(eq(channels.key, key)).limit(1))[0];
-        if (!ch?.enabled) throw new Error("کانال فعال نیست؛ ابتدا آن را فعال و ذخیره کنید");
-        if (!ch.token || !ch.chatId) throw new Error("توکن یا شناسه کانال خالی است؛ ابتدا ذخیره کنید");
+        if (!ch?.enabled) throw badRequest("کانال فعال نیست؛ ابتدا آن را فعال و ذخیره کنید");
+        if (!ch.token || !ch.chatId) throw badRequest("توکن یا شناسه کانال خالی است؛ ابتدا ذخیره کنید");
         try {
           await sendBotText({ provider: ch.provider === "eitaa" ? "eitaa" : "bale", token: ch.token, chatId: ch.chatId, text: `✅ اتصال سالم است\nزمان: ${jalaliNow()}\nسامانه پایش ایستگاه پمپاژ زیرزمینی — تونل انتقال آب گلاب` });
         } catch (error) {
-          throw new Error(`ارسال تستی ناموفق بود (${error instanceof Error ? error.message : "خطای شبکه"})`);
+          throw new AppError(`ارسال تستی ناموفق بود (${error instanceof Error ? error.message : "خطای شبکه"})`, 502, "upstream_error");
         }
         await logActivity(shiftKey, "تست اتصال کانال ارسال", key);
         return Response.json({ ok: true, message: "پیام تستی ارسال شد؛ کانال را بررسی کنید" });
@@ -620,10 +638,10 @@ export async function POST(request: Request) {
       case "channel.sendReport": {
         requireAdmin();
         const ch = (await db.select().from(channels).where(eq(channels.key, "daily")).limit(1))[0];
-        if (!ch?.enabled) throw new Error("کانال گزارش روزانه فعال نیست؛ ابتدا آن را فعال و ذخیره کنید");
-        if (!ch.token || !ch.chatId) throw new Error("توکن یا شناسه کانال گزارش روزانه خالی است؛ ابتدا ذخیره کنید");
+        if (!ch?.enabled) throw badRequest("کانال گزارش روزانه فعال نیست؛ ابتدا آن را فعال و ذخیره کنید");
+        if (!ch.token || !ch.chatId) throw badRequest("توکن یا شناسه کانال گزارش روزانه خالی است؛ ابتدا ذخیره کنید");
         const latest = (await db.select().from(reports).where(eq(reports.kind, "daily")).orderBy(desc(reports.id)).limit(1))[0];
-        if (!latest) throw new Error("هنوز گزارش روزانه‌ای ثبت نشده است؛ چیزی برای ارسال نیست");
+        if (!latest) throw badRequest("هنوز گزارش روزانه‌ای ثبت نشده است؛ چیزی برای ارسال نیست");
         const fail = async (detail: string) => {
           await logActivity(shiftKey, "ارسال ناموفق گزارش به کانال", `گزارش ${latest.id} (${latest.day}): ${detail}`);
         };
@@ -631,12 +649,12 @@ export async function POST(request: Request) {
         try {
           const origin = new URL(request.url).origin;
           const page = await fetch(`${origin}/report/${latest.id}`, { headers: { cookie: request.headers.get("cookie") ?? "" }, signal: AbortSignal.timeout(15000) });
-          if (!page.ok) throw new Error(`پاسخ ${page.status}`);
+          if (!page.ok) throw new AppError(`پاسخ ${page.status}`, 502, "upstream_error");
           html = await page.text();
         } catch (error) {
           const detail = error instanceof Error ? error.message : "خطای شبکه";
           await fail(detail);
-          throw new Error(`خواندن صفحهٔ گزارش ناموفق بود (${detail})`);
+          throw new AppError(`خواندن صفحهٔ گزارش ناموفق بود (${detail})`, 502, "upstream_error");
         }
         try {
           await sendBotDocument({
@@ -650,7 +668,7 @@ export async function POST(request: Request) {
         } catch (error) {
           const detail = error instanceof Error ? error.message : "خطای شبکه";
           await fail(detail);
-          throw new Error(`ارسال به کانال ناموفق بود (${detail})`);
+          throw new AppError(`ارسال به کانال ناموفق بود (${detail})`, 502, "upstream_error");
         }
         await logActivity(shiftKey, "ارسال گزارش روزانه به کانال", `${latest.title} (${latest.day})`);
         return Response.json({ ok: true, message: "گزارش روزانه به کانال ارسال شد" });
@@ -659,8 +677,8 @@ export async function POST(request: Request) {
       case "channel.sendBackup": {
         requireAdmin();
         const ch = (await db.select().from(channels).where(eq(channels.key, "backup")).limit(1))[0];
-        if (!ch?.enabled) throw new Error("کانال بکاپ فعال نیست؛ ابتدا آن را فعال و ذخیره کنید");
-        if (!ch.token || !ch.chatId) throw new Error("توکن یا شناسه کانال بکاپ خالی است؛ ابتدا ذخیره کنید");
+        if (!ch?.enabled) throw badRequest("کانال بکاپ فعال نیست؛ ابتدا آن را فعال و ذخیره کنید");
+        if (!ch.token || !ch.chatId) throw badRequest("توکن یا شناسه کانال بکاپ خالی است؛ ابتدا ذخیره کنید");
         const snap = await writeFileBackup("channel");
         const { readFile } = await import("node:fs/promises");
         const jsonBytes = await readFile(snap.file);
@@ -682,7 +700,7 @@ export async function POST(request: Request) {
         } catch (error) {
           const detail = error instanceof Error ? error.message : "خطای شبکه";
           await logActivity(shiftKey, "ارسال ناموفق بکاپ به کانال", detail);
-          throw new Error(`ارسال به کانال ناموفق بود (${detail})`);
+          throw new AppError(`ارسال به کانال ناموفق بود (${detail})`, 502, "upstream_error");
         }
         await logActivity(shiftKey, "ارسال بکاپ به کانال", `${base} — ${snap.rows} ردیف`);
         return Response.json({ ok: true, message: "فایل بکاپ (ZIP) به کانال ارسال شد" });
@@ -695,8 +713,8 @@ export async function POST(request: Request) {
         for (const key of ["serviceInterval", "vibWarn", "vibCrit", "windingWarn", "windingCrit", "bearingWarn", "bearingCrit", "currentWarn", "currentCrit"] as const) {
           if (incoming[key] !== undefined) clean[key] = num(incoming[key]);
         }
-        if (clean.serviceInterval !== undefined && clean.serviceInterval < 100) throw new Error("بازه سرویس باید حداقل ۱۰۰ ساعت باشد");
-        if (clean.vibWarn !== undefined && clean.vibCrit !== undefined && clean.vibWarn >= clean.vibCrit) throw new Error("حد هشدار لرزش باید کمتر از حد بحرانی باشد");
+        if (clean.serviceInterval !== undefined && clean.serviceInterval < 100) throw badRequest("بازه سرویس باید حداقل ۱۰۰ ساعت باشد");
+        if (clean.vibWarn !== undefined && clean.vibCrit !== undefined && clean.vibWarn >= clean.vibCrit) throw badRequest("حد هشدار لرزش باید کمتر از حد بحرانی باشد");
         await saveSettings(clean);
         await logActivity(shiftKey, "ویرایش تنظیمات/ست‌پوینت", JSON.stringify(clean));
         return Response.json({ ok: true });
@@ -705,7 +723,7 @@ export async function POST(request: Request) {
       case "admin.setpoints": {
         requireAdmin();
         const tag = str(p.tag, 20);
-        if (!PROCESS_PARAMS.some((x) => x.tag === tag)) throw new Error("پارامتر نامعتبر است");
+        if (!PROCESS_PARAMS.some((x) => x.tag === tag)) throw badRequest("پارامتر نامعتبر است");
         const existing = (await db.select().from(settings).where(eq(settings.key, "processSetpoints")).limit(1))[0];
         const current = (existing?.value ?? {}) as Record<string, Record<string, number | null>>;
         const patch: Record<string, number | null> = {};
@@ -720,8 +738,8 @@ export async function POST(request: Request) {
         requireAdmin();
         const key = str(p.key, 10);
         const pin = str(p.pin, 10);
-        if (!["A", "B", "C", "admin"].includes(key)) throw new Error("شیفت نامعتبر است");
-        if (!/^\d{4}$/.test(pin)) throw new Error("PIN باید دقیقاً چهار رقم باشد");
+        if (!["A", "B", "C", "admin"].includes(key)) throw badRequest("شیفت نامعتبر است");
+        if (!/^\d{4,6}$/.test(pin)) throw badRequest("PIN باید چهار تا شش رقم باشد");
         await db.update(shifts).set({ pin: hashPin(pin) }).where(eq(shifts.key, key));
         await logActivity(shiftKey, "تغییر PIN شیفت", key);
         return Response.json({ ok: true });
@@ -731,7 +749,7 @@ export async function POST(request: Request) {
         requireAdmin();
         const key = str(p.key, 10);
         const members = Array.isArray(p.members) ? p.members.map((m) => str(m, 80)).filter(Boolean).slice(0, 4) : [];
-        if (!members.length) throw new Error("حداقل یک نام لازم است");
+        if (!members.length) throw badRequest("حداقل یک نام لازم است");
         await db.update(shifts).set({ members }).where(eq(shifts.key, key));
         await logActivity(shiftKey, "ویرایش اعضای شیفت", `${key}: ${members.join(" و ")}`);
         return Response.json({ ok: true });
@@ -740,7 +758,7 @@ export async function POST(request: Request) {
       case "admin.shift": {
         requireAdmin();
         const key = p.key === null || p.key === "" || p.key === "auto" ? "" : str(p.key, 5);
-        if (key && !["A", "B", "C"].includes(key)) throw new Error("شیفت نامعتبر است");
+        if (key && !["A", "B", "C"].includes(key)) throw badRequest("شیفت نامعتبر است");
         await saveSettings({ shiftOverride: key });
         await logActivity(shiftKey, "تنظیم شیفت فعال", key || "چرخش خودکار");
         return Response.json({ ok: true });
@@ -755,7 +773,7 @@ export async function POST(request: Request) {
         } catch (error) {
           await logActivity(shiftKey, "خطا در بک‌آپ فایلی", error instanceof Error ? error.message : "نامشخص");
         }
-        await logActivity(shiftKey, "ساخت بک‌آپ کامل", `${inner.id ?? "-"} — ${((inner.sizeBytes ?? 0) / 1024).toFixed(1)} KB${file ? ` — فایل: ${file.file}` : ""}`);
+        await logActivity(shiftKey, "ساخت بک‌آپ داده‌ها", `${inner.id ?? "-"} — ${((inner.sizeBytes ?? 0) / 1024).toFixed(1)} KB${file ? ` — فایل: ${file.file}` : ""}`);
         return Response.json({ ok: true, id: inner.id, file: file?.file ?? null });
       }
 
@@ -763,7 +781,7 @@ export async function POST(request: Request) {
         requireAdmin();
         const id = Number(p.id);
         const row = (await db.select().from(backups).where(eq(backups.id, id)).limit(1))[0];
-        if (!row) throw new Error("بک‌آپ پیدا نشد");
+        if (!row) throw badRequest("بک‌آپ پیدا نشد");
         // نسخهٔ ایمنی قبل از بازیابی (هم داخلی، هم فایل) تا اگر چیزی اشتباه بود برگشت‌پذیر باشد
         await createInternalBackup("نسخه ایمنی قبل از بازیابی");
         await writeFileBackup("نسخه ایمنی قبل از بازیابی").catch(() => {});
@@ -775,13 +793,50 @@ export async function POST(request: Request) {
       case "backup.verify": {
         requireAdmin();
         const result = await verifyFileBackup(str(p.file, 200));
-        return Response.json({ ok: true, ...result });
+        return Response.json({
+          ok: result.checksumOk,
+          ...result,
+          ...(result.checksumOk ? {} : { error: result.checksumPresent ? "چک‌سام با فایل نمی‌خواند" : "فایل .sha256 ندارد" }),
+        }, { status: result.checksumOk ? 200 : 422 });
       }
 
       case "backup.files": {
         requireAdmin();
         const files = await listFileBackups();
         return Response.json({ ok: true, files });
+      }
+
+      case "backup.bundle.create": {
+        requireAdmin();
+        const bundle = await writeBackupBundle();
+        await logActivity(shiftKey, "ساخت بستهٔ بازیابی", `${bundle.name} — ${(bundle.bytes / 1024 / 1024).toFixed(2)} MB`);
+        const message = bundle.complete
+          ? `بستهٔ بازیابی ساخته شد (${(bundle.bytes / 1024 / 1024).toFixed(2)} MB)${bundle.warnings.length ? `؛ ${bundle.warnings.length} هشدار فایل سرد` : ""}`
+          : `بسته ساخته شد اما کامل نیست؛ ${bundle.warnings.length} فایل کاتالوگ/آرشیو نیاز به بررسی دارد`;
+        return Response.json({ ok: true, ...bundle, message });
+      }
+
+      case "backup.bundle.files": {
+        requireAdmin();
+        const bundles = await listBackupBundles();
+        return Response.json({ ok: true, bundles });
+      }
+
+      case "backup.bundle.verify": {
+        requireAdmin();
+        const result = await verifyBackupBundle(str(p.name, 160));
+        return Response.json({ ok: true, ...result });
+      }
+
+      case "backup.bundle.restore": {
+        requireAdmin();
+        const name = str(p.name, 160);
+        if (!name) throw badRequest("نام بسته را انتخاب کنید");
+        const result = await restoreBackupBundle(name, { allowIncomplete: p.allowIncomplete === true });
+        await logActivity(shiftKey, "بازیابی بستهٔ کامل", `${name} — ${result.rows} ردیف — نسخهٔ ایمنی ${result.safetyBundle}`);
+        const warnings: string[] = [...result.warnings];
+        if (result.channelsNeedSetup.length) warnings.push(`توکن کانال‌های ${result.channelsNeedSetup.join("، ")} باید دوباره وارد شود`);
+        return Response.json({ ok: true, ...result, warnings, message: warnings.length ? `بازیابی انجام شد؛ هشدارها: ${warnings.join(" | ")}` : "بازیابی کامل و تطبیق تعداد ردیف‌ها موفق بود" });
       }
 
       case "admin.logout_all": {
@@ -795,7 +850,7 @@ export async function POST(request: Request) {
       case "admin.unlock": {
         requireAdmin();
         const target = str(p.key, 10) || "all";
-        if (!["A", "B", "C", "admin", "all"].includes(target)) throw new Error("شیفت نامعتبر است");
+        if (!["A", "B", "C", "admin", "all"].includes(target)) throw badRequest("شیفت نامعتبر است");
         const cleared = await clearLoginLock(target);
         await logSecurityEvent("lock_cleared", target, "admin", "رفع قفل ورود توسط ادمین");
         await logActivity(shiftKey, "رفع قفل ورود", `${target} — ${cleared} قفل`);
@@ -816,8 +871,8 @@ export async function POST(request: Request) {
       case "session.revoke": {
         const id = str(p.id, 64);
         const row = (await db.select().from(sessionsTable).where(eq(sessionsTable.id, id)).limit(1))[0];
-        if (!row) throw new Error("نشست پیدا نشد");
-        if (!isAdmin && row.shiftKey !== shiftKey) throw new Error("دسترسی لازم است");
+        if (!row) throw badRequest("نشست پیدا نشد");
+        if (!isAdmin && row.shiftKey !== shiftKey) throw forbidden("دسترسی لازم است");
         await revokeSession(id, isAdmin ? "ابطال توسط ادمین" : "ابطال توسط کاربر");
         await logActivity(shiftKey, "ابطال نشست", `${row.shiftKey} — ${row.ip}`);
         return Response.json({ ok: true, message: "آن دستگاه از سامانه خارج شد" });
@@ -825,7 +880,10 @@ export async function POST(request: Request) {
 
       case "session.revoke_others": {
         const current = await getSessionId();
-        const target = isAdmin ? str(p.key, 10) || "all" : shiftKey;
+        const requested = str(p.key, 10);
+        const target = isAdmin && requested ? requested : shiftKey;
+        if (!["A", "B", "C", "admin", "all"].includes(target)) throw badRequest("شیفت نامعتبر است");
+        if (target === "all" && (!isAdmin || p.confirmAll !== true)) throw forbidden("برای خروج از همهٔ شیفت‌ها تأیید صریح ادمین لازم است");
         const count = await revokeAllSessions(target, "خروج از سایر دستگاه‌ها", current ?? undefined);
         await logActivity(shiftKey, "خروج از سایر دستگاه‌ها", `${target} — ${count} نشست`);
         return Response.json({ ok: true, count, message: count ? `${count} نشست بسته شد` : "نشست دیگری فعال نبود" });
@@ -887,7 +945,7 @@ export async function POST(request: Request) {
         requireAdmin();
         const id = Number(p.id);
         const row = (await db.select().from(equipment).where(eq(equipment.id, id)).limit(1))[0];
-        if (!row) throw new Error("تجهیز پیدا نشد");
+        if (!row) throw badRequest("تجهیز پیدا نشد");
         await db.update(equipment).set({ deletedAt: "", updatedAt: jalaliNow() }).where(eq(equipment.id, id));
         await logActivity(shiftKey, "بازگرداندن تجهیز از سطل بازیافت", row.tag);
         return Response.json({ ok: true, message: `${row.tag} به فهرست برگشت` });
@@ -902,16 +960,25 @@ export async function POST(request: Request) {
       case "backup.restore_file": {
         requireAdmin();
         const file = str(p.file, 200);
-        if (!file) throw new Error("نام فایل را انتخاب کنید");
+        if (!file) throw badRequest("نام فایل را انتخاب کنید");
         const result = await restoreFromFile(file, { force: p.force === true });
         await logActivity(shiftKey, "بازیابی از فایل بک‌آپ", `${file} — ${result.rows} ردیف`);
-        return Response.json({ ok: true, ...result, message: "داده‌ها از فایل بازگردانی شد" });
+        const warnings: string[] = [];
+        if (result.catalogFiles.missing.length) {
+          warnings.push(`${result.catalogFiles.missing.length} فایل PDF کاتالوگ پیدا نشد یا هش آن نادرست است: ${result.catalogFiles.missing.join("، ")}`);
+        }
+        if (result.channelsNeedSetup.length) {
+          warnings.push(`توکن کانال‌های ${result.channelsNeedSetup.join("، ")} در بک‌آپ ذخیره نمی‌شود؛ در پنل ادمین دوباره وارد کنید`);
+        }
+        warnings.push("رازهای TOTP در بک‌آپ خارجی ذخیره نمی‌شوند؛ تنظیمات محلی حفظ شد و روی دستگاه تازه باید دوباره تنظیم شود");
+        const message = warnings.length ? `داده‌ها بازگردانی شد؛ ${warnings.join(" | ")}` : "داده‌ها بازگردانی شد و فایل‌های کاتالوگ بررسی شدند";
+        return Response.json({ ok: true, ...result, message });
       }
 
       case "totp.status": {
         const target = isAdmin && p.key ? str(p.key, 10) : shiftKey;
         const row = (await db.select().from(shifts).where(eq(shifts.key, target)).limit(1))[0];
-        if (!row) throw new Error("شیفت پیدا نشد");
+        if (!row) throw badRequest("شیفت پیدا نشد");
         return Response.json({
           ok: true,
           key: target,
@@ -927,7 +994,7 @@ export async function POST(request: Request) {
         const target = isAdmin && p.key ? str(p.key, 10) : shiftKey;
         const secret = generateTotpSecret();
         const updated = await db.update(shifts).set({ totpPending: secret }).where(eq(shifts.key, target)).returning({ key: shifts.key });
-        if (!updated.length) throw new Error("شیفت پیدا نشد");
+        if (!updated.length) throw badRequest("شیفت پیدا نشد");
         const url = otpauthUrl({ issuer: "Pumpstation Golab", account: `${target} — ایستگاه پمپاژ گلاب`, secret });
         await logActivity(shiftKey, "شروع ثبت ورود دوعاملی", `شیفت ${target}`);
         return Response.json({
@@ -942,10 +1009,10 @@ export async function POST(request: Request) {
       case "totp.enable": {
         const target = isAdmin && p.key ? str(p.key, 10) : shiftKey;
         const row = (await db.select().from(shifts).where(eq(shifts.key, target)).limit(1))[0];
-        if (!row) throw new Error("شیفت پیدا نشد");
-        if (!row.totpPending) throw new Error("ابتدا مرحلهٔ «ساخت راز» را انجام دهید");
+        if (!row) throw badRequest("شیفت پیدا نشد");
+        if (!row.totpPending) throw badRequest("ابتدا مرحلهٔ «ساخت راز» را انجام دهید");
         if (!verifyTotp(row.totpPending, str(p.code, 10))) {
-          throw new Error("کد وارد‌شده معتبر نیست؛ ساعت گوشی و کد ۶ رقمی را بررسی کنید");
+          throw badRequest("کد وارد‌شده معتبر نیست؛ ساعت گوشی و کد ۶ رقمی را بررسی کنید");
         }
         const codes = Array.from({ length: 10 }, () => generateBackupCode());
         await db
@@ -970,11 +1037,11 @@ export async function POST(request: Request) {
       case "totp.disable": {
         const target = isAdmin && p.key ? str(p.key, 10) : shiftKey;
         const row = (await db.select().from(shifts).where(eq(shifts.key, target)).limit(1))[0];
-        if (!row) throw new Error("شیفت پیدا نشد");
+        if (!row) throw badRequest("شیفت پیدا نشد");
         // تأیید هویت دوباره: کاربر عادی با PIN همان شیفت، ادمین با PIN خودش (برای نجات گوشی گم‌شده)
         const authRow = isAdmin ? (await db.select().from(shifts).where(eq(shifts.key, shiftKey)).limit(1))[0] : row;
         if (!authRow || !verifyPin(str(p.pin, 10).trim(), authRow.pin)) {
-          throw new Error(isAdmin && target !== shiftKey ? "برای این کار PIN حساب ادمین را وارد کنید" : "PIN نادرست است");
+          throw badRequest(isAdmin && target !== shiftKey ? "برای این کار PIN حساب ادمین را وارد کنید" : "PIN نادرست است");
         }
         await db
           .update(shifts)
@@ -988,10 +1055,10 @@ export async function POST(request: Request) {
       case "totp.codes": {
         const target = isAdmin && p.key ? str(p.key, 10) : shiftKey;
         const row = (await db.select().from(shifts).where(eq(shifts.key, target)).limit(1))[0];
-        if (!row) throw new Error("شیفت پیدا نشد");
-        if (!row.totpEnabled) throw new Error("ورود دوعاملی برای این شیفت فعال نیست");
+        if (!row) throw badRequest("شیفت پیدا نشد");
+        if (!row.totpEnabled) throw badRequest("ورود دوعاملی برای این شیفت فعال نیست");
         const authRow2 = isAdmin ? (await db.select().from(shifts).where(eq(shifts.key, shiftKey)).limit(1))[0] : row;
-        if (!authRow2 || !verifyPin(str(p.pin, 10).trim(), authRow2.pin)) throw new Error("PIN نادرست است");
+        if (!authRow2 || !verifyPin(str(p.pin, 10).trim(), authRow2.pin)) throw badRequest("PIN نادرست است");
         const codes = Array.from({ length: 10 }, () => generateBackupCode());
         await db.update(shifts).set({ totpBackupCodes: codes.map((c) => hashPin(normalizeBackupCode(c))) }).where(eq(shifts.key, target));
         await logActivity(shiftKey, "صدور مجدد کدهای پشتیبان", `شیفت ${target}`);
@@ -999,13 +1066,13 @@ export async function POST(request: Request) {
       }
 
       case "mirror.status": {
-        if (!isAdmin) throw new Error("برای دیدن وضعیت آینه، دسترسی مدیریت لازم است");
+        if (!isAdmin) throw forbidden("برای دیدن وضعیت آینه، دسترسی مدیریت لازم است");
         const st = await mirrorStatus();
         return Response.json({ ...st });
       }
 
       case "mirror.now": {
-        if (!isAdmin) throw new Error("برای کپی به آینه، دسترسی مدیریت لازم است");
+        if (!isAdmin) throw forbidden("برای کپی به آینه، دسترسی مدیریت لازم است");
         const result = await mirrorLatest({ fresh: true, actor: `${user.label} (${shiftKey})` });
         await logActivity(shiftKey, "کپی بک‌آپ به آینه", result.ok ? `فایل ${result.file}` : `ناموفق: ${result.error}`);
         if (!result.ok) return Response.json({ ok: false, error: `کپی به آینه ناموفق بود: ${result.error}` }, { status: 500 });
@@ -1042,6 +1109,11 @@ export async function POST(request: Request) {
     } catch {
       /* ثبت خطای فنی نباید عملیات اصلی را متوقف کند */
     }
-    return Response.json({ ok: false, error: message }, { status: 400 });
+    return errorResponse(error, {
+      source: "api/actions",
+      path: "/api/actions",
+      requestId: request.headers.get("x-request-id") ?? undefined,
+      shiftKey,
+    });
   }
 }
