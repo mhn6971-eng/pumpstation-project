@@ -1,7 +1,7 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.5   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 3ad352a
-تاریخ تولید: 2026-11-05   |   118 فایل   |   25,074 خط
+نسخهٔ برنامه: 1.4.6   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 04bc35f
+تاریخ تولید: 2026-11-06   |   121 فایل   |   26,306 خط
 ==============================================================================
 
 این فایل، «نسخهٔ خوانا»ی کل کد برنامه است؛ هر فایل کامل و بدون حذف درج شده و
@@ -17,19 +17,19 @@
 
   ۱) پیکربندی پروژه
      package.json                                         49 خط
-     package-lock.json                                    8490 خط
+     package-lock.json                                    8492 خط
      next.config.ts                                       43 خط
      tsconfig.json                                        43 خط
      eslint.config.mjs                                    23 خط
      postcss.config.mjs                                   8 خط
      drizzle.config.json                                  8 خط
-     .env.example                                         48 خط
+     .env.example                                         58 خط
      .gitignore                                           13 خط
 
   ۲) دیتابیس و مهاجرت‌ها
      src/db/index.ts                                      101 خط
      src/db/schema.ts                                     461 خط
-     src/db/seed.ts                                       269 خط
+     src/db/seed.ts                                       290 خط
      src/lib/seed-helpers.ts                              12 خط
      data/roster.sample.json                              10 خط
      drizzle/0000_woozy_omega_flight.sql                  259 خط
@@ -40,43 +40,45 @@
      drizzle/0005_megger_pi.sql                           12 خط
 
   ۳) کتابخانهٔ منطق (src/lib)
-     src/lib/version.ts                                   4 خط
+     src/lib/version.ts                                   9 خط
      src/lib/errors.ts                                    77 خط
      src/lib/types.ts                                     155 خط
      src/lib/log.ts                                       103 خط
-     src/lib/dblock.ts                                    64 خط
+     src/lib/dblock.ts                                    65 خط
      src/lib/pin.ts                                       20 خط
-     src/lib/secret.ts                                    47 خط
+     src/lib/secret.ts                                    68 خط
      src/lib/totp.ts                                      108 خط
      src/lib/auth.ts                                      131 خط
      src/lib/sessions.ts                                  215 خط
      src/lib/security.ts                                  173 خط
-     src/lib/audit.ts                                     63 خط
+     src/lib/audit.ts                                     70 خط
      src/lib/jalali.ts                                    221 خط
-     src/lib/domain.ts                                    346 خط
+     src/lib/domain.ts                                    330 خط
      src/lib/state.ts                                     264 خط
      src/lib/reporting.ts                                 207 خط
-     src/lib/backup.ts                                    248 خط
+     src/lib/backup.ts                                    304 خط
      src/lib/backup-validation.ts                         15 خط
-     src/lib/mirror.ts                                    245 خط
+     src/lib/backup-bundle.ts                             494 خط
+     src/lib/mirror.ts                                    241 خط
      src/lib/archive.ts                                   173 خط
-     src/lib/roster.ts                                    94 خط
-     src/lib/netbind.ts                                   105 خط
+     src/lib/roster.ts                                    117 خط
+     src/lib/netbind.ts                                   110 خط
      src/lib/sqlite-cloud.ts                              41 خط
      src/lib/bot.ts                                       71 خط
-     src/lib/zip.ts                                       94 خط
+     src/lib/zip.ts                                       108 خط
 
   ۴) مسیرهای API (src/app/api)
      src/app/api/auth/route.ts                            147 خط
-     src/app/api/actions/route.ts                         1048 خط
+     src/app/api/actions/route.ts                         1093 خط
      src/app/api/state/route.ts                           48 خط
      src/app/api/history/route.ts                         31 خط
      src/app/api/totals/route.ts                          48 خط
      src/app/api/backups/[id]/route.ts                    23 خط
      src/app/api/mirror/route.ts                          48 خط
-     src/app/api/health/route.ts                          117 خط
+     src/app/api/health/route.ts                          134 خط
      src/app/api/catalogs/route.ts                        98 خط
      src/app/api/export/route.ts                          141 خط
+     src/app/api/report-archives/route.ts                 90 خط
 
   ۵) صفحات، چیدمان و قلاب‌های زمان اجرا (src/app و ریشهٔ src)
      src/app/layout.tsx                                   17 خط
@@ -89,13 +91,13 @@
      src/app/globals.css                                  2160 خط
      src/proxy.ts                                         142 خط
      src/instrumentation.ts                               32 خط
-     src/instrumentation.node.ts                          31 خط
+     src/instrumentation.node.ts                          38 خط
 
   ۶) رابط کاربری (src/components)
      src/components/context.tsx                           31 خط
      src/components/ui.tsx                                134 خط
      src/components/AppShell.tsx                          412 خط
-     src/components/Login.tsx                             124 خط
+     src/components/Login.tsx                             121 خط
      src/components/Dashboard.tsx                         165 خط
      src/components/MotorCard.tsx                         107 خط
      src/components/MotorVisual.tsx                       123 خط
@@ -111,7 +113,7 @@
      src/components/AlertsTab.tsx                         49 خط
      src/components/ProblemsTab.tsx                       27 خط
      src/components/TrainingTab.tsx                       102 خط
-     src/components/AdminTab.tsx                          775 خط
+     src/components/AdminTab.tsx                          913 خط
      src/components/TwoFactorPanel.tsx                    284 خط
      src/components/MirrorPanel.tsx                       137 خط
 
@@ -121,26 +123,27 @@
      scripts/reset-admin-pin.mjs                          83 خط
      scripts/mirror-backup.mjs                            74 خط
      scripts/pg-init.mjs                                  65 خط
-     scripts/pg-dump.mjs                                  73 خط
+     scripts/pg-dump.mjs                                  67 خط
      scripts/pg-import-json.mjs                           205 خط
      scripts/serve.mjs                                    70 خط
      scripts/bulk-import.mjs                              206 خط
-     scripts/generate-code-all.mjs                        189 خط
+     scripts/generate-code-all.mjs                        188 خط
      scripts/extract-code-all.mjs                         70 خط
-     scripts/test-fresh-install.mjs                       127 خط
+     scripts/test-fresh-install.mjs                       207 خط
+     scripts/stackblitz-warning.mjs                       14 خط
 
   ۸) آزمون‌های خودکار (audit)
      audit/audit1.mjs                                     161 خط
      audit/audit2.mjs                                     97 خط
      audit/audit3.mjs                                     199 خط
      audit/audit4.mjs                                     91 خط
-     audit/audit5.mjs                                     302 خط
-     audit/audit6.mjs                                     302 خط
+     audit/audit5.mjs                                     335 خط
+     audit/audit6.mjs                                     428 خط
      audit/bulk.mjs                                       108 خط
      audit/perf.mjs                                       27 خط
-     audit/conc.mjs                                       17 خط
+     audit/conc.mjs                                       69 خط
      audit/db-inspect.mjs                                 12 خط
-     audit/jalali.test.mjs                                41 خط
+     audit/jalali.test.mjs                                42 خط
      audit/probe.mjs                                      10 خط
      audit/sess.mjs                                       34 خط
      audit/writeperf.mjs                                  14 خط
@@ -153,10 +156,6 @@
 
 ==============================================================================
 
-##############################################################################
-#  ۱) پیکربندی پروژه
-##############################################################################
-
 ── FILE: package.json  (49 خط) ──
 
 {
@@ -166,7 +165,7 @@
     "dev": "node scripts/serve.mjs dev",
     "preview": "node scripts/init-db.mjs && node scripts/serve.mjs dev",
     "preview:lan": "node scripts/init-db.mjs && node scripts/serve.mjs dev --host lan",
-    "stackblitz": "node scripts/init-db.mjs && node node_modules/next/dist/bin/next dev -H 0.0.0.0 -p 3000 --webpack",
+    "stackblitz": "node scripts/init-db.mjs && node scripts/stackblitz-warning.mjs",
     "db:init": "node scripts/init-db.mjs",
     "db:migrate": "node scripts/init-db.mjs",
     "build": "next build",
@@ -175,7 +174,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "doctor": "node scripts/doctor.mjs",
-    "test:audit": "node audit/audit1.mjs && node audit/audit2.mjs && node audit/audit3.mjs && node audit/audit4.mjs && node audit/audit5.mjs && node audit/audit6.mjs",
+    "test:audit": "node audit/jalali.test.mjs && node audit/audit1.mjs && node audit/audit2.mjs && node audit/audit3.mjs && node audit/audit4.mjs && node audit/audit5.mjs && node audit/audit6.mjs && node audit/conc.mjs",
     "test:perf": "node audit/perf.mjs",
     "test": "npm run typecheck && npm run test:audit",
     "db:pg-init": "node scripts/pg-init.mjs",
@@ -205,10 +204,10 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   },
-  "version": "1.4.5"
+  "version": "1.4.6"
 }
 
-── FILE: package-lock.json  (8490 خط) ──
+── FILE: package-lock.json  (8492 خط) ──
 
 {
   "name": "pumpstation-monitoring",
@@ -238,7 +237,8 @@
         "postcss": "8.5.8",
         "tailwindcss": "4.1.17",
         "typescript": "5.9.3"
-      }
+      },
+      "version": "1.4.6"
     },
     "node_modules/@alloc/quick-lru": {
       "version": "5.3.0",
@@ -8697,7 +8697,8 @@
         "zod": "^3.25.0 || ^4.0.0"
       }
     }
-  }
+  },
+  "version": "1.4.6"
 }
 
 ── FILE: next.config.ts  (43 خط) ──
@@ -8835,7 +8836,7 @@ export default postcssConfig;
   }
 }
 
-── FILE: .env.example  (48 خط) ──
+── FILE: .env.example  (58 خط) ──
 
 # ============================================================================
 #  نمونهٔ متغیرهای محیطی سامانهٔ ایستگاه پمپاژ گلاب — نسخه ۱.۴
@@ -8869,20 +8870,30 @@ TRUST_PROXY=0
 # TRUST_PROXY=1            # فقط پشت Caddy/nginx خودمان (هدر IP از همان پروکسی)
 # LAN_ALLOW=192.168.1.0/24 # رنج مجاز اتصال (با کاما چند رنج)؛ حلقه همیشه مجاز است
 
-# ---------- بک‌آپ ----------
+# ---------- مسیرهای داده، گزارش و بک‌آپ ----------
+# نصب ویندوز این مسیرها را روی درایو غیر C (مثلاً D:\گزارشات) تنظیم می‌کند.
+# نصب دستی: هر مسیر را روی دیسک محلیِ غیرهمگام‌سازی‌شده قرار دهید.
+# PGLITE_DATA_DIR=.data/pglite
+# SESSION_SECRET_DIR=.data/session-secret
+# PROCESS_REPORT_DIR=.data/report-archives/process
+# PM_REPORT_DIR=.data/report-archives/PM
 # BACKUP_DIR=.data/backups
-# BACKUP_KEEP=30
+# CATALOG_DIR=files/catalogs
+# ARCHIVE_DIR=.data/backups/archive
+# MIRROR_DIR=.data/mirror
+# PGDUMP_DIR=.data/pgdump
+# بک‌آپ‌ها و بسته‌های پوشه‌ای بازیابی خودکار حذف نمی‌شوند؛ حذف فقط دستی پس از آزمون و اطمینان از نسخهٔ بیرونی.
 
 # ---------- آینهٔ بک‌آپ (حافظهٔ بیرونی) ----------
 # مسیر فلش/درایو USB یا پوشهٔ شبکه؛ در ویندوز مثال: E:\pumpstation-mirror
 # MIRROR_DIR=.data/mirror
-# MIRROR_KEEP=30
 # MIRROR_STALE_HOURS=30
+# آینه‌ها و بک‌آپ‌های قدیمی خودکار حذف نمی‌شوند.
 # MIRROR_TOKEN_FILE=.data/mirror-token
 
 # ---------- pg_dump (فقط حالت PostgreSQL) ----------
 # PGDUMP_DIR=.data/pgdump
-# PGDUMP_KEEP=14
+# دامپ‌های PostgreSQL نیز خودکار حذف نمی‌شوند.
 # PGDUMP_BIN=C:\Program Files\PostgreSQL\16\bin\pg_dump.exe
 
 ── FILE: .gitignore  (13 خط) ──
@@ -8899,10 +8910,6 @@ files/catalogs/
 
 # فایل‌های محلی دستگاه (نام واقعی اپراتورها و PIN واقعی فقط این‌جاست؛ هرگز کامیت نشود)
 *.local.json
-
-##############################################################################
-#  ۲) دیتابیس و مهاجرت‌ها
-##############################################################################
 
 ── FILE: src/db/index.ts  (101 خط) ──
 
@@ -9470,7 +9477,7 @@ export const backupMirrorRuns = pgTable(
   (t) => [index("backup_mirror_at_idx").on(t.ts)],
 );
 
-── FILE: src/db/seed.ts  (269 خط) ──
+── FILE: src/db/seed.ts  (290 خط) ──
 
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -9498,10 +9505,10 @@ import {
   PM_TEMPLATE_SEED,
   type Settings,
 } from "@/lib/domain";
-import { resolveRoster } from "@/lib/roster";
+import { loadRosterFile, resolveRoster, sampleRosterPath } from "@/lib/roster";
 import { jelaliSeedDays, padSeedValue } from "@/lib/seed-helpers";
 import { jalaliNow, operationalDay } from "@/lib/jalali";
-import { hashPin } from "@/lib/pin";
+import { hashPin, verifyPin } from "@/lib/pin";
 
 export async function getAllSettings(): Promise<Settings> {
   const rows = await db.select().from(settings);
@@ -9538,11 +9545,27 @@ async function runSeed() {
     .from(settings)
     .where(sql`${settings.key} = 'seeded'`)
     .limit(1);
-  if (flag.length > 0) return;
+  if (flag.length > 0) {
+    if (process.env.NODE_ENV === "production" && process.env.ALLOW_SAMPLE_ROSTER !== "1") {
+      const current = await db.select({ key: shifts.key, pin: shifts.pin }).from(shifts);
+      const sample = loadRosterFile(sampleRosterPath());
+      const samplePins = new Map(sample.map((entry) => [entry.key, entry.pin]));
+      const hasSamplePin = current.some((entry) => {
+        const samplePin = samplePins.get(entry.key);
+        return Boolean(samplePin && verifyPin(samplePin, entry.pin));
+      });
+      if (hasSamplePin) {
+        throw new Error("پایگاه داده با PINهای روستر نمونه مقداردهی شده است؛ production متوقف شد. روستر واقعی را نصب و PINها را با فرایند مدیریتی تغییر دهید.");
+      }
+    }
+    return;
+  }
 
   const now = jalaliNow();
   const op = operationalDay();
   const hour = op.hour;
+  // داده‌های ساختگی برای نمودار/هشدار فقط در توسعه یا با opt-in صریح؛ production تازه باید خالی بماند.
+  const useDemoData = process.env.NODE_ENV !== "production" || process.env.ALLOW_DEMO_DATA === "1";
 
   // روستر از فایل محلی (واقعی) یا نمونهٔ ساختگی خوانده می‌شود؛ نام و PIN واقعی در کد نیست
   const { roster, source } = resolveRoster();
@@ -9586,7 +9609,7 @@ async function runSeed() {
     { key: "backup", provider: "bale", chatId: "", token: "", enabled: false },
   ]);
 
-  const profiles = [
+  const demoProfiles = [
     { state: "on", total: 18220, last: 17850, bearing: 62.4, winding: 68.2, current: 101.2 },
     { state: "on", total: 16480, last: 15580, bearing: 68.9, winding: 74.1, current: 99.4 },
     { state: "on", total: 17502, last: 16102, bearing: 74.8, winding: 87.3, current: 108.9 },
@@ -9596,6 +9619,9 @@ async function runSeed() {
     { state: "on", total: 14870, last: 14080, bearing: 66.3, winding: 72.4, current: 103.1 },
     { state: "service", total: 15210, last: 14900, bearing: 48.2, winding: 51.4, current: 0 },
   ];
+  const profiles = useDemoData
+    ? demoProfiles
+    : MOTORS.map(() => ({ state: "unknown", total: 0, last: 0, bearing: 0, winding: 0, current: 0 }));
 
   await db.insert(motors).values(
     MOTORS.map((m, i) => ({
@@ -9608,132 +9634,134 @@ async function runSeed() {
     })),
   );
 
-  // ---- نمونه داده‌های چند روز اخیر برای نمودارها ----
-  const days = await jelaliSeedDays();
-  const processRows: (typeof processReadings.$inferInsert)[] = [];
-  const totalRows: (typeof dailyTotals.$inferInsert)[] = [];
-  const motorRows: (typeof motorReadings.$inferInsert)[] = [];
+  if (useDemoData) {
+    // ---- نمونه داده‌های چند روز اخیر برای نمودارها ----
+    const days = await jelaliSeedDays();
+    const processRows: (typeof processReadings.$inferInsert)[] = [];
+    const totalRows: (typeof dailyTotals.$inferInsert)[] = [];
+    const motorRows: (typeof motorReadings.$inferInsert)[] = [];
 
-  days.forEach((day, di) => {
-    PROCESS_PARAMS.forEach((p, pi) => {
-      const base =
-        p.tag === "PIT-002" ? 20.6 : p.tag === "FIT-001" ? 412 : p.tag === "LT-01" || p.tag === "LT-02" ? 168 : p.tag === "PIT-001" ? 3.4 : 3.8;
-      for (let interval = 0; interval < 6; interval += 1) {
-        if (di === days.length - 1 && interval > op.intervalIndex) continue;
-        if ((di + interval + pi) % 5 === 0 && interval !== op.intervalIndex) continue;
-        const noise = (Math.sin((di + 1) * (interval + 2) * 1.7 + pi) + Math.cos(di * 0.9 + pi)) * (base * 0.018);
-        processRows.push({
-          day,
-          intervalIndex: interval,
-          tag: p.tag,
-          value: Number(padSeedValue(base + noise, 2)),
-          shiftKey: ["A", "B", "C"][di % 3],
-          recordedAt: `${day} ${String(7 + interval * 4).padStart(2, "0")}:05:00`,
-          updatedAt: now,
-        });
-      }
-    });
-    totalRows.push({
-      day,
-      value: Number((16800 + di * 190 + Math.sin(di) * 90).toFixed(0)),
-      shiftKey: ["A", "B", "C"][di % 3],
-      recordedAt: `${day} 06:40:00`,
-      updatedAt: now,
-    });
-  });
-
-  MOTORS.forEach((m, mi) => {
-    const p = profiles[mi];
-    const params: Record<string, number> = {
-      I1: p.current + 1.8,
-      I2: p.current - 1.2,
-      I3: p.current + 0.4,
-      "BRG-P-DE": p.bearing,
-      "BRG-P-NDE": p.bearing - 1.6,
-      "VIB-P-DE": mi === 2 ? 7.8 : mi === 1 ? 5.2 : 2.4,
-      "VIB-P-NDE": mi === 2 ? 6.9 : 2.1,
-      "VIB-M-DE": mi === 2 ? 5.4 : 1.9,
-      "VIB-M-NDE": mi === 2 ? 4.9 : 1.7,
-    };
-    for (let t = 1; t <= 10; t += 1) {
-      params[`T${t}`] = p.winding - (t > 8 ? 4 : t * 0.8) + (t === 10 ? 0 : 1);
-    }
-    for (const day of days.slice(-3)) {
-      for (let interval = 0; interval < 6; interval += 1) {
-        if ((mi + interval) % 3 === 0 && interval !== op.intervalIndex) continue;
-        for (const param of MOTOR_PARAMS) {
-          const val = params[param.key];
-          if (val === undefined) continue;
-          const drift = Math.sin((mi + interval) * 1.3) * (param.type === "vib" ? 0.25 : 1.1);
-          motorRows.push({
-            tag: m.tag,
+    days.forEach((day, di) => {
+      PROCESS_PARAMS.forEach((p, pi) => {
+        const base =
+          p.tag === "PIT-002" ? 20.6 : p.tag === "FIT-001" ? 412 : p.tag === "LT-01" || p.tag === "LT-02" ? 168 : p.tag === "PIT-001" ? 3.4 : 3.8;
+        for (let interval = 0; interval < 6; interval += 1) {
+          if (di === days.length - 1 && interval > op.intervalIndex) continue;
+          if ((di + interval + pi) % 5 === 0 && interval !== op.intervalIndex) continue;
+          const noise = (Math.sin((di + 1) * (interval + 2) * 1.7 + pi) + Math.cos(di * 0.9 + pi)) * (base * 0.018);
+          processRows.push({
             day,
             intervalIndex: interval,
-            param: param.key,
-            value: Number((val + drift).toFixed(2)),
-            shiftKey: ["A", "B", "C"][interval % 3],
-            recordedAt: `${day} ${String(7 + interval * 4).padStart(2, "0")}:12:00`,
+            tag: p.tag,
+            value: Number(padSeedValue(base + noise, 2)),
+            shiftKey: ["A", "B", "C"][di % 3],
+            recordedAt: `${day} ${String(7 + interval * 4).padStart(2, "0")}:05:00`,
             updatedAt: now,
           });
         }
+      });
+      totalRows.push({
+        day,
+        value: Number((16800 + di * 190 + Math.sin(di) * 90).toFixed(0)),
+        shiftKey: ["A", "B", "C"][di % 3],
+        recordedAt: `${day} 06:40:00`,
+        updatedAt: now,
+      });
+    });
+
+    MOTORS.forEach((m, mi) => {
+      const p = profiles[mi];
+      const params: Record<string, number> = {
+        I1: p.current + 1.8,
+        I2: p.current - 1.2,
+        I3: p.current + 0.4,
+        "BRG-P-DE": p.bearing,
+        "BRG-P-NDE": p.bearing - 1.6,
+        "VIB-P-DE": mi === 2 ? 7.8 : mi === 1 ? 5.2 : 2.4,
+        "VIB-P-NDE": mi === 2 ? 6.9 : 2.1,
+        "VIB-M-DE": mi === 2 ? 5.4 : 1.9,
+        "VIB-M-NDE": mi === 2 ? 4.9 : 1.7,
+      };
+      for (let t = 1; t <= 10; t += 1) {
+        params[`T${t}`] = p.winding - (t > 8 ? 4 : t * 0.8) + (t === 10 ? 0 : 1);
       }
-    }
-  });
+      for (const day of days.slice(-3)) {
+        for (let interval = 0; interval < 6; interval += 1) {
+          if ((mi + interval) % 3 === 0 && interval !== op.intervalIndex) continue;
+          for (const param of MOTOR_PARAMS) {
+            const val = params[param.key];
+            if (val === undefined) continue;
+            const drift = Math.sin((mi + interval) * 1.3) * (param.type === "vib" ? 0.25 : 1.1);
+            motorRows.push({
+              tag: m.tag,
+              day,
+              intervalIndex: interval,
+              param: param.key,
+              value: Number((val + drift).toFixed(2)),
+              shiftKey: ["A", "B", "C"][interval % 3],
+              recordedAt: `${day} ${String(7 + interval * 4).padStart(2, "0")}:12:00`,
+              updatedAt: now,
+            });
+          }
+        }
+      }
+    });
 
-  if (processRows.length) await db.insert(processReadings).values(processRows);
-  if (totalRows.length) await db.insert(dailyTotals).values(totalRows);
-  if (motorRows.length) await db.insert(motorReadings).values(motorRows);
+    if (processRows.length) await db.insert(processReadings).values(processRows);
+    if (totalRows.length) await db.insert(dailyTotals).values(totalRows);
+    if (motorRows.length) await db.insert(motorReadings).values(motorRows);
 
-  await db.insert(operatorNotes).values({
-    day: op.day,
-    shiftKey: "A",
-    text:
-      "تیغه‌های صافی خط مکش تمیز شد. سطح روغن یاتاقان پمپ P-05 بررسی و تأیید شد. " +
-      "درخواست بازدید فنی از لرزش غیرعادی پمپ P-03 ثبت گردید.",
-    updatedAt: now,
-  });
+    await db.insert(operatorNotes).values({
+      day: op.day,
+      shiftKey: "A",
+      text:
+        "تیغه‌های صافی خط مکش تمیز شد. سطح روغن یاتاقان پمپ P-05 بررسی و تأیید شد. " +
+        "درخواست بازدید فنی از لرزش غیرعادی پمپ P-03 ثبت گردید.",
+      updatedAt: now,
+    });
 
-  await db.insert(alerts).values([
-    {
-      at: now,
-      day: op.day,
-      tag: "M-03",
-      param: "T10",
-      label: "دمای بدنه",
-      value: 87.3,
-      severity: "critical",
-      message: "M-03 / دمای بدنه = ۸۷.۳ °C — بالاتر از حد بحرانی ۸۰ °C",
-      shiftKey: "A",
-      seenAt: "",
-      actedAt: "",
-    },
-    {
-      at: now,
-      day: op.day,
-      tag: "M-03",
-      param: "VIB-P-DE",
-      label: "لرزش پمپ جلو",
-      value: 7.8,
-      severity: "critical",
-      message: "M-03 / لرزش پمپ جلو = ۷.۸ mm/s — بالاتر از حد بحرانی ۷.۱",
-      shiftKey: "A",
-      seenAt: "",
-      actedAt: "",
-    },
-    {
-      at: now,
-      day: op.day,
-      tag: "M-02",
-      param: "VIB-P-DE",
-      label: "لرزش پمپ جلو",
-      value: 5.2,
-      severity: "warning",
-      message: "M-02 / لرزش پمپ جلو = ۵.۲ mm/s — بالاتر از حد هشدار ۴.۵",
-      shiftKey: "A",
-      seenAt: "",
-      actedAt: "",
-    },
-  ]);
+    await db.insert(alerts).values([
+      {
+        at: now,
+        day: op.day,
+        tag: "M-03",
+        param: "T10",
+        label: "دمای بدنه",
+        value: 87.3,
+        severity: "critical",
+        message: "M-03 / دمای بدنه = ۸۷.۳ °C — بالاتر از حد بحرانی ۸۰ °C",
+        shiftKey: "A",
+        seenAt: "",
+        actedAt: "",
+      },
+      {
+        at: now,
+        day: op.day,
+        tag: "M-03",
+        param: "VIB-P-DE",
+        label: "لرزش پمپ جلو",
+        value: 7.8,
+        severity: "critical",
+        message: "M-03 / لرزش پمپ جلو = ۷.۸ mm/s — بالاتر از حد بحرانی ۷.۱",
+        shiftKey: "A",
+        seenAt: "",
+        actedAt: "",
+      },
+      {
+        at: now,
+        day: op.day,
+        tag: "M-02",
+        param: "VIB-P-DE",
+        label: "لرزش پمپ جلو",
+        value: 5.2,
+        severity: "warning",
+        message: "M-02 / لرزش پمپ جلو = ۵.۲ mm/s — بالاتر از حد هشدار ۴.۵",
+        shiftKey: "A",
+        seenAt: "",
+        actedAt: "",
+      },
+    ]);
+  }
 
   void hour;
   await db.insert(settings).values({ key: "seeded", value: true as never });
@@ -10286,14 +10314,15 @@ ALTER TABLE "megger_tests" ADD COLUMN IF NOT EXISTS "pi_rotor" double precision;
 --> statement-breakpoint
 ALTER TABLE "megger_tests" ADD COLUMN IF NOT EXISTS "unit" text NOT NULL DEFAULT 'MΩ';
 
-##############################################################################
-#  ۳) کتابخانهٔ منطق (src/lib)
-##############################################################################
+── FILE: src/lib/version.ts  (9 خط) ──
 
-── FILE: src/lib/version.ts  (4 خط) ──
+import { readFileSync } from "node:fs";
+import path from "node:path";
 
-/** نسخهٔ سامانه — در /api/health و تب ادمین نمایش داده می‌شود */
-export const APP_VERSION = process.env.APP_VERSION ?? "1.4.5";
+const packageJson = JSON.parse(readFileSync(path.join(process.cwd(), "package.json"), "utf8")) as { version: string };
+
+/** نسخهٔ سامانه — از یک مرجع واحد (package.json) برای health و تب ادمین خوانده می‌شود */
+export const APP_VERSION = process.env.APP_VERSION ?? packageJson.version;
 export const APP_NAME = "سامانه پایش ایستگاه پمپاژ زیرزمینی — تونل انتقال آب گلاب";
 
 ── FILE: src/lib/errors.ts  (77 خط) ──
@@ -10637,7 +10666,7 @@ export async function captureError(error: unknown, context: { source: string; pa
   });
 }
 
-── FILE: src/lib/dblock.ts  (64 خط) ──
+── FILE: src/lib/dblock.ts  (65 خط) ──
 
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -10678,7 +10707,8 @@ export function acquireDbLock(dataDir: string, options: { enforce?: boolean } = 
         throw new Error(
           `دیتابیس همین حالا توسط برنامهٔ دیگری (PID ${info.pid}) باز است. ` +
             "برای جلوگیری از خرابی داده، دو برنامه نباید هم‌زمان به یک پوشهٔ داده دسترسی داشته باشند. " +
-            "ابتدا آن برنامه را ببندید.",
+            "اگر این رایانه اتاق دوم است، برنامه را اینجا اجرا نکنید؛ از مرورگر به سرور اصلی وصل شوید. " +
+            "در غیر این صورت ابتدا پردازهٔ قبلی را ببندید.",
         );
       }
     } catch (error) {
@@ -10725,7 +10755,7 @@ export function verifyPin(pin: string, stored: string) {
   return timingSafeEqual(test, expected);
 }
 
-── FILE: src/lib/secret.ts  (47 خط) ──
+── FILE: src/lib/secret.ts  (68 خط) ──
 
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -10735,9 +10765,16 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "n
  * ترتیب اولویت: متغیر محیطی SESSION_SECRET → فایل `.data/session-secret` (خودکار ساخته می‌شود).
  * هیچ مقدار پیش‌فرض ثابتی در کد وجود ندارد تا کسی نتواند کوکی ادمین جعل کند.
  */
+export type SessionSecretStatus = { persistent: boolean; source: "env" | "file" | "memory" };
+
+let status: SessionSecretStatus = { persistent: false, source: "memory" };
+
 function loadSecret(): string {
   const fromEnv = process.env.SESSION_SECRET?.trim();
-  if (fromEnv && fromEnv.length >= 16) return fromEnv;
+  if (fromEnv && fromEnv.length >= 16) {
+    status = { persistent: true, source: "env" };
+    return fromEnv;
+  }
 
   const dir = process.env.SESSION_SECRET_DIR ?? ".data";
   const file = `${dir}/session-secret`;
@@ -10745,7 +10782,10 @@ function loadSecret(): string {
     mkdirSync(dir, { recursive: true });
     if (existsSync(/*turbopackIgnore: true*/ file)) {
       const stored = readFileSync(/*turbopackIgnore: true*/ file, "utf8").trim();
-      if (stored.length >= 16) return stored;
+      if (stored.length >= 16) {
+        status = { persistent: true, source: "file" };
+        return stored;
+      }
     }
     const generated = randomBytes(32).toString("hex");
     writeFileSync(/*turbopackIgnore: true*/ file, generated, { mode: 0o600 });
@@ -10754,14 +10794,25 @@ function loadSecret(): string {
     } catch {
       /* ویندوز ممکن است chmod را نپذیرد */
     }
+    status = { persistent: true, source: "file" };
     return generated;
-  } catch {
-    // اگر نوشتن فایل ممکن نبود، راز یکتای درون‌حافظه‌ای (با هر ری‌استارت تازه می‌شود)
+  } catch (error) {
+    // راز موقتی نشست‌ها را پس از راه‌اندازی مجدد باطل می‌کند؛ شکست را پنهان نکن.
+    status = { persistent: false, source: "memory" };
+    console.error(
+      `[auth] هشدار جدی: راز نشست در ${file} ذخیره نشد؛ نشست‌ها با راه‌اندازی مجدد سرور باطل می‌شوند. دسترسی/فضای دیسک را بررسی کنید.`,
+      error,
+    );
     return randomBytes(32).toString("hex");
   }
 }
 
 export const SECRET = loadSecret();
+
+/** وضعیت غیرحساس برای گزارش سلامت ادمین؛ هرگز خودِ راز را برنمی‌گرداند. */
+export function sessionSecretStatus(): SessionSecretStatus {
+  return { ...status };
+}
 
 export function sign(payload: string) {
   return createHmac("sha256", SECRET).update(payload).digest("base64url");
@@ -11409,10 +11460,10 @@ export function rateLimitedResponse(retryAfter = 60) {
   );
 }
 
-── FILE: src/lib/audit.ts  (63 خط) ──
+── FILE: src/lib/audit.ts  (70 خط) ──
 
 import { createHash } from "node:crypto";
-import { asc, desc } from "drizzle-orm";
+import { asc, desc, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { activity } from "@/db/schema";
 import { jalaliNow } from "@/lib/jalali";
@@ -11432,7 +11483,14 @@ export function chainHash(prev: string, at: string, shiftKey: string, action: st
 
 type Db = typeof db;
 
-export async function appendActivity(d: Db, shiftKey: string, action: string, detail = "") {
+export async function appendActivity(d: Db, shiftKey: string, action: string, detail = ""): Promise<string> {
+  // If no transaction was supplied, make the lock + read + append atomic here.
+  // Transaction-scoped advisory locks serialize writers across PostgreSQL workers,
+  // keeping the hash chain ordered even when unrelated API actions run in parallel.
+  if (d === db) {
+    return db.transaction((tx) => appendActivity(tx as unknown as Db, shiftKey, action, detail));
+  }
+  await d.execute(sql`select pg_advisory_xact_lock(1414677314)`);
   const last = (await d.select({ hash: activity.hash }).from(activity).orderBy(desc(activity.id)).limit(1))[0];
   const prev = last?.hash || GENESIS;
   const at = jalaliNow();
@@ -11697,28 +11755,11 @@ export function monthDaysOf(jy: number, jm: number) {
   return jalaaliMonthLength(jy, jm);
 }
 
-── FILE: src/lib/domain.ts  (346 خط) ──
-
-import SAMPLE_ROSTER_FILE from "../../data/roster.sample.json";
+── FILE: src/lib/domain.ts  (330 خط) ──
 
 export type EquipmentStatus = "ready" | "in_service";
-export type MotorState = "on" | "off" | "service";
+export type MotorState = "on" | "off" | "service" | "unknown";
 export type Severity = "ok" | "warning" | "critical";
-
-/**
- * روستر نمونهٔ ساختگی (نام‌ها و PINها واقعی نیستند) — فقط برای تست و توسعه.
- * نام واقعی اپراتورها و PIN واقعی در `data/roster.local.json` روی دستگاه
- * ایستگاه است و هرگز در کد و گیت نمی‌آید (src/lib/roster.ts).
- */
-export type RosterEntry = {
-  key: string;
-  label: string;
-  role: "operator" | "admin";
-  pin: string;
-  members: string[];
-};
-
-export const SAMPLE_ROSTER: RosterEntry[] = (SAMPLE_ROSTER_FILE as unknown as { roster: RosterEntry[] }).roster;
 
 export const MOTORS = [
   { tag: "M-01", pumpTag: "P-01" },
@@ -12004,6 +12045,7 @@ export const MOTOR_STATE_FA: Record<string, string> = {
   on: "روشن",
   off: "خاموش",
   service: "در سرویس",
+  unknown: "بررسی‌نشده",
 };
 
 export function severityRank(s: Severity) {
@@ -12520,16 +12562,17 @@ export async function buildTrendPayload(
   return { scope, tag, param, compare: false, label: `${tag} — ${meta.label} (${meta.key})`, unit: meta.unit, from, to, grouped: grouped ? "day" : "interval", points: points.slice(0, 5000), truncated: points.length > 5000, stats: trendStats(points) };
 }
 
-── FILE: src/lib/backup.ts  (248 خط) ──
+── FILE: src/lib/backup.ts  (304 خط) ──
 
 import { createHash } from "node:crypto";
-import { mkdir, readdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   activity,
   alerts,
+  archiveRuns,
   backups,
   catalogs,
   channels,
@@ -12541,6 +12584,8 @@ import {
   motorServices,
   motorStateLogs,
   motors,
+  motorReadingsArchive,
+  processReadingsArchive,
   oilChanges,
   operatorNotes,
   pmRecords,
@@ -12558,13 +12603,12 @@ import { getAllSettings, saveSettings } from "@/db/seed";
 import { assertCompleteSnapshot } from "@/lib/backup-validation";
 
 /**
- * نسخهٔ پشتیبان (C3 در گزارش بازبینی)
- * - بک‌آپ «کامل» به‌صورت فایل JSON بیرون از دیتابیس، هر ۲۴ ساعت خودکار.
- * - بازیابی اتمیک (در یک تراکنش) با تطبیق شمارش ردیف‌ها.
+ * snapshot JSON جدول‌های عملیاتی (به‌جز جدول‌های آرشیو و فایل‌های جانبی)، روزانه و دستی.
+ * بازیابی جدول‌های snapshot در یک تراکنش با تطبیق شمارش ردیف‌ها؛ بستهٔ کامل جداست.
  */
 
 export const BACKUP_DIR = path.resolve(process.cwd(), process.env.BACKUP_DIR ?? ".data/backups");
-const KEEP = Number(process.env.BACKUP_KEEP ?? 30);
+export const CATALOG_DIR = path.resolve(process.cwd(), process.env.CATALOG_DIR ?? "files/catalogs");
 const INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 export type Snapshot = Record<string, unknown[]>;
@@ -12595,6 +12639,14 @@ export const TABLES = {
   settings,
 };
 
+/** جدول‌های بایگانی و سابقهٔ بایگانی فقط در بستهٔ کامل قرار می‌گیرند. */
+export const BUNDLE_TABLES = {
+  ...TABLES,
+  archiveRuns,
+  motorReadingsArchive,
+  processReadingsArchive,
+};
+
 /** جدول‌هایی که ستون id سری دارند و پس از بازیابی باید شمارنده‌شان هم‌تراز شود */
 const SERIAL_TABLES = [
   "value_audits", "process_readings", "daily_totals", "motor_readings", "motor_state_logs",
@@ -12615,30 +12667,44 @@ function stripBinaries(snapshot: Snapshot): Snapshot {
   if (!Array.isArray(rows)) return snapshot;
   return {
     ...snapshot,
-    catalogs: rows.map((row) => ({ ...(row as Record<string, unknown>), data: "" })),
+    catalogs: rows.map((row) => {
+      const catalog = row as Record<string, unknown>;
+      // فایل‌های جدید مسیر جدا دارند؛ کاتالوگ‌های قدیمیِ embed شده باید در بک‌آپ بمانند.
+      return catalog.path ? { ...catalog, data: "" } : catalog;
+    }),
+  };
+}
+
+/** رازهای بازگشت‌پذیر نباید از دستگاه خارج شوند؛ توکن‌ها محلی دوباره وارد می‌شوند. */
+function stripBackupSecrets(snapshot: Snapshot): Snapshot {
+  const rows = snapshot.channels;
+  if (!Array.isArray(rows)) return snapshot;
+  return {
+    ...snapshot,
+    channels: rows.map((row) => ({ ...(row as Record<string, unknown>), token: "" })),
   };
 }
 
 /**
- * بازیابی کامل: اول همه‌چیز داخل یک تراکنش جایگزین می‌شود (اگر خطایی رخ دهد،
- * هیچ تغییری اعمال نمی‌شود) و بعد شمارش ردیف‌ها تطبیق داده می‌شود.
+ * بازیابی مجموعهٔ جدول‌های snapshot JSON: جایگزینی در یک تراکنش و تطبیق شمارش ردیف‌ها.
  */
-export async function restoreAll(snapshot: Snapshot) {
-  assertCompleteSnapshot(snapshot, Object.keys(TABLES));
+export const BUNDLE_SERIAL_TABLES = [...SERIAL_TABLES, "archive_runs"];
+
+async function restoreTables(snapshot: Snapshot, tables: Record<string, unknown>, serialTables: string[]) {
+  assertCompleteSnapshot(snapshot, Object.keys(tables));
   const expected: Record<string, number> = {};
-  for (const [name, rows] of Object.entries(snapshot)) if (Array.isArray(rows)) expected[name] = rows.length;
+  for (const name of Object.keys(tables)) expected[name] = snapshot[name].length;
 
   await db.transaction(async (tx) => {
-    for (const [name, table] of Object.entries(TABLES)) {
+    for (const [name, table] of Object.entries(tables)) {
       const rows = snapshot[name];
-      if (!Array.isArray(rows)) continue;
-      await tx.delete(table);
+      await tx.delete(table as never);
       for (let i = 0; i < rows.length; i += 400) {
-        await tx.insert(table).values(rows.slice(i, i + 400) as never);
+        await tx.insert(table as never).values(rows.slice(i, i + 400) as never);
       }
     }
     // شمارنده‌های سری را هم‌تراز کن تا رکورد جدید با شناسهٔ تکراری برخورد نکند
-    for (const table of SERIAL_TABLES) {
+    for (const table of serialTables) {
       await tx.execute(
         sql.raw(
           `select setval(pg_get_serial_sequence('${table}','id'), greatest(coalesce((select max(id) from ${table}),0),1))`,
@@ -12648,12 +12714,20 @@ export async function restoreAll(snapshot: Snapshot) {
   });
 
   const mismatched: string[] = [];
-  for (const [name, table] of Object.entries(TABLES)) {
-    if (expected[name] === undefined) continue;
-    const row = (await db.select({ count: sql<number>`count(*)::int` }).from(table))[0];
+  for (const [name, table] of Object.entries(tables)) {
+    const counts = (await db.select({ count: sql<number>`count(*)::int` }).from(table as never)) as unknown as { count: number }[];
+    const row = counts[0];
     if ((row?.count ?? 0) !== expected[name]) mismatched.push(`${name} (${row?.count ?? 0}/${expected[name]})`);
   }
   if (mismatched.length) throw new Error(`بازیابی ناقص بود: ${mismatched.join("، ")}`);
+}
+
+export async function restoreAll(snapshot: Snapshot) {
+  return restoreTables(snapshot, TABLES, SERIAL_TABLES);
+}
+
+export async function restoreBundleAll(snapshot: Snapshot) {
+  return restoreTables(snapshot, BUNDLE_TABLES, BUNDLE_SERIAL_TABLES);
 }
 
 export function hashPayload(payload: unknown) {
@@ -12662,35 +12736,22 @@ export function hashPayload(payload: unknown) {
 
 /** نوشتن یک فایل بک‌آپ با چک‌سام کنار آن */
 export async function writeFileBackup(label: string) {
-  const payload = stripBinaries(await snapshotAll());
+  const payload = stripBackupSecrets(stripBinaries(await snapshotAll()));
   const json = JSON.stringify(payload);
   const stamp = jalaliStamp();
   await mkdir(/*turbopackIgnore: true*/ BACKUP_DIR, { recursive: true });
   const file = path.join(BACKUP_DIR, `pumpstation-${stamp}.json`);
   await writeFile(/*turbopackIgnore: true*/ file, json, "utf8");
   await writeFile(/*turbopackIgnore: true*/ `${file}.sha256`, createHash("sha256").update(json).digest("hex"), "utf8");
-  await pruneFileBackups();
   await saveSettings({ lastFileBackupAt: Date.now(), lastFileBackupFile: file, lastFileBackupLabel: label } as never);
   return { file, bytes: Buffer.byteLength(json, "utf8"), rows: Object.values(payload).reduce((a, b) => a + b.length, 0) };
-}
-
-async function pruneFileBackups() {
-  try {
-    const files = (await readdir(/*turbopackIgnore: true*/ BACKUP_DIR)).filter((f) => f.endsWith(".json")).sort();
-    for (const old of files.slice(0, Math.max(0, files.length - KEEP))) {
-      await unlink(/*turbopackIgnore: true*/ path.join(BACKUP_DIR, old)).catch(() => {});
-      await unlink(/*turbopackIgnore: true*/ path.join(BACKUP_DIR, `${old}.sha256`)).catch(() => {});
-    }
-  } catch {
-    /* پاک‌سازی قدیمی‌ها نباید نوشتن بک‌آپ را خراب کند */
-  }
 }
 
 export type FileBackupInfo = { file: string; bytes: number; modifiedAt: string; sha256: string | null };
 
 export async function listFileBackups(): Promise<FileBackupInfo[]> {
   await mkdir(/*turbopackIgnore: true*/ BACKUP_DIR, { recursive: true });
-  const files = (await readdir(/*turbopackIgnore: true*/ BACKUP_DIR)).filter((f) => f.endsWith(".json")).sort().reverse().slice(0, 20);
+  const files = (await readdir(/*turbopackIgnore: true*/ BACKUP_DIR)).filter((f) => f.endsWith(".json")).sort().reverse();
   const out: FileBackupInfo[] = [];
   for (const file of files) {
     const full = path.join(BACKUP_DIR, file);
@@ -12714,7 +12775,27 @@ export async function verifyFileBackup(file: string) {
   return { file: safe, checksumOk: !sha || sha === actual, counts, bytes: Buffer.byteLength(json, "utf8") };
 }
 
-/** بازیابی کامل از یک فایل بک‌آپ روی دیسک (سناریوی «ویندوز عوض شد») */
+/** بررسی فایل‌های پیوست کاتالوگ؛ JSON به‌تنهایی PDFهای جدا از دیتابیس را حمل نمی‌کند. */
+async function inspectCatalogFiles(snapshot: Snapshot) {
+  const rows = Array.isArray(snapshot.catalogs) ? snapshot.catalogs : [];
+  const missing: string[] = [];
+  for (const raw of rows) {
+    const row = raw as Record<string, unknown>;
+    const label = `${String(row.tag ?? "")}${row.tag ? " — " : ""}${String(row.name ?? "کاتالوگ")}`;
+    const storedPath = String(row.path ?? "");
+    if (!storedPath) {
+      if (!String(row.data ?? "")) missing.push(label);
+      continue;
+    }
+    const safeName = path.basename(storedPath).replace(/[^\w.-]/g, "_");
+    const bytes = await readFile(/*turbopackIgnore: true*/ path.join(CATALOG_DIR, safeName)).catch(() => null);
+    const expected = String(row.sha256 ?? "");
+    if (!bytes || (expected && createHash("sha256").update(bytes).digest("hex") !== expected)) missing.push(label);
+  }
+  return { checked: rows.length, missing };
+}
+
+/** بازیابی snapshot JSON از دیسک؛ فایل‌های جانبی و جدول‌های آرشیو در این مسیر نیستند. */
 export async function restoreFromFile(file: string, opts: { force?: boolean } = {}) {
   const safe = path.basename(file);
   const full = path.join(BACKUP_DIR, safe);
@@ -12727,10 +12808,27 @@ export async function restoreFromFile(file: string, opts: { force?: boolean } = 
   const payload = JSON.parse(json) as Snapshot;
   // هر جدول باید حاضر باشد؛ snapshot ناقص نباید دادهٔ فعلی را با دادهٔ قدیمی مخلوط کند.
   assertCompleteSnapshot(payload, Object.keys(TABLES));
+  const localChannels = await db.select({ key: channels.key, provider: channels.provider, chatId: channels.chatId, token: channels.token }).from(channels);
+  const channelsNeedSetup: string[] = [];
+  const restoredChannels: Record<string, unknown>[] = (payload.channels as Record<string, unknown>[]).map((row) => {
+    const key = String(row.key ?? "");
+    const local = localChannels.find((item) => item.key === key && item.provider === row.provider && item.chatId === row.chatId);
+    const token = local?.token ?? "";
+    if (row.enabled === true && !token) channelsNeedSetup.push(key);
+    return { ...row, token };
+  });
+  payload.channels = restoredChannels;
   // نسخهٔ ایمنی از وضعیت فعلی، تا اگر فایل قدیمی بود بتوان برگشت
   await createInternalBackup("نسخه ایمنی قبل از بازیابی از فایل");
   await restoreAll(payload);
-  return { file: safe, checksumOk: !sha || sha === actual, rows: Object.values(payload).reduce((a, b) => a + (Array.isArray(b) ? b.length : 0), 0) };
+  const catalogFiles = await inspectCatalogFiles(payload);
+  return {
+    file: safe,
+    checksumOk: !sha || sha === actual,
+    rows: Object.values(payload).reduce((a, b) => a + (Array.isArray(b) ? b.length : 0), 0),
+    catalogFiles,
+    channelsNeedSetup,
+  };
 }
 
 let lastCheck = 0;
@@ -12787,7 +12885,503 @@ export function assertCompleteSnapshot(
   }
 }
 
-── FILE: src/lib/mirror.ts  (245 خط) ──
+── FILE: src/lib/backup-bundle.ts  (494 خط) ──
+
+import { createHash, randomBytes } from "node:crypto";
+import { constants, createReadStream, createWriteStream } from "node:fs";
+import { finished } from "node:stream/promises";
+import { createGunzip, createGzip } from "node:zlib";
+import type { Writable } from "node:stream";
+import { copyFile, cp, mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { once } from "node:events";
+import { createInterface } from "node:readline";
+import path from "node:path";
+import { db } from "@/db";
+import { archiveRuns, catalogs, channels } from "@/db/schema";
+import { APP_VERSION } from "@/lib/version";
+import { ARCHIVE_DIR } from "@/lib/archive";
+import { BUNDLE_SERIAL_TABLES, BUNDLE_TABLES, BACKUP_DIR, CATALOG_DIR } from "@/lib/backup";
+import { gt, sql } from "drizzle-orm";
+
+export const BUNDLE_DIR = path.join(BACKUP_DIR, "bundles");
+const FORMAT = "pumpstation-recovery-bundle";
+const FORMAT_VERSION = 1;
+const PAGE_SIZE = 5000;
+const RESTORE_BATCH = 400;
+
+type BundleAsset = { path: string; bytes: number; sha256: string };
+type BundleTable = { table: string; file: string; rows: number; bytes: number; contentBytes: number; sha256: string; fileSha256: string };
+type BundleManifest = {
+  format: string;
+  formatVersion: number;
+  name: string;
+  createdAt: string;
+  appVersion: string;
+  tables: BundleTable[];
+  tableCounts: Record<string, number>;
+  assets: BundleAsset[];
+  missingCatalogFiles: string[];
+  missingColdFiles: string[];
+  complete: boolean;
+  totalBytes: number;
+};
+
+function sha256(data: Uint8Array | string) {
+  return createHash("sha256").update(data).digest("hex");
+}
+
+async function hashFile(file: string) {
+  const hash = createHash("sha256");
+  for await (const chunk of createReadStream(file)) hash.update(chunk as Buffer);
+  return hash.digest("hex");
+}
+
+function safeLeaf(value: string) {
+  const leaf = path.basename(value.replace(/\\/g, "/"));
+  const safe = leaf.replace(/[^\w.-]/g, "_");
+  if (!safe || safe === "." || safe === "..") throw new Error("نام فایل نامعتبر است");
+  return safe;
+}
+
+function safeBundleName(name: string) {
+  if (!/^pumpstation-bundle-[a-zA-Z0-9_-]+$/.test(name) || path.basename(name) !== name) {
+    throw new Error("نام بستهٔ بازیابی نامعتبر است");
+  }
+  return name;
+}
+
+async function writeLine(stream: Writable, text: string) {
+  if (!stream.write(text)) await once(stream, "drain");
+}
+
+function tableFileName(name: string) {
+  if (!/^[a-zA-Z][a-zA-Z0-9]*$/.test(name)) throw new Error(`نام جدول نامعتبر است: ${name}`);
+  return `tables/${name}.jsonl.gz`;
+}
+
+async function assetMetadata(root: string, relativePath: string): Promise<BundleAsset> {
+  const file = path.join(root, ...relativePath.split("/"));
+  const info = await stat(file);
+  if (!info.isFile()) throw new Error(`دارایی بسته فایل عادی نیست: ${relativePath}`);
+  return { path: relativePath, bytes: info.size, sha256: await hashFile(file) };
+}
+
+async function addAsset(stage: string, source: string, relativePath: string, assets: BundleAsset[]) {
+  const target = path.join(stage, ...relativePath.split("/"));
+  await mkdir(path.dirname(target), { recursive: true });
+  await copyFile(source, target);
+  const item = await assetMetadata(stage, relativePath);
+  const samePath = assets.find((asset) => asset.path === item.path);
+  if (samePath && samePath.sha256 !== item.sha256) throw new Error(`دو فایل متفاوت نام یکسان دارند: ${relativePath}`);
+  if (!samePath) assets.push(item);
+  return item;
+}
+
+function transformExportRow(table: string, raw: Record<string, unknown>, assets: BundleAsset[], missingCatalogFiles: string[], coldFiles: Set<string>, missingColdFiles: Set<string>) {
+  const row = { ...raw };
+  if (table === "channels") row.token = "";
+  if (table === "catalogs") {
+    const storedPath = String(row.path ?? "");
+    if (storedPath) {
+      let fileName = "";
+      try { fileName = safeLeaf(storedPath); } catch { /* فایل نامعتبر به‌عنوان مفقود ثبت می‌شود */ }
+      const assetPath = fileName ? `assets/catalogs/${fileName}` : "";
+      const asset = assets.find((item) => item.path === assetPath);
+      if (asset) {
+        row.path = fileName;
+        row.sha256 = asset.sha256;
+      } else {
+        missingCatalogFiles.push(`${String(row.tag ?? "")} — ${String(row.name ?? "کاتالوگ")}`);
+        row.path = "";
+        row.data = "";
+      }
+    } else if (!String(row.data ?? "")) {
+      missingCatalogFiles.push(`${String(row.tag ?? "")} — ${String(row.name ?? "کاتالوگ")}`);
+    }
+  }
+  if (table === "archiveRuns") {
+    const stored = String(row.file ?? "");
+    let fileName = "";
+    try { fileName = stored ? safeLeaf(stored) : ""; } catch { /* مسیر قدیمی/نامعتبر */ }
+    if (fileName && coldFiles.has(fileName)) row.file = fileName;
+    else {
+      if (stored) missingColdFiles.add(fileName || stored);
+      row.file = "";
+    }
+  }
+  return row;
+}
+
+async function writeTableSnapshot(tx: Parameters<Parameters<typeof db.transaction>[0]>[0], stage: string, name: string, table: unknown, assets: BundleAsset[], missingCatalogFiles: string[], coldFiles: Set<string>, missingColdFiles: Set<string>): Promise<BundleTable> {
+  const relativePath = tableFileName(name);
+  const fullPath = path.join(stage, ...relativePath.split("/"));
+  await mkdir(path.dirname(fullPath), { recursive: true });
+  const gzip = createGzip({ level: 6 });
+  const output = createWriteStream(fullPath);
+  gzip.pipe(output);
+  const gzipDone = finished(gzip);
+  const outputDone = finished(output);
+  const hash = createHash("sha256");
+  let contentBytes = 0;
+  let rowsWritten = 0;
+  let cursor: unknown = undefined;
+  const sortColumn = name === "motors" ? "tag" : ["channels", "shifts", "settings"].includes(name) ? "key" : "id";
+  const sortField = (table as Record<string, unknown>)[sortColumn] as never;
+  try {
+    for (;;) {
+      const query = tx.select().from(table as never);
+      const page = cursor === undefined
+        ? await query.orderBy(sortField).limit(PAGE_SIZE)
+        : await query.where(gt(sortField, cursor as never)).orderBy(sortField).limit(PAGE_SIZE);
+      const rows = page as unknown as Record<string, unknown>[];
+      if (!rows.length) break;
+      for (const raw of rows) {
+        const line = `${JSON.stringify(transformExportRow(name, raw, assets, missingCatalogFiles, coldFiles, missingColdFiles))}\n`;
+        const lineBytes = Buffer.byteLength(line, "utf8");
+        hash.update(line);
+        contentBytes += lineBytes;
+        await writeLine(gzip, line);
+        rowsWritten += 1;
+      }
+      cursor = rows[rows.length - 1][sortColumn];
+      if (rows.length < PAGE_SIZE) break;
+    }
+    gzip.end();
+    await Promise.all([gzipDone, outputDone]);
+  } catch (error) {
+    gzip.destroy(error instanceof Error ? error : undefined);
+    output.destroy(error instanceof Error ? error : undefined);
+    await Promise.allSettled([gzipDone, outputDone]);
+    throw error;
+  }
+  const info = await stat(fullPath);
+  return { table: name, file: relativePath, rows: rowsWritten, bytes: info.size, contentBytes, sha256: hash.digest("hex"), fileSha256: await hashFile(fullPath) };
+}
+
+/** پوشهٔ قابل‌انتقال، با جدول‌بندیِ جریانی تا آرشیو بزرگ یک‌جا وارد RAM نشود. */
+export async function writeBackupBundle() {
+  await mkdir(BUNDLE_DIR, { recursive: true });
+  const suffix = `${new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14)}-${randomBytes(3).toString("hex")}`;
+  const name = `pumpstation-bundle-${suffix}`;
+  const stage = path.join(BUNDLE_DIR, `.${name}.tmp`);
+  const destination = path.join(BUNDLE_DIR, name);
+  await mkdir(stage, { recursive: true });
+
+  try {
+    const assets: BundleAsset[] = [];
+    const missingCatalogFiles: string[] = [];
+    const missingColdFiles = new Set<string>();
+    const coldFiles = new Set<string>();
+    const tableFiles: BundleTable[] = [];
+    await db.transaction(async (tx) => {
+      await tx.execute(sql`set transaction isolation level repeatable read`);
+      const catalogRows = await tx.select().from(catalogs);
+      for (const row of catalogRows) {
+        const storedPath = String(row.path ?? "");
+        if (!storedPath) continue;
+        let fileName = "";
+        try { fileName = safeLeaf(storedPath); } catch { /* تبدیل پایین‌تر به هشدار می‌شود */ }
+        const source = fileName ? path.join(CATALOG_DIR, fileName) : "";
+        const actual = source ? await stat(source).then((s) => s.isFile() ? hashFile(source) : "").catch(() => "") : "";
+        if (!actual || (row.sha256 && actual !== row.sha256)) continue;
+        await addAsset(stage, source, `assets/catalogs/${fileName}`, assets);
+      }
+      const runs = await tx.select({ file: archiveRuns.file }).from(archiveRuns);
+      for (const run of runs) {
+        const stored = String(run.file ?? "");
+        if (!stored) continue;
+        let fileName = "";
+        try { fileName = safeLeaf(stored); } catch { /* ثبت پایین‌تر به‌عنوان فایل سرد مفقود می‌شود */ }
+        const source = fileName ? path.join(ARCHIVE_DIR, fileName) : "";
+        const info = source ? await stat(source).catch(() => null) : null;
+        if (!info?.isFile() || !fileName.endsWith(".jsonl.gz")) {
+          missingColdFiles.add(fileName || stored);
+          continue;
+        }
+        await addAsset(stage, source, `assets/archive/${fileName}`, assets);
+        coldFiles.add(fileName);
+      }
+      for (const [name, table] of Object.entries(BUNDLE_TABLES)) {
+        tableFiles.push(await writeTableSnapshot(tx, stage, name, table, assets, missingCatalogFiles, coldFiles, missingColdFiles));
+      }
+    });
+
+    const tableCounts = Object.fromEntries(tableFiles.map((item) => [item.table, item.rows]));
+    const totalBytes = tableFiles.reduce((sum, item) => sum + item.bytes, 0) + assets.reduce((sum, item) => sum + item.bytes, 0);
+    const manifest: BundleManifest = {
+      format: FORMAT,
+      formatVersion: FORMAT_VERSION,
+      name,
+      createdAt: new Date().toISOString(),
+      appVersion: APP_VERSION,
+      tables: tableFiles,
+      tableCounts,
+      assets,
+      missingCatalogFiles: [...new Set(missingCatalogFiles)],
+      missingColdFiles: [...missingColdFiles],
+      complete: missingCatalogFiles.length === 0,
+      totalBytes,
+    };
+    await writeFile(path.join(stage, "manifest.json"), JSON.stringify(manifest, null, 2), "utf8");
+    await rename(stage, destination);
+    return {
+      name,
+      bytes: totalBytes,
+      rows: Object.values(tableCounts).reduce((sum, count) => sum + count, 0),
+      assets: assets.length,
+      complete: manifest.complete,
+      warnings: [...manifest.missingCatalogFiles.map((file) => `PDF مفقود/ناسازگار: ${file}`), ...manifest.missingColdFiles.map((file) => `فایل سرد مفقود: ${file}`)],
+    };
+  } catch (error) {
+    await rm(stage, { recursive: true, force: true }).catch(() => {});
+    throw error;
+  }
+}
+
+async function readManifest(root: string, name: string): Promise<BundleManifest> {
+  const safe = safeBundleName(name);
+  const raw = JSON.parse(await readFile(path.join(root, safe, "manifest.json"), "utf8")) as BundleManifest;
+  if (raw.format !== FORMAT || raw.formatVersion !== FORMAT_VERSION || raw.name !== safe || !Array.isArray(raw.tables) || !Array.isArray(raw.assets)) {
+    throw new Error("قالب بستهٔ بازیابی پشتیبانی نمی‌شود یا manifest مخدوش است");
+  }
+  return raw;
+}
+
+async function scanTableFile(root: string, item: BundleTable, onRow: (row: Record<string, unknown>) => void | Promise<void>) {
+  const relative = item.file;
+  if (relative !== tableFileName(item.table)) throw new Error(`مسیر جدول ناامن است: ${relative}`);
+  const fullPath = path.join(root, ...relative.split("/"));
+  const fileInfo = await stat(fullPath);
+  if (!fileInfo.isFile() || fileInfo.size !== item.bytes) throw new Error(`حجم فایل فشردهٔ ${item.table} ناسازگار است`);
+  const fileHash = createHash("sha256");
+  const hash = createHash("sha256");
+  let contentBytes = 0;
+  let rows = 0;
+  const input = createReadStream(fullPath);
+  input.on("data", (chunk) => fileHash.update(chunk));
+  const gunzip = input.pipe(createGunzip());
+  const lines = createInterface({ input: gunzip, crlfDelay: Infinity });
+  try {
+    for await (const line of lines) {
+      const normalized = `${line}\n`;
+      hash.update(normalized);
+      contentBytes += Buffer.byteLength(normalized, "utf8");
+      if (!line) continue;
+      let row: unknown;
+      try { row = JSON.parse(line); } catch { throw new Error(`JSON سطر ${rows + 1} در ${item.table} خراب است`); }
+      if (!row || typeof row !== "object" || Array.isArray(row)) throw new Error(`ردیف نامعتبر در جدول ${item.table}`);
+      await onRow(row as Record<string, unknown>);
+      rows += 1;
+    }
+  } finally {
+    lines.close();
+    if (!input.destroyed) input.destroy();
+    if (!gunzip.destroyed) gunzip.destroy();
+  }
+  if (rows !== item.rows || contentBytes !== item.contentBytes || hash.digest("hex") !== item.sha256 || fileHash.digest("hex") !== item.fileSha256) {
+    throw new Error(`شمار ردیف، حجم یا checksum محتوای جدول ${item.table} ناسازگار است`);
+  }
+  return rows;
+}
+
+async function verifyAt(root: string, name: string) {
+  const manifest = await readManifest(root, name);
+  const expectedNames = Object.keys(BUNDLE_TABLES).sort();
+  const actualNames = manifest.tables.map((item) => item.table).sort();
+  if (expectedNames.join("|") !== actualNames.join("|")) throw new Error("فهرست جدول‌های بسته ناقص یا تکراری است");
+
+  const assetSet = new Set<string>();
+  let bytes = 0;
+  for (const asset of manifest.assets) {
+    const parts = String(asset.path ?? "").split("/");
+    if (parts.length !== 3 || parts[0] !== "assets" || !["catalogs", "archive"].includes(parts[1]) || safeLeaf(parts[2]) !== parts[2]) {
+      throw new Error(`مسیر دارایی ناامن/نامعتبر است: ${asset.path}`);
+    }
+    if (assetSet.has(asset.path)) throw new Error(`دارایی تکراری در manifest: ${asset.path}`);
+    assetSet.add(asset.path);
+    const actual = await assetMetadata(path.join(root, name), asset.path);
+    if (actual.bytes !== asset.bytes || actual.sha256 !== asset.sha256) throw new Error(`checksum یا حجم دارایی ناسازگار است: ${asset.path}`);
+    bytes += actual.bytes;
+  }
+
+  let missingCatalogs = 0;
+  const catalogPaths = new Set(manifest.assets.filter((asset) => asset.path.startsWith("assets/catalogs/")).map((asset) => asset.path.slice("assets/catalogs/".length)));
+  const counts: Record<string, number> = {};
+  for (const item of manifest.tables) {
+    if (manifest.tableCounts[item.table] !== item.rows) throw new Error(`شمار ردیف‌های ${item.table} با manifest نمی‌خواند`);
+    counts[item.table] = await scanTableFile(path.join(root, name), item, (row) => {
+      if (item.table === "channels" && row.token !== "") throw new Error("توکن کانال در بستهٔ خارجی باید خالی باشد");
+      if (item.table === "catalogs") {
+        const storedPath = String(row.path ?? "");
+        if (storedPath && !catalogPaths.has(safeLeaf(storedPath))) throw new Error(`PDF کاتالوگ داخل بسته نیست: ${storedPath}`);
+        if (!storedPath && !String(row.data ?? "")) missingCatalogs += 1;
+      }
+    });
+    bytes += item.bytes;
+  }
+  if (manifest.complete !== (missingCatalogs === 0) || manifest.complete !== (manifest.missingCatalogFiles.length === 0)) {
+    throw new Error("وضعیت کامل‌بودن بسته با فهرست PDFهای مفقود نمی‌خواند");
+  }
+  if (manifest.totalBytes !== bytes) throw new Error("حجم کل بسته با manifest نمی‌خواند");
+  return { manifest, bytes, counts };
+}
+
+/** بررسی کامل جریانی؛ هیچ تغییری در دیتابیس اعمال نمی‌شود. */
+export async function verifyBackupBundle(name: string) {
+  const { manifest, bytes, counts } = await verifyAt(BUNDLE_DIR, name);
+  return {
+    name: manifest.name,
+    createdAt: manifest.createdAt,
+    appVersion: manifest.appVersion,
+    complete: manifest.complete,
+    bytes,
+    rows: Object.values(counts).reduce((sum, count) => sum + count, 0),
+    assets: manifest.assets.length,
+    tableCounts: counts,
+    warnings: [...manifest.missingCatalogFiles.map((file) => `PDF مفقود/ناسازگار: ${file}`), ...manifest.missingColdFiles.map((file) => `فایل سرد مفقود: ${file}`)],
+  };
+}
+
+export async function listBackupBundles() {
+  await mkdir(BUNDLE_DIR, { recursive: true });
+  const entries = await readdir(BUNDLE_DIR, { withFileTypes: true });
+  const out: { name: string; createdAt: string; bytes: number; rows: number; assets: number; complete: boolean; warnings: number }[] = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory() || !entry.name.startsWith("pumpstation-bundle-")) continue;
+    try {
+      const manifest = await readManifest(BUNDLE_DIR, entry.name);
+      out.push({
+        name: manifest.name,
+        createdAt: manifest.createdAt,
+        bytes: manifest.totalBytes,
+        rows: Object.values(manifest.tableCounts).reduce((sum, count) => sum + count, 0),
+        assets: manifest.assets.length,
+        complete: manifest.complete,
+        warnings: manifest.missingCatalogFiles.length + manifest.missingColdFiles.length,
+      });
+    } catch {
+      out.push({ name: entry.name, createdAt: "", bytes: 0, rows: 0, assets: 0, complete: false, warnings: 1 });
+    }
+  }
+  return out.sort((a, b) => b.name.localeCompare(a.name));
+}
+
+async function installAsset(source: string, targetDir: string, preferredName: string, expectedHash: string) {
+  await mkdir(targetDir, { recursive: true });
+  const base = safeLeaf(preferredName);
+  const stem = `${expectedHash.slice(0, 12)}-${base}`.slice(0, 230);
+  let target = path.join(targetDir, stem);
+  const currentHash = await hashFile(target).catch(() => "");
+  if (currentHash === expectedHash) return path.basename(target);
+  if (currentHash) target = path.join(targetDir, `${Date.now()}-${stem}`.slice(0, 240));
+  await copyFile(source, target, constants.COPYFILE_EXCL);
+  return path.basename(target);
+}
+
+async function restoreSnapshotFromBundle(root: string, manifest: BundleManifest, name: string) {
+  const catalogNames = new Map<string, string>();
+  const archiveNames = new Map<string, string>();
+
+  for (const asset of manifest.assets) {
+    const source = path.join(root, name, ...asset.path.split("/"));
+    if (asset.path.startsWith("assets/catalogs/")) {
+      const original = asset.path.slice("assets/catalogs/".length);
+      catalogNames.set(original, await installAsset(source, CATALOG_DIR, original, asset.sha256));
+    } else {
+      const original = asset.path.slice("assets/archive/".length);
+      archiveNames.set(original, await installAsset(source, ARCHIVE_DIR, original, asset.sha256));
+    }
+  }
+
+  await db.transaction(async (tx) => {
+    const localChannels = await tx.select({ key: channels.key, provider: channels.provider, chatId: channels.chatId, token: channels.token }).from(channels);
+    const tokenMap = new Map(localChannels.map((item) => [`${item.key}\0${item.provider}\0${item.chatId}`, item.token]));
+    for (const item of manifest.tables) {
+      const table = BUNDLE_TABLES[item.table as keyof typeof BUNDLE_TABLES];
+      await tx.delete(table as never);
+      let batch: Record<string, unknown>[] = [];
+      const flush = async () => {
+        if (batch.length) await tx.insert(table as never).values(batch as never);
+        batch = [];
+      };
+      await scanTableFile(path.join(root, name), item, async (original) => {
+        const row = { ...original };
+        if (item.table === "channels") {
+          const key = `${String(row.key ?? "")}\0${String(row.provider ?? "")}\0${String(row.chatId ?? "")}`;
+          const token = tokenMap.get(key) ?? "";
+          row.token = token;
+        }
+        if (item.table === "catalogs" && row.path) {
+          const restored = catalogNames.get(safeLeaf(String(row.path)));
+          row.path = restored ?? "";
+          if (!restored) row.data = "";
+        }
+        if (item.table === "archiveRuns") {
+          const restored = row.file ? archiveNames.get(safeLeaf(String(row.file))) : "";
+          row.file = restored ? path.join(ARCHIVE_DIR, restored) : "";
+        }
+        batch.push(row);
+        if (batch.length >= RESTORE_BATCH) await flush();
+      });
+      await flush();
+    }
+    for (const table of BUNDLE_SERIAL_TABLES) {
+      await tx.execute(sql.raw(`select setval(pg_get_serial_sequence('${table}','id'), greatest(coalesce((select max(id) from ${table}),0),1))`));
+    }
+    for (const item of manifest.tables) {
+      const table = BUNDLE_TABLES[item.table as keyof typeof BUNDLE_TABLES];
+      const counts = (await tx.select({ count: sql<number>`count(*)::int` }).from(table as never)) as unknown as { count: number }[];
+      const row = counts[0];
+      if ((row?.count ?? 0) !== item.rows) throw new Error(`تعداد ردیف‌های بازیابی‌شدهٔ ${item.table} نادرست است`);
+    }
+  });
+}
+
+/** بازیابی بسته؛ یک snapshot ایمنی ساخته و فایل‌های هدف با نام یکتا نصب می‌شوند. */
+export async function restoreBackupBundle(name: string, opts: { allowIncomplete?: boolean } = {}) {
+  const verified = await verifyAt(BUNDLE_DIR, name);
+  if (!verified.manifest.complete && !opts.allowIncomplete) throw new Error("بسته PDFهای مفقود دارد؛ برای ادامه باید هشدار را صریحاً تأیید کنید");
+  const safety = await writeBackupBundle();
+  await restoreSnapshotFromBundle(BUNDLE_DIR, verified.manifest, name);
+  const channelsNeedSetup = (await db.select().from(channels)).filter((row) => row.enabled && !row.token).map((row) => row.key);
+  const warnings = [
+    ...verified.manifest.missingCatalogFiles.map((file) => `PDF مفقود/ناسازگار: ${file}`),
+    ...verified.manifest.missingColdFiles.map((file) => `فایل سرد مفقود: ${file}`),
+  ];
+  return {
+    name: verified.manifest.name,
+    complete: verified.manifest.complete,
+    bytes: verified.bytes,
+    rows: Object.values(verified.counts).reduce((sum, count) => sum + count, 0),
+    warnings,
+    channelsNeedSetup,
+    safetyBundle: safety.name,
+  };
+}
+
+export async function copyLatestBundleTo(targetRoot: string) {
+  const bundles = await listBackupBundles();
+  const latest = bundles[0];
+  if (!latest) return null;
+  const source = path.resolve(BUNDLE_DIR, latest.name);
+  const destination = path.resolve(targetRoot, "bundles", latest.name);
+  if (destination === source) return { name: latest.name, bytes: latest.bytes, complete: latest.complete };
+  if (destination.startsWith(`${source}${path.sep}`)) throw new Error("مسیر آینه داخل بستهٔ مبدأ قرار گرفته است؛ MIRROR_DIR را جداگانه تنظیم کنید");
+  await mkdir(path.dirname(destination), { recursive: true });
+  const existing = await stat(destination).catch(() => null);
+  if (!existing) {
+    await cp(source, destination, { recursive: true, errorOnExist: true, force: false });
+    const { manifest } = await verifyAt(path.join(targetRoot, "bundles"), latest.name);
+    if (manifest.name !== latest.name) throw new Error("صحت نام بستهٔ آینه‌شده تأیید نشد");
+  } else {
+    const sourceManifest = await readFile(path.join(source, "manifest.json"), "utf8");
+    const mirrorManifest = await readFile(path.join(destination, "manifest.json"), "utf8");
+    if (sourceManifest !== mirrorManifest) throw new Error(`بستهٔ هم‌نام روی آینه با مبدأ متفاوت است: ${latest.name}`);
+  }
+  return { name: latest.name, bytes: latest.bytes, complete: latest.complete };
+}
+
+── FILE: src/lib/mirror.ts  (241 خط) ──
 
 import { createHash, timingSafeEqual } from "node:crypto";
 import { randomBytes } from "node:crypto";
@@ -12797,6 +13391,7 @@ import { and, desc, eq, gte } from "drizzle-orm";
 import { db } from "@/db";
 import { backupMirrorRuns } from "@/db/schema";
 import { BACKUP_DIR, createInternalBackup, listFileBackups, writeFileBackup } from "./backup";
+import { copyLatestBundleTo } from "./backup-bundle";
 
 /**
  * آینهٔ بک‌آپ: کپی خودکار آخرین نسخهٔ بک‌آپ روی حافظهٔ بیرونی (فلش/درایو USB/شبکهٔ محلی).
@@ -12805,7 +13400,6 @@ import { BACKUP_DIR, createInternalBackup, listFileBackups, writeFileBackup } fr
  */
 
 export const MIRROR_DIR = path.resolve(process.cwd(), process.env.MIRROR_DIR ?? ".data/mirror");
-const MIRROR_KEEP = Number(process.env.MIRROR_KEEP ?? 30);
 const STALE_HOURS = Number(process.env.MIRROR_STALE_HOURS ?? 30);
 
 export type MirrorRun = {
@@ -12838,14 +13432,6 @@ export async function mirrorAvailable() {
     return true;
   } catch {
     return false;
-  }
-}
-
-async function pruneMirror() {
-  const files = (await readdir(/*turbopackIgnore: true*/ MIRROR_DIR)).filter((f) => f.endsWith(".json")).sort();
-  for (const old of files.slice(0, Math.max(0, files.length - MIRROR_KEEP))) {
-    await unlink(/*turbopackIgnore: true*/ path.join(MIRROR_DIR, old)).catch(() => {});
-    await unlink(/*turbopackIgnore: true*/ path.join(MIRROR_DIR, `${old}.sha256`)).catch(() => {});
   }
 }
 
@@ -12897,13 +13483,14 @@ async function mirrorLatestOnce(opts: { fresh?: boolean; actor?: string } = {}) 
       writeFile(/*turbopackIgnore: true*/ `${destination}.sha256`, a, "utf8"),
     );
 
+    const bundle = await copyLatestBundleTo(MIRROR_DIR);
+
     await writeFile(
       /*turbopackIgnore: true*/
       path.join(MIRROR_DIR, "last-mirror.txt"),
-      `file=${file}\nat=${stamp}\nbytes=${info.size}\nsha256=${a}\n`,
+      `file=${file}\nat=${stamp}\nbytes=${info.size}\nsha256=${a}\nbundle=${bundle?.name ?? ""}\nbundleBytes=${bundle?.bytes ?? 0}\n`,
       "utf8",
     );
-    await pruneMirror();
 
     await db.insert(backupMirrorRuns).values({
       at,
@@ -12914,7 +13501,7 @@ async function mirrorLatestOnce(opts: { fresh?: boolean; actor?: string } = {}) 
       ok: true,
       error: "",
     });
-    return { ok: true as const, file, bytes: info.size, sha256: a, target: MIRROR_DIR, at };
+    return { ok: true as const, file, bytes: info.size, sha256: a, bundle: bundle?.name ?? null, bundleBytes: bundle?.bytes ?? 0, target: MIRROR_DIR, at };
   } catch (error) {
     const message = error instanceof Error ? error.message : "خطای نامشخص";
     await db
@@ -12948,7 +13535,7 @@ export async function ensureMirrorFresh(maxAgeHours = STALE_HOURS) {
 export type MirrorStatus = {
   dir: string;
   available: boolean;
-  keep: number;
+  keep: string;
   last: MirrorRun | null;
   okRuns: number;
   failRuns: number;
@@ -12968,7 +13555,10 @@ export async function mirrorStatus(): Promise<MirrorStatus> {
   const failRuns = rows.filter((r) => !r.ok).length;
   let files: string[] = [];
   try {
-    files = (await readdir(/*turbopackIgnore: true*/ MIRROR_DIR)).filter((f) => f.endsWith(".json")).sort().reverse().slice(0, 10);
+    const entries = await readdir(/*turbopackIgnore: true*/ MIRROR_DIR, { withFileTypes: true });
+    const jsonFiles = entries.filter((entry) => entry.isFile() && entry.name.endsWith(".json")).map((entry) => entry.name);
+    const bundleEntries = await readdir(path.join(MIRROR_DIR, "bundles"), { withFileTypes: true }).catch(() => []);
+    files = [...jsonFiles.sort().reverse().slice(0, 10), ...bundleEntries.filter((entry) => entry.isDirectory()).map((entry) => `بسته: ${entry.name}`).sort().reverse().slice(0, 10)];
   } catch {
     files = [];
   }
@@ -12992,7 +13582,7 @@ export async function mirrorStatus(): Promise<MirrorStatus> {
     }
   }
 
-  return { dir: MIRROR_DIR, available, keep: MIRROR_KEEP, last, okRuns, failRuns, last24, files, verdict, message };
+  return { dir: MIRROR_DIR, available, keep: "نامحدود", last, okRuns, failRuns, last24, files, verdict, message };
 }
 
 /** برای اسکریپت زمان‌بند ویندوز: بک‌آپ + آینه در یک قدم، خروجی متنی برای لاگ */
@@ -13209,7 +13799,7 @@ export async function ensureYearlyArchive() {
   return archiveOlderThan(Number(process.env.ARCHIVE_AFTER_YEARS ?? 3), "system");
 }
 
-── FILE: src/lib/roster.ts  (94 خط) ──
+── FILE: src/lib/roster.ts  (117 خط) ──
 
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -13221,7 +13811,7 @@ import path from "node:path";
  *   ۱) فایل محلی `data/roster.local.json` (یا مسیر ROSTER_FILE) — اگر هست،
  *      حتماً باید معتبر باشد؛ اگر خراب باشد سرور بالا نمی‌آید تا اشتباهاً
  *      با PIN آزمایشی کار نکند.
- *   ۲) وگرنه نمونهٔ ساختگی `data/roster.sample.json` (فقط تست و توسعه).
+ *   ۲) وگرنه نمونهٔ ساختگی `data/roster.sample.json` (فقط تست و توسعه؛ در production پیش‌فرض ممنوع).
  *
  * این ماژول هیچ ایمپورتی از داخل src ندارد تا هم در سرور، هم در اسکریپت‌ها
  * و هم در تست‌ها (audit6) مستقیم قابل استفاده باشد.
@@ -13236,6 +13826,14 @@ export type RosterEntry = {
 };
 
 export type RosterSource = "local" | "sample";
+
+let sampleWarningPrinted = false;
+
+function warnSampleRoster(localPath: string) {
+  if (sampleWarningPrinted) return;
+  sampleWarningPrinted = true;
+  console.warn(`[roster] فایل محلی پیدا نشد یا مسیر روستر به نمونه اشاره می‌کند (${localPath}) — از روستر نمونهٔ ساختگی استفاده می‌شود؛ پیش از بهره‌برداری واقعی roster.local.json را بسازید.`);
+}
 
 export function sampleRosterPath(): string {
   return path.join(process.cwd(), "data", "roster.sample.json");
@@ -13297,15 +13895,30 @@ export function resolveRoster(): { roster: RosterEntry[]; source: RosterSource; 
   const local = localRosterPath();
   if (existsSync(local)) {
     const roster = loadRosterFile(local);
-    return { roster, source: "local", path: local };
+    if (process.env.NODE_ENV === "production" && process.env.ALLOW_SAMPLE_ROSTER !== "1") {
+      const samplePins = new Map(loadRosterFile(sampleRosterPath()).map((entry) => [entry.key, entry.pin]));
+      if (roster.some((entry) => samplePins.get(entry.key) === entry.pin)) {
+        throw new Error("روستر محلی هنوز PIN پیش‌فرض نمونه دارد؛ PINهای واقعی را تعیین کنید. برای آزمون کنترل‌شده فقط ALLOW_SAMPLE_ROSTER=1 را تنظیم کنید.");
+      }
+    }
+    const source: RosterSource = path.resolve(local) === path.resolve(sampleRosterPath()) ? "sample" : "local";
+    if (source === "sample") warnSampleRoster(local);
+    return { roster, source, path: local };
   }
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_SAMPLE_ROSTER !== "1") {
+    throw new Error(
+      `روستر محلی پیدا نشد (${local}). اجرای production با PINهای نمونه مسدود است؛ ` +
+        "فایل data/roster.local.json را بسازید. برای تست کنترل‌شده فقط ALLOW_SAMPLE_ROSTER=1 را تنظیم کنید.",
+    );
+  }
+
   const sample = sampleRosterPath();
   const roster = loadRosterFile(sample);
-  console.warn(`[roster] فایل محلی پیدا نشد (${local}) — از روستر نمونهٔ ساختگی استفاده می‌شود؛ پیش از بهره‌برداری واقعی roster.local.json را بسازید.`);
+  warnSampleRoster(local);
   return { roster, source: "sample", path: sample };
 }
 
-── FILE: src/lib/netbind.ts  (105 خط) ──
+── FILE: src/lib/netbind.ts  (110 خط) ──
 
 /**
  * بایند شبکه و اعتماد به پروکسی — نسخهٔ ۱٫۴٫۱.
@@ -13334,6 +13947,11 @@ export function resolveBind(bindRaw?: string): { host: string; mode: BindMode } 
 export function trustProxyEnabled(env?: Record<string, string | undefined>): boolean {
   const v = (env ?? process.env).TRUST_PROXY;
   return v === "1" || v?.toLowerCase() === "true" || v?.toLowerCase() === "yes";
+}
+
+/** آیا بایند مستقیم یا LAN_ALLOW بدون پراکسی نیازمند هشدار دربارهٔ IP مشترک است؟ */
+export function needsNetworkIdentityWarning(bindRaw?: string, trustProxy = false, lanAllow = ""): boolean {
+  return !trustProxy && (resolveBind(bindRaw).mode !== "loopback" || Boolean(lanAllow.trim()));
 }
 
 /** IP متن از هدرها؛ در حالت مستقیم (بدون پروکسی) همیشه "local" است. */
@@ -13528,14 +14146,11 @@ export async function sendBotText(opts: {
   if (!res.ok) throw new Error(`پاسخ ${res.status}`);
 }
 
-── FILE: src/lib/zip.ts  (94 خط) ──
+── FILE: src/lib/zip.ts  (108 خط) ──
 
-/**
- * ساخت ZIP ساده (stored = بدون فشرده‌سازی، چندفایلی) بدون هیچ وابستگی.
- * کاربرد: «ارسال بکاپ به کانال بله» — فایل JSON بکاپ + رسید sha256 در یک ZIP.
- * عمداً leaf است تا در تست‌ها مستقیم قابل فراخوانی باشد.
- * اعتبارسنجی: خروجی با ابزار واقعی `unzip -l` باز شده است.
- */
+import { deflateRawSync } from "node:zlib";
+
+/** ZIP UTF-8; stored برای سازگاری بک‌آپ و deflate برای بسته‌های گزارش فشرده. */
 const CRC_TABLE = (() => {
   const t = new Uint32Array(256);
   for (let n = 0; n < 256; n += 1) {
@@ -13565,8 +14180,9 @@ const u32 = (v: number) => {
   return b;
 };
 
-export function zipStored(entries: ZipEntry[]): Uint8Array {
+function makeZip(entries: ZipEntry[], method: 0 | 8): Uint8Array {
   if (!entries.length) throw new Error("ZIP خالی ساخته نمی‌شود");
+  if (entries.length > 0xffff) throw new Error("تعداد فایل‌های ZIP از حد پشتیبانی‌شده بیشتر است");
   const enc = new TextEncoder();
   const now = new Date();
   const dosTime = ((now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1)) & 0xffff;
@@ -13575,6 +14191,7 @@ export function zipStored(entries: ZipEntry[]): Uint8Array {
   const central: Uint8Array[] = [];
   let offset = 0;
   const push = (arr: Uint8Array) => {
+    if (offset + arr.length > 0xffffffff) throw new Error("ZIP64 پشتیبانی نمی‌شود؛ اندازهٔ آرشیو از حد ۴ گیگابایت گذشته است");
     chunks.push(arr);
     offset += arr.length;
   };
@@ -13583,24 +14200,29 @@ export function zipStored(entries: ZipEntry[]): Uint8Array {
   for (const e of entries) {
     const name = enc.encode(e.name);
     if (!name.length || name.length > 0xffff) throw new Error(`نام نامعتبر برای ZIP: ${e.name}`);
-    const crc = crc32(e.data);
+    const data = e.data instanceof Uint8Array ? e.data : new Uint8Array(e.data);
+    const packed = method === 8 ? new Uint8Array(deflateRawSync(data, { level: 6 })) : data;
+    if (data.length > 0xffffffff || packed.length > 0xffffffff || offset > 0xffffffff) {
+      throw new Error("ZIP64 پشتیبانی نمی‌شود؛ اندازهٔ آرشیو از حد ۴ گیگابایت گذشته است");
+    }
+    const crc = crc32(data);
     const headerOffset = offset;
     push(SIG_LOCAL);
     push(u16(20));
     push(u16(0x0800)); // نام‌ها UTF-8
-    push(u16(0)); // stored
+    push(u16(method));
     push(u16(dosTime));
     push(u16(dosDate));
     push(u32(crc));
-    push(u32(e.data.length));
-    push(u32(e.data.length));
+    push(u32(packed.length));
+    push(u32(data.length));
     push(u16(name.length));
     push(u16(0));
     push(name);
-    push(e.data);
+    push(packed);
     central.push(
-      SIG_CENTRAL, u16(20), u16(20), u16(0x0800), u16(0), u16(dosTime), u16(dosDate),
-      u32(crc), u32(e.data.length), u32(e.data.length), u16(name.length),
+      SIG_CENTRAL, u16(20), u16(20), u16(0x0800), u16(method), u16(dosTime), u16(dosDate),
+      u32(crc), u32(packed.length), u32(data.length), u16(name.length),
       u16(0), u16(0), u16(0), u16(0), u32(0), u32(headerOffset), name,
     );
   }
@@ -13624,9 +14246,15 @@ export function zipStored(entries: ZipEntry[]): Uint8Array {
   return out;
 }
 
-##############################################################################
-#  ۴) مسیرهای API (src/app/api)
-##############################################################################
+/** ZIP بدون فشرده‌سازی؛ برای بستهٔ بک‌آپ که خودش JSON فشرده/چک‌سام دارد. */
+export function zipStored(entries: ZipEntry[]): Uint8Array {
+  return makeZip(entries, 0);
+}
+
+/** ZIP با DEFLATE واقعی؛ برای آرشیوهای گزارش روزانه. */
+export function zipDeflated(entries: ZipEntry[]): Uint8Array {
+  return makeZip(entries, 8);
+}
 
 ── FILE: src/app/api/auth/route.ts  (147 خط) ──
 
@@ -13777,7 +14405,7 @@ export async function DELETE(request: Request) {
   }
 }
 
-── FILE: src/app/api/actions/route.ts  (1048 خط) ──
+── FILE: src/app/api/actions/route.ts  (1093 خط) ──
 
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -13820,6 +14448,7 @@ import { generateBackupCode, generateTotpSecret, normalizeBackupCode, otpauthUrl
 import { ensureSeed, getAllSettings, saveSettings } from "@/db/seed";
 import { ensureMirrorFresh, mirrorLatest, mirrorStatus } from "@/lib/mirror";
 import { createInternalBackup, ensureDailyFileBackup, listFileBackups, restoreAll, restoreFromFile, verifyFileBackup, writeFileBackup, type Snapshot } from "@/lib/backup";
+import { listBackupBundles, restoreBackupBundle, verifyBackupBundle, writeBackupBundle } from "@/lib/backup-bundle";
 import { bodyTooLarge, clearLoginLock, logSecurityEvent, rateLimitedResponse, tooLargeResponse, writeRateLimited } from "@/lib/security";
 import { effectiveShift, getProcessThresholds, logActivity, thresholdSeverity } from "@/lib/state";
 import { buildOperationalPayload, buildRegistryPayload, buildTrendPayload, createReport, latestMotorRecords, normalizeRange, REPORT_KINDS } from "@/lib/reporting";
@@ -14001,6 +14630,9 @@ export async function POST(request: Request) {
         const value = num(p.value);
         inRange(value, TOTAL_LIMITS, "توتال روزانه", "m³");
         await runTx(async (d) => {
+          // PostgreSQL permits concurrent transactions to both observe an empty day;
+          // serialize this day before the read/insert to avoid a unique(day) race.
+          await d.execute(sql`select pg_advisory_xact_lock(hashtext(${`daily-total:${day}`}))`);
           const existing = (await d.select().from(dailyTotals).where(eq(dailyTotals.day, day)).limit(1))[0];
           if (existing) {
             await audit(shiftKey, "total", "TOTAL-FIT", "total", existing.value, value, d);
@@ -14055,7 +14687,7 @@ export async function POST(request: Request) {
       case "motor.state": {
         const tag = str(p.tag, 10);
         const state = str(p.state, 10);
-        if (!Object.keys(MOTOR_STATE_FA).includes(state)) throw new Error("وضعیت نامعتبر است");
+        if (!["on", "off", "service"].includes(state)) throw new Error("وضعیت نامعتبر است");
         const row = (await db.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
         if (!row) throw new Error("موتور پیدا نشد");
         await db.update(motors).set({ state, stateChangedAt: jalaliNow() }).where(eq(motors.tag, tag));
@@ -14536,7 +15168,7 @@ export async function POST(request: Request) {
         } catch (error) {
           await logActivity(shiftKey, "خطا در بک‌آپ فایلی", error instanceof Error ? error.message : "نامشخص");
         }
-        await logActivity(shiftKey, "ساخت بک‌آپ کامل", `${inner.id ?? "-"} — ${((inner.sizeBytes ?? 0) / 1024).toFixed(1)} KB${file ? ` — فایل: ${file.file}` : ""}`);
+        await logActivity(shiftKey, "ساخت بک‌آپ داده‌ها", `${inner.id ?? "-"} — ${((inner.sizeBytes ?? 0) / 1024).toFixed(1)} KB${file ? ` — فایل: ${file.file}` : ""}`);
         return Response.json({ ok: true, id: inner.id, file: file?.file ?? null });
       }
 
@@ -14563,6 +15195,39 @@ export async function POST(request: Request) {
         requireAdmin();
         const files = await listFileBackups();
         return Response.json({ ok: true, files });
+      }
+
+      case "backup.bundle.create": {
+        requireAdmin();
+        const bundle = await writeBackupBundle();
+        await logActivity(shiftKey, "ساخت بستهٔ بازیابی", `${bundle.name} — ${(bundle.bytes / 1024 / 1024).toFixed(2)} MB`);
+        const message = bundle.complete
+          ? `بستهٔ بازیابی ساخته شد (${(bundle.bytes / 1024 / 1024).toFixed(2)} MB)${bundle.warnings.length ? `؛ ${bundle.warnings.length} هشدار فایل سرد` : ""}`
+          : `بسته ساخته شد اما کامل نیست؛ ${bundle.warnings.length} فایل کاتالوگ/آرشیو نیاز به بررسی دارد`;
+        return Response.json({ ok: true, ...bundle, message });
+      }
+
+      case "backup.bundle.files": {
+        requireAdmin();
+        const bundles = await listBackupBundles();
+        return Response.json({ ok: true, bundles });
+      }
+
+      case "backup.bundle.verify": {
+        requireAdmin();
+        const result = await verifyBackupBundle(str(p.name, 160));
+        return Response.json({ ok: true, ...result });
+      }
+
+      case "backup.bundle.restore": {
+        requireAdmin();
+        const name = str(p.name, 160);
+        if (!name) throw new Error("نام بسته را انتخاب کنید");
+        const result = await restoreBackupBundle(name, { allowIncomplete: p.allowIncomplete === true });
+        await logActivity(shiftKey, "بازیابی بستهٔ کامل", `${name} — ${result.rows} ردیف — نسخهٔ ایمنی ${result.safetyBundle}`);
+        const warnings: string[] = [...result.warnings];
+        if (result.channelsNeedSetup.length) warnings.push(`توکن کانال‌های ${result.channelsNeedSetup.join("، ")} باید دوباره وارد شود`);
+        return Response.json({ ok: true, ...result, warnings, message: warnings.length ? `بازیابی انجام شد؛ هشدارها: ${warnings.join(" | ")}` : "بازیابی کامل و تطبیق تعداد ردیف‌ها موفق بود" });
       }
 
       case "admin.logout_all": {
@@ -14686,7 +15351,15 @@ export async function POST(request: Request) {
         if (!file) throw new Error("نام فایل را انتخاب کنید");
         const result = await restoreFromFile(file, { force: p.force === true });
         await logActivity(shiftKey, "بازیابی از فایل بک‌آپ", `${file} — ${result.rows} ردیف`);
-        return Response.json({ ok: true, ...result, message: "داده‌ها از فایل بازگردانی شد" });
+        const warnings: string[] = [];
+        if (result.catalogFiles.missing.length) {
+          warnings.push(`${result.catalogFiles.missing.length} فایل PDF کاتالوگ پیدا نشد یا هش آن نادرست است: ${result.catalogFiles.missing.join("، ")}`);
+        }
+        if (result.channelsNeedSetup.length) {
+          warnings.push(`توکن کانال‌های ${result.channelsNeedSetup.join("، ")} در بک‌آپ ذخیره نمی‌شود؛ در پنل ادمین دوباره وارد کنید`);
+        }
+        const message = warnings.length ? `داده‌ها بازگردانی شد؛ ${warnings.join(" | ")}` : "داده‌ها بازگردانی شد و فایل‌های کاتالوگ بررسی شدند";
+        return Response.json({ ok: true, ...result, message });
       }
 
       case "totp.status": {
@@ -15035,12 +15708,14 @@ export async function POST(request: Request) {
   }
 }
 
-── FILE: src/app/api/health/route.ts  (117 خط) ──
+── FILE: src/app/api/health/route.ts  (134 خط) ──
 
 import { statfs } from "node:fs/promises";
 import { sql } from "drizzle-orm";
 import { db, usingPostgres } from "@/db";
 import { getSessionUser } from "@/lib/auth";
+import { sessionSecretStatus } from "@/lib/secret";
+import { resolveRoster } from "@/lib/roster";
 import { APP_VERSION } from "@/lib/version";
 import { listFileBackups } from "@/lib/backup";
 import { jsonResponse } from "@/lib/errors";
@@ -15076,6 +15751,21 @@ export async function GET(request: Request) {
 
   const warnings: string[] = [];
   const detail: Record<string, unknown> = {};
+
+  const secretStatus = sessionSecretStatus();
+  detail.sessionSecret = secretStatus;
+  if (!secretStatus.persistent) {
+    warnings.push("راز نشست فقط در حافظه است؛ با راه‌اندازی مجدد سرور همهٔ نشست‌ها باطل می‌شوند");
+  }
+
+  try {
+    const roster = resolveRoster();
+    detail.roster = { source: roster.source };
+    if (roster.source === "sample") warnings.push("از روستر نمونهٔ آزمایشی استفاده می‌شود؛ پیش از بهره‌برداری واقعی roster.local.json را بسازید");
+  } catch {
+    detail.roster = { source: "unavailable" };
+    warnings.push("روستر شیفت‌ها در دسترس یا معتبر نیست؛ ورود و بهره‌برداری را بررسی کنید");
+  }
 
   try {
     const sizeRow = await db.execute<{ size: number }>(sql`select pg_database_size(current_database())::bigint as size`);
@@ -15397,9 +16087,97 @@ export async function GET(request: Request) {
   });
 }
 
-##############################################################################
-#  ۵) صفحات، چیدمان و قلاب‌های زمان اجرا (src/app و ریشهٔ src)
-##############################################################################
+── FILE: src/app/api/report-archives/route.ts  (90 خط) ──
+
+import { and, eq, inArray, like, notInArray } from "drizzle-orm";
+import { mkdir, rename, rm, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+import { db } from "@/db";
+import { alerts, dailyTotals, equipmentReports, meggerTests, motorReadings, motorServices, oilChanges, pmRecords, pmTemplates, processReadings, reports } from "@/db/schema";
+import { getSessionUser } from "@/lib/auth";
+import { isValidJalaliDay, jalaliNow } from "@/lib/jalali";
+import { zipDeflated } from "@/lib/zip";
+
+export const dynamic = "force-dynamic";
+
+const enc = new TextEncoder();
+const jsonFile = (value: unknown) => enc.encode(`${JSON.stringify(value, null, 2)}\n`);
+
+/** ساخت ZIP فشردهٔ گزارش روزانه و نگه‌داری نسخه روی درایو دادهٔ انتخاب‌شده */
+export async function POST(request: Request) {
+  const user = await getSessionUser();
+  if (!user) return Response.json({ ok: false, error: "ابتدا وارد سامانه شوید" }, { status: 401 });
+  if (user.role !== "admin") return Response.json({ ok: false, error: "فقط ادمین می‌تواند آرشیو ZIP بسازد" }, { status: 403 });
+
+  let body: { kind?: unknown; day?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json({ ok: false, error: "درخواست JSON معتبر نیست" }, { status: 400 });
+  }
+  const kind = String(body.kind ?? "");
+  const day = String(body.day ?? "");
+  if (kind !== "process" && kind !== "pm") return Response.json({ ok: false, error: "نوع ZIP باید process یا pm باشد" }, { status: 400 });
+  if (!isValidJalaliDay(day)) return Response.json({ ok: false, error: "تاریخ شمسی نامعتبر است" }, { status: 400 });
+
+  const rows: Record<string, unknown[]> = {};
+  let outputDir: string;
+  if (kind === "process") {
+    [rows.processReadings, rows.motorReadings, rows.dailyTotals, rows.alerts, rows.reports] = await Promise.all([
+      db.select().from(processReadings).where(eq(processReadings.day, day)).orderBy(processReadings.intervalIndex, processReadings.tag),
+      db.select().from(motorReadings).where(eq(motorReadings.day, day)).orderBy(motorReadings.tag, motorReadings.intervalIndex, motorReadings.param),
+      db.select().from(dailyTotals).where(eq(dailyTotals.day, day)),
+      db.select().from(alerts).where(eq(alerts.day, day)).orderBy(alerts.id),
+      db.select().from(reports).where(and(eq(reports.day, day), notInArray(reports.kind, ["pm", "motor_service", "megger", "oil"]))).orderBy(reports.id),
+    ]);
+    outputDir = path.resolve(/*turbopackIgnore: true*/ process.env.PROCESS_REPORT_DIR ?? path.join(process.cwd(), ".data", "report-archives", "process"));
+  } else {
+    [rows.pmRecords, rows.motorServices, rows.meggerTests, rows.oilChanges, rows.equipmentReports, rows.pmTemplates, rows.reports] = await Promise.all([
+      db.select().from(pmRecords).where(eq(pmRecords.day, day)).orderBy(pmRecords.id),
+      db.select().from(motorServices).where(eq(motorServices.day, day)).orderBy(motorServices.id),
+      db.select().from(meggerTests).where(eq(meggerTests.day, day)).orderBy(meggerTests.id),
+      db.select().from(oilChanges).where(eq(oilChanges.day, day)).orderBy(oilChanges.id),
+      db.select().from(equipmentReports).where(like(equipmentReports.at, `${day}%`)).orderBy(equipmentReports.id),
+      db.select().from(pmTemplates).orderBy(pmTemplates.category, pmTemplates.name),
+      db.select().from(reports).where(and(eq(reports.day, day), inArray(reports.kind, ["pm", "motor_service", "megger", "oil"])) ).orderBy(reports.id),
+    ]);
+    outputDir = path.resolve(/*turbopackIgnore: true*/ process.env.PM_REPORT_DIR ?? path.join(process.cwd(), ".data", "report-archives", "PM"));
+  }
+
+  const generatedAt = new Date().toISOString();
+  const counts = Object.fromEntries(Object.entries(rows).map(([name, values]) => [name, values.length]));
+  const manifest = { format: "pumpstation-report-zip-v1", kind, day, generatedAt, counts };
+  const files = [
+    { name: "manifest.json", data: jsonFile(manifest) },
+    ...Object.entries(rows).map(([name, values]) => ({ name: `${name}.json`, data: jsonFile(values) })),
+  ];
+  let archive: Uint8Array;
+  let tempFile = "";
+  try {
+    archive = zipDeflated(files);
+    await mkdir(outputDir, { recursive: true });
+    const stamp = generatedAt.replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+    const fileName = `${kind}-${day.replaceAll("/", "-")}-${stamp}-${randomUUID().slice(0, 8)}.zip`;
+    const target = path.join(outputDir, fileName);
+    tempFile = `${target}.tmp`;
+    await writeFile(tempFile, archive);
+    await rename(tempFile, target);
+    tempFile = "";
+    return new Response(Buffer.from(archive), {
+      headers: {
+        "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename="${fileName}"`,
+        "X-Report-Archive-Filename": fileName,
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    if (tempFile) await rm(tempFile, { force: true }).catch(() => undefined);
+    console.error("[reports] zip archive failed", error);
+    return Response.json({ ok: false, error: "ساخت یا ذخیرهٔ ZIP گزارش انجام نشد؛ فضای درایو و دسترسی پوشه را بررسی کنید" }, { status: 500 });
+  }
+}
 
 ── FILE: src/app/layout.tsx  (17 خط) ──
 
@@ -17994,20 +18772,20 @@ textarea.input {
 
 import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { lanAllowed, trustProxyEnabled, trustedClientIp, trustedRequestHost } from "./lib/netbind";
+import { lanAllowed, needsNetworkIdentityWarning, trustProxyEnabled, trustedClientIp, trustedRequestHost } from "./lib/netbind";
 
 /** سقف حجم بدنه برای همهٔ مسیرهای API — پیش از خواندن بدنه رد می‌شود */
 const MAX_BODY_BYTES = 256 * 1024;
 
 /** سقف درخواست هر IP در دقیقه (ضدسیل ساده و ارزان) */
 const IP_LIMIT = 600;
-// اخطار پیکربندی شبکه: فقط یک‌بار در هر فرایند (LAN_ALLOW بدون پروکسیِ مورداعتماد قابل اعمال نیست)
+// اخطار پیکربندی شبکه: در بایند مستقیمِ شبکه‌ای، بدون پروکسی IP دستگاه‌ها قابل تشخیص نیست.
 declare global {
-  var __psNetWarnedLAN: boolean | undefined;
+  var __psNetWarnedClientIp: boolean | undefined;
 }
-if ((process.env.LAN_ALLOW ?? "").trim() && !trustProxyEnabled() && !globalThis.__psNetWarnedLAN) {
-  globalThis.__psNetWarnedLAN = true;
-  console.warn("[net] اخطار: LAN_ALLOW تنظیم شده ولی TRUST_PROXY=1 نیست؛ در اتصال مستقیم، IP واقعی دیده نمی‌شود و فهرست مجاز اعمال نمی‌گردد (کنترل با فایروال سیستم‌عامل است).");
+if (needsNetworkIdentityWarning(process.env.BIND, trustProxyEnabled(), process.env.LAN_ALLOW) && !globalThis.__psNetWarnedClientIp) {
+  globalThis.__psNetWarnedClientIp = true;
+  console.warn("[net] اخطار: اتصال شبکه‌ای بدون TRUST_PROXY=1؛ IP همهٔ درخواست‌های مستقیم «local» دیده می‌شود، قفل/محدودیت‌های per-IP بین دستگاه‌ها مشترک می‌شوند و LAN_ALLOW در این حالت اعمال نمی‌شود. برای شناسایی IP از پروکسی مورداعتماد استفاده کنید؛ در غیر این صورت فایروال سیستم‌عامل را محدود کنید.");
 }
 const IP_WINDOW_MS = 60_000;
 const buckets = new Map<string, { count: number; resetAt: number }>();
@@ -18168,7 +18946,7 @@ export async function onRequestError(error: unknown, request: RequestLike, conte
   }
 }
 
-── FILE: src/instrumentation.node.ts  (31 خط) ──
+── FILE: src/instrumentation.node.ts  (38 خط) ──
 
 /**
  * منطق مخصوص Node: ثبت خطاهای کشنده و خاموشی تمیز دیتابیس.
@@ -18176,6 +18954,13 @@ export async function onRequestError(error: unknown, request: RequestLike, conte
  */
 export async function registerNode() {
   const { recordEvent } = await import("@/lib/log");
+
+  // In production, validate the roster and initialize safe defaults before serving requests.
+  // A missing/sample roster is a startup failure, not a page-level 500 after the server is live.
+  if (process.env.NODE_ENV === "production") {
+    const { ensureSeed } = await import("@/db/seed");
+    await ensureSeed();
+  }
 
   process.on("unhandledRejection", (reason) => {
     void recordEvent({ level: "error", source: "process", message: "unhandledRejection", detail: reason });
@@ -18200,10 +18985,6 @@ export async function registerNode() {
   process.once("SIGTERM", () => void shutdown());
   process.once("SIGINT", () => void shutdown());
 }
-
-##############################################################################
-#  ۶) رابط کاربری (src/components)
-##############################################################################
 
 ── FILE: src/components/context.tsx  (31 خط) ──
 
@@ -18527,8 +19308,8 @@ export default function AppShell({ initial }: { initial: AppState }) {
         method: "POST",
         headers: { "Content-Type": "application/json", "Idempotency-Key": key },
         body: JSON.stringify({ action, payload }),
-        // سقف ۳۰ ثانیه: روی PC ضعیف دکمه‌ها دیگر برای همیشه گیر نمی‌کنند
-        signal: AbortSignal.timeout(30000),
+        // بستهٔ کامل ممکن است دادهٔ آرشیو و فایل‌های زیادی داشته باشد؛ به آن زمان بیشتری می‌دهیم.
+        signal: AbortSignal.timeout(action.startsWith("backup.bundle.") ? 10 * 60_000 : 30_000),
       });
       if (res.status === 401) {
         window.location.replace("/");
@@ -18788,7 +19569,7 @@ export default function AppShell({ initial }: { initial: AppState }) {
   );
 }
 
-── FILE: src/components/Login.tsx  (124 خط) ──
+── FILE: src/components/Login.tsx  (121 خط) ──
 
 "use client";
 
@@ -18904,9 +19685,6 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
             {busy ? "در حال ورود…" : "ورود به سامانه"}
           </button>
 
-          <div className="note" style={{ marginTop: 12 }}>
-            برای تست: شیفت A = ۱۱۱۱ · شیفت B = ۲۲۲۲ · شیفت C = ۳۳۳۳ · ادمین = ۹۹۹۹
-          </div>
           <p className="tiny muted" style={{ marginTop: 10, textAlign: "center" }}>{ORG_NAME} — در گزارش‌ها نام شیفت و اپراتورهای همان شیفت ثبت می‌شود.</p>
         </form>
       </div>
@@ -19118,8 +19896,8 @@ export default function MotorCard({
   const yellow = !red && m.state !== "service" && (pct >= 70 || hotWarn || vibWarn);
   const shake = m.state === "on" ? (red ? "motor-shake-hard" : yellow ? "motor-shake-light" : "") : "";
   const smoke = red && m.state === "on";
-  const severity: "ok" | "warning" | "critical" = red ? "critical" : yellow || m.state === "service" ? "warning" : "ok";
-  const reason = hotCrit ? "دمای بالا" : vibCrit ? "لرزش بالا" : pct >= 100 ? "سرویس عقب‌افتاده" : pct >= 90 ? "نزدیک سرویس" : hotWarn ? "افزایش دما" : vibWarn ? "لرزش" : pct >= 70 ? "کارکرد زیاد" : m.state === "service" ? "در سرویس" : "";
+  const severity: "ok" | "warning" | "critical" = red ? "critical" : yellow || m.state === "service" || m.state === "unknown" ? "warning" : "ok";
+  const reason = hotCrit ? "دمای بالا" : vibCrit ? "لرزش بالا" : pct >= 100 ? "سرویس عقب‌افتاده" : pct >= 90 ? "نزدیک سرویس" : hotWarn ? "افزایش دما" : vibWarn ? "لرزش" : pct >= 70 ? "کارکرد زیاد" : m.state === "service" ? "در سرویس" : m.state === "unknown" ? "وضعیت اولیه بررسی نشده" : "";
 
   const classes = ["motor-card", `motor-${m.state}`, shake, hotWarn || red ? "motor-heat" : "", smoke ? "motor-smoke" : "", red ? "tint-red critical" : yellow ? "tint-yellow warning" : "", m.state === "service" ? "service" : ""]
     .filter(Boolean)
@@ -19133,7 +19911,7 @@ export default function MotorCard({
         </div>
         <div className="led-wrap">
           <span className={`led ${m.state === "on" ? "green" : m.state === "service" ? "amber" : ""}`} title={m.stateFa} />
-          <span className={`led ${red ? "red" : yellow ? "amber" : ""}`} title="وضعیت هشدار" />
+          <span className={`led ${red ? "red" : yellow || m.state === "unknown" ? "amber" : ""}`} title="وضعیت هشدار" />
         </div>
       </div>
 
@@ -19151,7 +19929,7 @@ export default function MotorCard({
 
       {/* نوار سرویس: ساعت گذشته / بازه سرویس */}
       <div className="motor-service-row" title="ساعت کارکرد از آخرین سرویس نسبت به بازهٔ سرویس">
-        <span className={`chip ${m.state === "on" ? "live" : m.state === "service" ? "warn" : "muted"}`} style={{ padding: "4px 9px", fontSize: 12.5 }}>
+        <span className={`chip ${m.state === "on" ? "live" : m.state === "service" || m.state === "unknown" ? "warn" : "muted"}`} style={{ padding: "4px 9px", fontSize: 12.5 }}>
           {m.stateFa}
         </span>
         <div className="service-track">
@@ -21002,7 +21780,7 @@ export default function TrainingTab() {
   );
 }
 
-── FILE: src/components/AdminTab.tsx  (775 خط) ──
+── FILE: src/components/AdminTab.tsx  (913 خط) ──
 
 "use client";
 
@@ -21064,10 +21842,12 @@ export default function AdminTab() {
         <PmTemplatesPanel />
       </div>
 
+      <ReportArchivePanel />
+
       <Panel
-        title="بک‌آپ کامل و بازیابی"
+        title="بک‌آپ پایگاه‌داده و بازیابی"
         icon="database"
-        hint="اسنپ‌شات همهٔ جدول‌ها؛ پیش از هر بازیابی نسخه ایمنی ساخته می‌شود"
+        hint="اسنپ‌شات جدول‌های پیکربندی‌شده؛ پیش از هر بازیابی نسخهٔ ایمنی ساخته می‌شود"
         actions={
           <>
             <button type="button" className="btn primary" disabled={busy} onClick={() => act("backup.create")}>
@@ -21076,6 +21856,10 @@ export default function AdminTab() {
           </>
         }
       >
+        <div className="note warn-note" style={{ marginBottom: 10 }}>
+          بک‌آپ JSON توکن کانال‌ها را عمداً حذف می‌کند و PDFها و قرائت‌های بایگانی‌شده را ندارد. برای بازیابی جامع از بستهٔ پوشه‌ای زیر استفاده کنید؛ توکن کانال‌ها پس از restore دوباره وارد می‌شوند. بسته شامل وضعیت TOTP است و باید روی رسانهٔ حفاظت‌شده نگه‌داری شود.
+        </div>
+        <RecoveryBundlesPanel />
         {state.backups.length === 0 ? (
           <div className="empty">هنوز بک‌آپی ساخته نشده است. اولین بک‌آپ را بسازید.</div>
         ) : (
@@ -21455,6 +22239,58 @@ function RestoreConfirm({ id, label, createdAt }: { id: number; label: string; c
 }
 
 
+function ReportArchivePanel() {
+  const { state, isAdmin } = useApp();
+  const [day, setDay] = useState(state.now.day);
+  const [busy, setBusy] = useState("");
+
+  async function createZip(kind: "process" | "pm") {
+    setBusy(kind);
+    try {
+      const response = await fetch("/api/report-archives", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, day }),
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        window.alert(error?.error ?? `ساخت ZIP ناموفق بود (${response.status})`);
+        return;
+      }
+      const blob = await response.blob();
+      const name = response.headers.get("x-report-archive-filename") ?? `${kind}-${day.replaceAll("/", "-")}.zip`;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+      window.alert(`فایل فشرده ساخته و در پوشهٔ گزارشات ذخیره شد:\n${name}`);
+    } catch {
+      window.alert("ساخت ZIP انجام نشد؛ اتصال، فضای درایو و دسترسی پوشه را بررسی کنید.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  if (!isAdmin) return null;
+  return (
+    <Panel title="آرشیو ZIP گزارش‌ها" icon="file" hint="خروجی فشردهٔ گزارش‌های فرآیندی یا PM؛ هم دانلود می‌شود و هم در پوشهٔ گزارشات ثبت می‌ماند">
+      <div className="row" style={{ gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+        <label className="field" style={{ minWidth: 180, flex: "0 1 220px" }}>
+          <span>تاریخ شمسی</span>
+          <input className="input mono" dir="ltr" value={day} onChange={(event) => setDay(event.target.value)} placeholder="1405/08/15" />
+        </label>
+        <button type="button" className="btn primary" disabled={Boolean(busy)} onClick={() => void createZip("process")}>{busy === "process" ? "در حال ساخت…" : "ZIP گزارش فرآیندی"}</button>
+        <button type="button" className="btn primary" disabled={Boolean(busy)} onClick={() => void createZip("pm")}>{busy === "pm" ? "در حال ساخت…" : "ZIP گزارش PM"}</button>
+      </div>
+      <div className="note small">ZIPها در پوشه‌های «گزارشات فرایند» و «PM» روی درایو داده ذخیره می‌شوند. ساخت هر ZIP یک نسخهٔ تازه می‌سازد و نسخه‌های قبلی را حذف نمی‌کند.</div>
+    </Panel>
+  );
+}
+
 function ChannelsPanel() {
   const { state, act, busy, isAdmin } = useApp();
   const offline = typeof navigator !== "undefined" && !navigator.onLine;
@@ -21563,6 +22399,86 @@ type SessionRow = {
 };
 
 type BackupFile = { file: string; bytes: number; modifiedAt: string; sha256: string | null };
+type RecoveryBundle = { name: string; createdAt: string; bytes: number; rows: number; assets: number; complete: boolean; warnings: number };
+
+function RecoveryBundlesPanel() {
+  const { act, busy, toast, refresh } = useApp();
+  const [bundles, setBundles] = useState<RecoveryBundle[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  const call = async (action: string, payload: Record<string, unknown> = {}) => {
+    const res = await fetch("/api/actions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, payload }),
+      signal: AbortSignal.timeout(120000),
+    });
+    return (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  };
+
+  const load = async () => {
+    const result = await call("backup.bundle.files");
+    setBundles((result.bundles as RecoveryBundle[]) ?? []);
+    setLoaded(true);
+  };
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void load(); }, 0);
+    return () => window.clearTimeout(timer);
+    // فقط یک‌بار هنگام بازشدن پنل
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div style={{ margin: "12px 0" }}>
+      <div className="row" style={{ justifyContent: "space-between", gap: 8, marginBottom: 6 }}>
+        <h4 style={{ margin: 0 }}>بستهٔ بازیابی آرشیو و فایل‌ها</h4>
+        <div className="row" style={{ gap: 6 }}>
+          <button type="button" className="btn tiny" disabled={busy} onClick={() => void load()}>بازخوانی</button>
+          <button type="button" className="btn tiny primary" disabled={busy} onClick={async () => { await act("backup.bundle.create"); await load(); }}>
+            <Icon name="archive" size={12} /> ساخت بستهٔ بازیابی
+          </button>
+        </div>
+      </div>
+      <div className="tiny muted" style={{ marginBottom: 6 }}>
+        پوشهٔ قابل‌انتقال شامل جدول‌های آرشیو، فایل‌های سرد و PDFهاست؛ نگه‌داری خودکار نامحدود است. با «آینهٔ بک‌آپ» آخرین بسته هم کپی می‌شود.
+      </div>
+      {!loaded ? <div className="tiny muted">در حال خواندن بسته‌ها…</div> : !bundles.length ? <div className="empty">هنوز بستهٔ بازیابی ساخته نشده است.</div> : (
+        <div className="table-wrap" style={{ maxHeight: 220 }}>
+          <table className="data">
+            <thead><tr><th>بسته</th><th>حجم</th><th>سلامت</th><th></th></tr></thead>
+            <tbody>
+              {bundles.map((bundle) => (
+                <tr key={bundle.name}>
+                  <td className="tiny mono">{bundle.name}</td>
+                  <td className="tiny">{(bundle.bytes / 1024 / 1024).toFixed(2)} MB</td>
+                  <td className="tiny" style={{ color: bundle.complete ? "var(--green)" : "var(--amber)" }}>
+                    {bundle.complete ? `${bundle.assets} فایل` : `ناقص؛ ${bundle.warnings} هشدار`}
+                  </td>
+                  <td>
+                    <button type="button" className="btn tiny ghost" disabled={busy} onClick={async () => {
+                      const result = await call("backup.bundle.verify", { name: bundle.name });
+                      toast(result.ok ? (result.complete ? "بسته سالم است و checksum همهٔ محتواها درست است" : `ساختار/چک‌سام سالم؛ ${((result.warnings as string[]) ?? []).join(" | ")}`) : String(result.error ?? "بررسی بسته ناموفق بود"), result.ok ? "ok" : "error");
+                    }}>آزمون</button>
+                    <button type="button" className="btn tiny ghost" disabled={busy} onClick={async () => {
+                      const text = bundle.complete
+                        ? `داده‌های جاری با «${bundle.name}» جایگزین شوند؟ پیش از بازیابی یک بستهٔ ایمنی ساخته می‌شود.`
+                        : `این بسته PDF مفقود دارد. ادامه می‌تواند کاتالوگ‌ها را ناقص برگرداند. بااین‌حال بازیابی شود؟`;
+                      if (!confirm(text)) return;
+                      await act("backup.bundle.restore", { name: bundle.name, allowIncomplete: !bundle.complete });
+                      await load();
+                      await refresh();
+                    }}>بازیابی</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function SecurityPanel() {
   const { act, busy, toast, refresh } = useApp();
@@ -21677,7 +22593,7 @@ function SecurityPanel() {
 
       <div className="row" style={{ gap: 8, flexWrap: "wrap", marginTop: 10 }}>
         <button type="button" className="btn tiny primary" disabled={busy} onClick={() => void act("backup.create")}>
-          <Icon name="save" size={12} /> بک‌آپ کامل فوری
+          <Icon name="save" size={12} /> بک‌آپ فوری
         </button>
         <button type="button" className="btn tiny" disabled={busy} onClick={async () => { await act("data.optimize"); void load(); }}>
           <Icon name="settings" size={12} /> بهینه‌سازی دیتابیس
@@ -21750,7 +22666,7 @@ function SecurityPanel() {
                         type="button"
                         className="btn tiny ghost"
                         disabled={busy}
-                        title="بازیابی کامل از این فایل"
+                        title="بازیابی داده‌ها از این فایل"
                         onClick={async () => {
                           if (!confirm(`داده‌های فعلی با محتوای «${f.file}» جایگزین شود؟ یک نسخهٔ ایمنی خودکار گرفته می‌شود.`)) return;
                           await act("backup.restore_file", { file: f.file });
@@ -22076,7 +22992,7 @@ import { Icon, Panel } from "./ui";
 type MirrorState = {
   dir: string;
   available: boolean;
-  keep: number;
+  keep: string;
   okRuns: number;
   failRuns: number;
   last24: number;
@@ -22139,7 +23055,7 @@ export default function MirrorPanel() {
     <Panel
       title="آینهٔ بک‌آپ (حافظهٔ بیرونی)"
       icon="database"
-      hint="کپی خودکار نسخهٔ پشتیبان روی فلش/درایو USB؛ اگر دستگاه اصلی از بین برود، نسخهٔ سالم می‌ماند"
+      hint="کپی JSON و آخرین بستهٔ بازیابی آرشیو/فایل‌ها به فلش یا درایو بیرونی"
       actions={
         <button type="button" className="btn tiny" disabled={busy} onClick={load}>
           <Icon name="refresh" size={13} /> بازخوانی
@@ -22161,7 +23077,7 @@ export default function MirrorPanel() {
 
           <div className="grid" style={{ gap: 6, fontSize: 12 }}>
             <div><span className="muted">مسیر آینه: </span><span className="mono tiny">{data.dir}</span></div>
-            <div><span className="muted">آخرین کپی: </span>
+            <div><span className="muted">آخرین فایل JSON: </span>
               <span className="tiny">{data.last ? `${data.last.at} — ${data.last.file} (${(data.last.bytes / 1024).toFixed(0)} KB)` : "—"}</span>
             </div>
             <div><span className="muted">کپی‌های ۲۴ ساعت گذشته: </span><span className="tiny">{data.last24}</span></div>
@@ -22203,10 +23119,6 @@ export default function MirrorPanel() {
     </Panel>
   );
 }
-
-##############################################################################
-#  ۷) اسکریپت‌های عملیاتی (scripts)
-##############################################################################
 
 ── FILE: scripts/init-db.mjs  (87 خط) ──
 
@@ -22786,23 +23698,23 @@ try {
   await pool.end();
 }
 
-── FILE: scripts/pg-dump.mjs  (73 خط) ──
+── FILE: scripts/pg-dump.mjs  (67 خط) ──
 
 #!/usr/bin/env node
 /**
  * پشتیبان‌گیری روزانه از PostgreSQL با pg_dump (فرمت custom، فشرده).
- * مناسب Windows Task Scheduler / cron. نسخه‌های قدیمی خودکار پاک می‌شوند.
+ * مناسب Windows Task Scheduler / cron. هیچ نسخهٔ قدیمی به‌صورت خودکار پاک نمی‌شود.
  *
  *   DATABASE_URL=postgresql://... node scripts/pg-dump.mjs
  *
  * متغیرها:
  *   PGDUMP_DIR   پوشهٔ مقصد        (پیش‌فرض: .data/pgdump)
- *   PGDUMP_KEEP  تعداد نسخهٔ نگه‌داری (پیش‌فرض: 14)
  *   PGDUMP_BIN   مسیر pg_dump.exe  (اگر در PATH نیست)
+ * نسخه‌های قدیمی فقط با اقدام دستی ادمین حذف می‌شوند.
  *   MIRROR_DIR   اگر ست باشد، نسخهٔ تازه همان‌جا هم کپی می‌شود
  */
 import { spawn } from "node:child_process";
-import { copyFile, mkdir, readdir, stat, unlink } from "node:fs/promises";
+import { copyFile, mkdir, stat } from "node:fs/promises";
 import path from "node:path";
 
 const url = (process.env.DATABASE_URL ?? "").trim();
@@ -22812,7 +23724,6 @@ if (!/^postgres(ql)?:\/\//i.test(url)) {
 }
 
 const outDir = path.resolve(process.cwd(), process.env.PGDUMP_DIR ?? ".data/pgdump");
-const keep = Number(process.env.PGDUMP_KEEP ?? 14);
 const bin = process.env.PGDUMP_BIN?.trim() || "pg_dump";
 const mirrorDir = process.env.MIRROR_DIR?.trim() ? path.resolve(process.env.MIRROR_DIR) : "";
 
@@ -22846,12 +23757,7 @@ async function main() {
     console.log(`✔ کپی روی آینه: ${mirrorDir}`);
   }
 
-  const files = (await readdir(outDir)).filter((f) => f.endsWith(".dump")).sort();
-  for (const old of files.slice(0, Math.max(0, files.length - keep))) {
-    await unlink(path.join(outDir, old)).catch(() => {});
-    console.log(`  حذف نسخهٔ قدیمی: ${old}`);
-  }
-  console.log(`✔ نگه‌داری ${keep} نسخهٔ آخر در ${outDir}`);
+  console.log(`✔ نسخهٔ تازه ذخیره شد؛ هیچ دامپ قدیمی به‌طور خودکار حذف نمی‌شود (${outDir})`);
 }
 
 try {
@@ -23133,7 +24039,7 @@ if (host === "0.0.0.0") {
 const child = spawn(
   process.execPath,
   ["node_modules/next/dist/bin/next", mode, "-H", host, "-p", String(port), ...passthrough],
-  { stdio: "inherit", cwd: process.cwd() },
+  { stdio: "inherit", cwd: process.cwd(), env: { ...process.env, BIND: host } },
 );
 child.on("exit", (code, signal) => {
   if (signal) process.exit(1);
@@ -23348,7 +24254,7 @@ for (const f of sendFailures.slice(0, 10)) console.log(`  درخواست ${f.n} 
 for (const v of verify) console.log(`  ${v}`);
 process.exit(sendFailures.length || failures.length ? 1 : 0);
 
-── FILE: scripts/generate-code-all.mjs  (189 خط) ──
+── FILE: scripts/generate-code-all.mjs  (188 خط) ──
 
 /**
  * تولید pumpstation-v1.2/CODE_ALL_FA.txt — کل کد برنامه در یک فایل متنی.
@@ -23393,7 +24299,7 @@ const SECTIONS = [
     "src/lib/dblock.ts", "src/lib/pin.ts", "src/lib/secret.ts", "src/lib/totp.ts",
     "src/lib/auth.ts", "src/lib/sessions.ts", "src/lib/security.ts", "src/lib/audit.ts",
     "src/lib/jalali.ts", "src/lib/domain.ts", "src/lib/state.ts", "src/lib/reporting.ts",
-    "src/lib/backup.ts", "src/lib/backup-validation.ts", "src/lib/mirror.ts", "src/lib/archive.ts",
+    "src/lib/backup.ts", "src/lib/backup-validation.ts", "src/lib/backup-bundle.ts", "src/lib/mirror.ts", "src/lib/archive.ts",
     "src/lib/roster.ts", "src/lib/netbind.ts", "src/lib/sqlite-cloud.ts",
     "src/lib/bot.ts", "src/lib/zip.ts",
   ] },
@@ -23402,6 +24308,7 @@ const SECTIONS = [
     "src/app/api/history/route.ts", "src/app/api/totals/route.ts",
     "src/app/api/backups/[id]/route.ts", "src/app/api/mirror/route.ts",
     "src/app/api/health/route.ts", "src/app/api/catalogs/route.ts", "src/app/api/export/route.ts",
+    "src/app/api/report-archives/route.ts",
   ] },
   { title: "صفحات، چیدمان و قلاب‌های زمان اجرا (src/app و ریشهٔ src)", files: [
     "src/app/layout.tsx", "src/app/page.tsx", "src/app/error.tsx", "src/app/loading.tsx",
@@ -23422,7 +24329,7 @@ const SECTIONS = [
     "scripts/init-db.mjs", "scripts/doctor.mjs", "scripts/reset-admin-pin.mjs",
     "scripts/mirror-backup.mjs", "scripts/pg-init.mjs", "scripts/pg-dump.mjs",
     "scripts/pg-import-json.mjs", "scripts/serve.mjs", "scripts/bulk-import.mjs",
-    "scripts/generate-code-all.mjs", "scripts/extract-code-all.mjs", "scripts/test-fresh-install.mjs",
+    "scripts/generate-code-all.mjs", "scripts/extract-code-all.mjs", "scripts/test-fresh-install.mjs", "scripts/stackblitz-warning.mjs",
   ] },
   { title: "آزمون‌های خودکار (audit)", files: [
     "audit/audit1.mjs", "audit/audit2.mjs", "audit/audit3.mjs", "audit/audit4.mjs",
@@ -23435,8 +24342,7 @@ const SECTIONS = [
   ] },
 ];
 
-const versionSrc = readFileSync("src/lib/version.ts", "utf8");
-const version = versionSrc.match(/"(\d+\.\d+\.\d+)"/)?.[1] ?? "?";
+const version = JSON.parse(readFileSync("package.json", "utf8")).version;
 const branch = execSync("git rev-parse --abbrev-ref HEAD", { encoding: "utf8" }).trim();
 const commit = execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim();
 const today = new Date().toISOString().slice(0, 10);
@@ -23473,14 +24379,13 @@ entries.forEach((s, i) => {
   out += "\n";
 });
 out += "==============================================================================\n\n";
-entries.forEach((s, i) => {
-  out += "##############################################################################\n";
-  out += `#  ${FA_NUM[i]}) ${s.title}\n`;
-  out += "##############################################################################\n\n";
+// در بدنه فقط مارکرهای FILE باقی می‌مانند؛ تیترهای بخش در فهرست ابتدای فایل هستند.
+// این کار جلوی چسبیدن جداکننده‌های نمایشی به محتوای فایل در پارسرهای ساده را می‌گیرد.
+for (const s of entries) {
   for (const f of s.files) {
     out += `── FILE: ${f.path}  (${f.lines} خط) ──\n\n${f.content}\n\n`;
   }
-});
+}
 
 // ---------- خودآزمایی بسته: استخراج ←→ مقایسه (اگر شکست: بدون خروجی) ----------
 writeFileSync("CODE_ALL_FA.txt.tmp", out);
@@ -23550,8 +24455,8 @@ console.log(`CODE_ALL_FA.txt: ${fileCount} فایل، ${withComma(lineCount)} خ
  *
  * قرارداد قالب (تولیدشده با scripts/generate-code-all.mjs):
  *   ── FILE: <مسیر>  (<n> خط) ──\n\n<محتوا>\n\n
- * که <محتوا> دقیقاً خط‌های منبع بدون \n پایانی است و n = تعداد خط‌های
- * محتوا + ۱. برش با n انجام و سپس مرزبندی (خط خالی + مارکر/سربرگ/پایان)
+ *   که <محتوا> دقیقاً خط‌های منبع بدون \n پایانی است و n = تعداد خط‌های
+ * محتوا + ۱. برش با n انجام و سپس مرزبندی (خط خالی + مارکر فایل/پایان)
  * اعتبارسنجی می‌شود؛ هر انحرافی خطا می‌دهد نه خروجی خراب.
  * ورودی‌های «../...» (فایل CI بیرون از ریشهٔ برنامه) رد می‌شوند چون برای
  * ساخت/اجرا/تست لازم نیستند.
@@ -23584,7 +24489,7 @@ export function extractBundle(bundlePath, outDir) {
     }
     const next = lines[i + 1] ?? "";
     const restBlank = lines.slice(i + 1).join("\n").trim() === "";
-    if (!restBlank && !next.startsWith("── FILE: ") && !next.startsWith("####")) {
+    if (!restBlank && !next.startsWith("── FILE: ")) {
       throw new Error(`مرز پایانی ${rel} خراب است`);
     }
     if (rel.startsWith("../") || path.isAbsolute(rel)) {
@@ -23611,7 +24516,7 @@ if (invoked) {
   for (const s of skipped) console.warn(`رد شد (بیرون از ریشهٔ برنامه): ${s}`);
 }
 
-── FILE: scripts/test-fresh-install.mjs  (127 خط) ──
+── FILE: scripts/test-fresh-install.mjs  (207 خط) ──
 
 #!/usr/bin/env node
 /**
@@ -23626,9 +24531,10 @@ if (invoked) {
  * مگر FRESH_KEEP=1. پورت با FRESH_PORT (پیش‌فرض 3210).
  */
 import { execFile, execFileSync, spawn } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { copyFileSync, cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, mkdirSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { gunzipSync } from "node:zlib";
 import { extractBundle } from "./extract-code-all.mjs";
 
 const appRoot = path.dirname(path.dirname(new URL(import.meta.url).pathname));
@@ -23637,6 +24543,14 @@ const PORT = Number(process.env.FRESH_PORT ?? 3210);
 const BASE = `http://127.0.0.1:${PORT}`;
 const tmp = mkdtempSync(path.join(os.tmpdir(), "pumpstation-fresh-"));
 const dataDir = path.join(tmp, ".data", "pglite");
+const backupDir = path.join(tmp, ".data", "backups");
+const catalogDir = path.join(tmp, "files", "catalogs");
+const archiveDir = path.join(backupDir, "archive");
+const mirrorDir = path.join(tmp, ".data", "mirror");
+const mirrorTokenFile = path.join(tmp, ".data", "mirror-token");
+const processReportDir = path.join(tmp, "گزارشات", "گزارشات فرایند");
+const pmReportDir = path.join(tmp, "گزارشات", "PM");
+const rosterFile = path.join(tmp, "data", "roster.local.json");
 let server = null;
 
 const tail = (s, n = 8) => String(s || "").trim().split("\n").slice(-n).join(" | ");
@@ -23647,7 +24561,7 @@ const fail = (step, detail) => {
 };
 
 const run = (cmd, args, opts = {}) => new Promise((resolve) => {
-  execFile(cmd, args, { cwd: tmp, timeout: opts.timeout ?? 600000, maxBuffer: 16 * 1024 * 1024, env: { ...process.env, ...(opts.env ?? {}) } }, (error, stdout, stderr) => {
+  execFile(cmd, args, { cwd: tmp, timeout: opts.timeout ?? 600000, maxBuffer: 16 * 1024 * 1024, env: { ...process.env, DATABASE_URL: "", BACKUP_DIR: backupDir, CATALOG_DIR: catalogDir, ARCHIVE_DIR: archiveDir, MIRROR_DIR: mirrorDir, MIRROR_TOKEN_FILE: mirrorTokenFile, PROCESS_REPORT_DIR: processReportDir, PM_REPORT_DIR: pmReportDir, ROSTER_FILE: rosterFile, ADMIN_PIN: "9009", ...(opts.env ?? {}) } }, (error, stdout, stderr) => {
     resolve({ code: error ? 1 : 0, stdout: String(stdout ?? ""), stderr: String(stderr ?? "") });
   });
 });
@@ -23669,6 +24583,8 @@ try {
 
   // ۱) استخراج بسته در پوشهٔ موقت تازه
   const { files, skipped } = extractBundle(bundle, tmp);
+  // روستر نمونه فقط برای fixture تست، با نام محلی؛ production نباید به fallback تکیه کند.
+  copyFileSync(path.join(tmp, "data", "roster.sample.json"), path.join(tmp, "data", "roster.local.json"));
   ok("extract", `${files.length} files${skipped.length ? ` (${skipped.length} skipped)` : ""}`);
 
   // ۲) نصب وابستگی‌ها (با lockfile داخل بسته: npm ci قطعی)
@@ -23691,7 +24607,8 @@ try {
   // ۵) استارت در پس‌زمینه + انتظار سلامت (تا ~۱۲۰ ثانیه)
   server = spawn("node", ["scripts/serve.mjs", "start"], {
     cwd: tmp,
-    env: { ...process.env, PORT: String(PORT), PGLITE_DATA_DIR: dataDir },
+    // نمونهٔ حساب‌ها برای آزمون HTTP؛ این opt-in فقط به پردازهٔ آزمون داده می‌شود.
+    env: { ...process.env, DATABASE_URL: "", BACKUP_DIR: backupDir, CATALOG_DIR: catalogDir, ARCHIVE_DIR: archiveDir, MIRROR_DIR: mirrorDir, MIRROR_TOKEN_FILE: mirrorTokenFile, PROCESS_REPORT_DIR: processReportDir, PM_REPORT_DIR: pmReportDir, ROSTER_FILE: rosterFile, ADMIN_PIN: "9009", NODE_ENV: "production", ALLOW_SAMPLE_ROSTER: "1", PORT: String(PORT), PGLITE_DATA_DIR: dataDir },
     detached: process.platform !== "win32",
     stdio: "ignore",
   });
@@ -23717,18 +24634,86 @@ try {
   if (!st.ok) fail("state", `status=${st.status}`);
   const sj = await st.json().catch(() => null);
   if (!sj || sj.ok === false) fail("state", sj?.error ?? "پاسخ نامعتبر");
+  if (sj.motors?.length !== 8 || sj.motors.some((m) => m.state !== "unknown" || m.totalHours !== 0)) {
+    fail("production-safe-seed", "موتورهای نصب تازه باید بررسی‌نشده و بدون ساعت نمونه باشند");
+  }
+  if ((sj.counts?.readings ?? -1) !== 0 || (sj.counts?.alerts ?? -1) !== 0 || (sj.alerts?.length ?? -1) !== 0) {
+    fail("production-safe-seed", "نصب تازهٔ production دادهٔ تله‌متری/هشدار ساختگی دارد");
+  }
+  ok("production-safe-seed", "8 موتور بررسی‌نشده؛ بدون قرائت/هشدار نمونه");
   ok("state", `motors=${sj.motors?.length ?? "?"} equipment=${sj.equipment?.length ?? "?"}`);
 
   // ۷) مجموعهٔ کامل تست‌ها روی نصب تازه
   const tst = await run(npmCmd, ["test"], { env: { BASE }, timeout: 900000 });
   if (tst.code !== 0) {
     const fails = tst.stdout.split("\n").filter((l) => l.startsWith("FAIL") || l.includes("✗")).slice(0, 20);
-    fail("npm-test", fails.length ? fails.join(" | ") : tail(tst.stdout) || tail(tst.stderr));
+    fail("npm-test", [fails.join(" | "), `stdout=${tail(tst.stdout, 16)}`, `stderr=${tail(tst.stderr, 16)}`].filter(Boolean).join(" || "));
   }
   const passN = (tst.stdout.match(/^PASS /gm) ?? []).length;
   const tickN = (tst.stdout.match(/✓/g) ?? []).length;
   ok("npm-test", `${passN + tickN} checks (PASS=${passN} tick=${tickN})`);
   for (const m of tst.stdout.match(/^(total=\d+ pass=\d+ fail=\d+|audit5: \d+\/\d+)$/gm) ?? []) console.log(`FRESH-INSTALL SUITE | ${m}`);
+
+  // ۸) تمرین بازیابی واقعیِ بسته روی نصب دوم با دیتابیس و مسیر فایل‌های جدا
+  killServer();
+  await new Promise((r) => setTimeout(r, 500));
+  const sourceBundleRoot = path.join(backupDir, "bundles");
+  const candidates = readdirSync(sourceBundleRoot, { withFileTypes: true }).filter((entry) => entry.isDirectory() && entry.name.startsWith("pumpstation-bundle-"));
+  const sourceBundles = candidates.map((entry) => {
+    const manifest = JSON.parse(readFileSync(path.join(sourceBundleRoot, entry.name, "manifest.json"), "utf8"));
+    return { name: entry.name, manifest };
+  }).sort((a, b) => a.manifest.createdAt.localeCompare(b.manifest.createdAt));
+  const chosen = sourceBundles[sourceBundles.length - 1];
+  if (!chosen || !chosen.manifest.complete || chosen.manifest.tableCounts?.processReadingsArchive < 1 || chosen.manifest.tableCounts?.catalogs < 1) {
+    fail("cross-install-recovery", "منبع باید بستهٔ کامل با قرائت آرشیوی و PDF داشته باشد");
+  }
+  const restoreRoot = path.join(tmp, "restore-target");
+  const restoreDataDir = path.join(restoreRoot, ".data", "pglite");
+  const restoreBackupDir = path.join(restoreRoot, ".data", "backups");
+  const restoreCatalogDir = path.join(restoreRoot, "files", "catalogs");
+  const restoreArchiveDir = path.join(restoreBackupDir, "archive");
+  const restoreBundlesDir = path.join(restoreBackupDir, "bundles");
+  mkdirSync(restoreBundlesDir, { recursive: true });
+  cpSync(path.join(sourceBundleRoot, chosen.name), path.join(restoreBundlesDir, chosen.name), { recursive: true });
+  const targetMig = await run("node", ["scripts/init-db.mjs"], { env: { PGLITE_DATA_DIR: restoreDataDir, BACKUP_DIR: restoreBackupDir, CATALOG_DIR: restoreCatalogDir, ARCHIVE_DIR: restoreArchiveDir } });
+  if (targetMig.code !== 0 || !targetMig.stdout.includes("[migrate] done")) fail("cross-install-migrate", tail(targetMig.stderr || targetMig.stdout));
+
+  server = spawn("node", ["scripts/serve.mjs", "start"], {
+    cwd: tmp,
+    env: { ...process.env, DATABASE_URL: "", BACKUP_DIR: restoreBackupDir, CATALOG_DIR: restoreCatalogDir, ARCHIVE_DIR: restoreArchiveDir, MIRROR_DIR: path.join(restoreRoot, ".data", "mirror"), MIRROR_TOKEN_FILE: path.join(restoreRoot, ".data", "mirror-token"), ROSTER_FILE: rosterFile, ADMIN_PIN: "9009", NODE_ENV: "production", ALLOW_SAMPLE_ROSTER: "1", PORT: String(PORT), PGLITE_DATA_DIR: restoreDataDir },
+    detached: process.platform !== "win32",
+    stdio: "ignore",
+  });
+  if (typeof server.unref === "function") server.unref();
+  let targetHealthy = false;
+  for (let i = 0; i < 60; i += 1) {
+    await new Promise((r) => setTimeout(r, 1000));
+    try { const response = await fetch(`${BASE}/api/health`, { signal: AbortSignal.timeout(5000) }); if (response.ok) { targetHealthy = true; break; } } catch {}
+  }
+  if (!targetHealthy) fail("cross-install-start", "نصب هدف پس از migrate سالم نشد");
+  const targetLogin = await fetch(`${BASE}/api/auth`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: "admin", pin: "9009" }) });
+  if (targetLogin.status !== 200) fail("cross-install-login", `status=${targetLogin.status}`);
+  let targetCookie = (targetLogin.headers.get("set-cookie") || "").split(";")[0];
+  const targetAction = async (action, payload = {}) => {
+    const response = await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", Cookie: targetCookie }, body: JSON.stringify({ action, payload }) });
+    return { response, json: await response.json().catch(() => null) };
+  };
+  const targetVerify = await targetAction("backup.bundle.verify", { name: chosen.name });
+  if (!targetVerify.response.ok || targetVerify.json?.ok !== true) fail("cross-install-verify", String(targetVerify.json?.error ?? targetVerify.response.status));
+  const targetRestore = await targetAction("backup.bundle.restore", { name: chosen.name });
+  if (!targetRestore.response.ok || targetRestore.json?.ok !== true) fail("cross-install-restore", String(targetRestore.json?.error ?? targetRestore.response.status));
+  const postRestoreLogin = await fetch(`${BASE}/api/auth`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: "admin", pin: "9009" }) });
+  if (postRestoreLogin.status !== 200) fail("cross-install-relogin", `status=${postRestoreLogin.status}`);
+  targetCookie = (postRestoreLogin.headers.get("set-cookie") || "").split(";")[0];
+  const targetStats = await targetAction("data.stats");
+  if (Number(targetStats.json?.archive?.archive?.process ?? 0) < 1) fail("cross-install-archive", JSON.stringify(targetStats.json));
+  const sourceCatalogRows = gunzipSync(readFileSync(path.join(restoreBundlesDir, chosen.name, "tables", "catalogs.jsonl.gz"))).toString("utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line));
+  const catalogId = Number(sourceCatalogRows.find((row) => row.tag === "AUDIT-BUNDLE")?.id ?? 0);
+  const catalogResponse = await fetch(`${BASE}/api/catalogs?id=${catalogId}`, { headers: { Cookie: targetCookie } });
+  if (!catalogId || catalogResponse.status !== 200) fail("cross-install-catalog", `id=${catalogId} status=${catalogResponse.status}`);
+  if (!readdirSync(restoreArchiveDir).some((file) => file.endsWith(".jsonl.gz"))) fail("cross-install-cold-archive", "فایل سرد در مقصد بازیابی نشد");
+  if (!((targetRestore.json?.channelsNeedSetup ?? [])).includes("backup")) fail("cross-install-redaction", "توکن کانال باید روی نصب تازه دوباره تنظیم شود");
+  ok("cross-install-recovery", `آرشیو=${targetStats.json.archive.archive.process}، PDF سالم، توکن کانال نیازمند تنظیم مجدد`);
 
   console.log("FRESH-INSTALL RESULT | OK");
 } catch {
@@ -23740,9 +24725,21 @@ try {
   else rmSync(tmp, { recursive: true, force: true });
 }
 
-##############################################################################
-#  ۸) آزمون‌های خودکار (audit)
-##############################################################################
+── FILE: scripts/stackblitz-warning.mjs  (14 خط) ──
+
+#!/usr/bin/env node
+/** StackBlitz cloud preview only — do not use this command on the station PC. */
+import { execFileSync } from "node:child_process";
+import path from "node:path";
+
+console.error(`\n${"!".repeat(78)}\nهشدار شبکه: این فرمان فقط برای پیش‌نمایش ابری StackBlitz است.\nسرور را روی 0.0.0.0 باز می‌کند؛ روی رایانهٔ ایستگاه اجرا نکنید.\nبرای ایستگاه از راه‌انداز عادی با بایند loopback استفاده کنید.\n${"!".repeat(78)}\n`);
+
+try {
+  execFileSync(process.execPath, [path.join("node_modules", "next", "dist", "bin", "next"), "dev", "-H", "0.0.0.0", "-p", "3000", "--webpack"], { stdio: "inherit" });
+} catch (error) {
+  const status = Number.isInteger(error?.status) ? error.status : 1;
+  process.exitCode = status;
+}
 
 ── FILE: audit/audit1.mjs  (161 خط) ──
 
@@ -24300,7 +25297,7 @@ console.log(`\n=== summary ===\ntotal=${pass + fails.length} pass=${pass} fail=$
 if (fails.length) console.log(fails);
 process.exit(fails.length ? 1 : 0);
 
-── FILE: audit/audit5.mjs  (302 خط) ──
+── FILE: audit/audit5.mjs  (335 خط) ──
 
 #!/usr/bin/env node
 /**
@@ -24540,14 +25537,39 @@ async function main() {
   const badToken = await call("/api/mirror", { method: "POST", headers: { "x-mirror-token": "invalid-token-value" } });
   check("توکن نامعتبر آینه ۴۰۳ می‌گیرد", badToken.res.status === 403, String(badToken.res.status));
 
+  const historicalReading = await act("process.set", { tag: "PIT-001", value: 4.2, day: "1400/01/01", intervalIndex: 0 });
+  check("قرائت تاریخی برای آزمون آرشیو ثبت شد", historicalReading.res.status === 200, String(historicalReading.res.status));
+  const archived = await act("data.archive", { years: 1 });
+  check("قرائت تاریخی به جدول آرشیو منتقل شد", archived.res.status === 200 && Number(archived.json?.processRows ?? 0) >= 1, String(archived.json?.processRows ?? archived.res.status));
+
+  const bundleChannel = await act("admin.channel", { key: "backup", provider: "bale", chatId: "bundle-audit-channel", token: "BUNDLE-SECRET-TEST", enabled: true });
+  check("کانال آزمایشی برای سنجش redaction آماده است", bundleChannel.res.status === 200, String(bundleChannel.res.status));
+
+  const pdfForm = new FormData();
+  pdfForm.append("tag", "AUDIT-BUNDLE");
+  pdfForm.append("file", new Blob(["%PDF-1.4\\n% bundle integration test\\n"], { type: "application/pdf" }), "audit-bundle.pdf");
+  const uploadedPdf = await fetch(`${BASE}/api/catalogs`, { method: "POST", headers: { Cookie: cookie }, body: pdfForm });
+  const uploadedPdfJson = await safeJson(uploadedPdf);
+  check("PDF آزمایشی در کاتالوگ بارگذاری شد", uploadedPdf.status === 200 && Number(uploadedPdfJson?.id) > 0, String(uploadedPdfJson?.error ?? uploadedPdf.status));
+
+  const bundleCreated = await act("backup.bundle.create");
+  const bundleName = String(bundleCreated.json?.name ?? "");
+  check("بستهٔ بازیابی شامل snapshot همهٔ جدول‌ها ساخته می‌شود", bundleCreated.res.status === 200 && bundleCreated.json?.ok === true && bundleName.startsWith("pumpstation-bundle-"), String(bundleCreated.res.status));
+  const bundleVerified = await act("backup.bundle.verify", { name: bundleName });
+  check("بستهٔ بازیابی checksum جدول‌ها/فایل‌ها را تأیید می‌کند", bundleVerified.res.status === 200 && bundleVerified.json?.ok === true && bundleVerified.json?.complete === true, String(bundleVerified.json?.error ?? bundleVerified.res.status));
+  check("بسته هم قرائت بایگانی و هم PDF را دارد", Number(bundleVerified.json?.tableCounts?.processReadingsArchive ?? 0) >= 1 && Number(bundleVerified.json?.assets ?? 0) >= 2, JSON.stringify({ archive: bundleVerified.json?.tableCounts?.processReadingsArchive, assets: bundleVerified.json?.assets }));
+
   const mirrorNow = await act("mirror.now");
   check("کپی تازه روی آینه انجام شد", mirrorNow.res.status === 200 && mirrorNow.json?.ok === true, String(mirrorNow.res.status));
   check("هش کپی گزارش می‌شود", /^[0-9a-f]{64}$/.test(String(mirrorNow.json?.sha256 ?? "")), String(mirrorNow.json?.sha256 ?? "").slice(0, 12));
+  check("بستهٔ کامل نیز به آینه کپی می‌شود", mirrorNow.json?.bundle === bundleName, String(mirrorNow.json?.bundle ?? ""));
+  const mirroredBundleManifest = path.join(String(mirrorNow.json?.target ?? ""), "bundles", bundleName, "manifest.json");
+  check("manifest بسته روی آینه موجود است", await readFile(mirroredBundleManifest, "utf8").then((text) => JSON.parse(text).name === bundleName).catch(() => false));
 
   // بررسی فیزیکی: فایل روی آینه هست و هشش با مبدأ یکی است
   const mirrorDir = String(mirrorNow.json?.target ?? "");
   const fileName = String(mirrorNow.json?.file ?? "");
-  const sourcePath = path.resolve(".data/backups", fileName);
+  const sourcePath = path.resolve(process.env.BACKUP_DIR ?? ".data/backups", fileName);
   const destPath = path.resolve(mirrorDir, fileName);
   let physicallyVerified = false;
   let verifyDetail = "";
@@ -24566,7 +25588,7 @@ async function main() {
   const status1 = await act("mirror.status");
   check("آخرین اجرای آینه در سابقه ثبت شده", status1.json?.last?.ok === true && status1.json?.last24 >= 1, JSON.stringify({ last24: status1.json?.last24 }));
   check("حکم آینه پس از کپی سالم است", status1.json?.verdict === "ok", String(status1.json?.verdict));
-  check("نگه‌داری نسخه‌های آینه تنظیم شده", Number(status1.json?.keep) >= 1, String(status1.json?.keep));
+  check("نگه‌داری نسخه‌های آینه نامحدود است", status1.json?.keep === "نامحدود", String(status1.json?.keep));
 
   // اجرای زمان‌بند با توکن محلی (همان مسیری که Task Scheduler استفاده می‌کند)
   const tokenPath = path.resolve(process.env.MIRROR_TOKEN_FILE ?? ".data/mirror-token");
@@ -24588,6 +25610,14 @@ async function main() {
   const mode = healthFull.json?.db?.mode;
   check("حالت دیتابیس با تنظیمات هم‌خوان است", mode === (process.env.DATABASE_URL ? "postgres" : "pglite"), String(mode));
 
+  const bundleRestore = await act("backup.bundle.restore", { name: bundleName });
+  check("بازیابی بسته اتمیک است و نسخهٔ ایمنی می‌سازد", bundleRestore.res.status === 200 && bundleRestore.json?.ok === true && String(bundleRestore.json?.safetyBundle ?? "").startsWith("pumpstation-bundle-"), String(bundleRestore.json?.error ?? bundleRestore.res.status));
+  check("توکن کانال مقصد یکسان هنگام restore حفظ می‌شود", !((bundleRestore.json?.channelsNeedSetup ?? [])).includes("backup"), JSON.stringify(bundleRestore.json?.channelsNeedSetup));
+  const restoredStats = await act("data.stats");
+  check("پس از بازیابی، قرائت بایگانی‌شده در دیتابیس هست", Number(restoredStats.json?.archive?.archive?.process ?? 0) >= 1, JSON.stringify(restoredStats.json?.archive?.archive));
+  const restoredPdf = await fetch(`${BASE}/api/catalogs?id=${Number(uploadedPdfJson?.id)}`, { headers: { Cookie: cookie } });
+  check("پس از بازیابی، PDF پیوست قابل دریافت است", restoredPdf.status === 200 && restoredPdf.headers.get("content-type") === "application/pdf", String(restoredPdf.status));
+
   /* ---------- پایان ---------- */
   await act("admin.unlock", { key: "all" });
   const total = pass + failures.length;
@@ -24604,7 +25634,7 @@ main().catch((error) => {
   process.exit(1);
 });
 
-── FILE: audit/audit6.mjs  (302 خط) ──
+── FILE: audit/audit6.mjs  (428 خط) ──
 
 /**
  * audit6 — آزمون‌های نسخهٔ ۱٫۴٫۱ (روستر محلی، بایند شبکه، نگهبان مسیر، ورود گروهی).
@@ -24612,14 +25642,17 @@ main().catch((error) => {
  * تاریخ‌محور نیست: روز جاری از خودِ state خوانده می‌شود.
  */
 import { execFile } from "node:child_process";
-import { mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
-import { resolveBind, trustProxyEnabled, trustedClientIp, trustedRequestHost, parseIpv4, ipInCidr, parseAllowList, lanAllowed } from "../src/lib/netbind.ts";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import { resolveBind, trustProxyEnabled, needsNetworkIdentityWarning, trustedClientIp, trustedRequestHost, parseIpv4, ipInCidr, parseAllowList, lanAllowed } from "../src/lib/netbind.ts";
 import { assertCompleteSnapshot } from "../src/lib/backup-validation.ts";
+import { APP_VERSION } from "../src/lib/version.ts";
 import { validateRoster, loadRosterFile, resolveRoster } from "../src/lib/roster.ts";
 import { detectCloudPath, requireLocalSqlite } from "../src/lib/sqlite-cloud.ts";
 import { createServer } from "node:http";
 import { botApiBase, botSendDocumentUrl, botSendUrl, sendBotDocument, sendBotText } from "../src/lib/bot.ts";
-import { crc32, zipStored } from "../src/lib/zip.ts";
+import { crc32, zipStored, zipDeflated } from "../src/lib/zip.ts";
+import { inflateRawSync } from "node:zlib";
 
 const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
 const results = [];
@@ -24643,6 +25676,7 @@ t("bind lan", resolveBind("lan").host === "0.0.0.0");
 t("bind custom ip", resolveBind("192.168.1.10").mode === "custom");
 t("bind invalid throws", throws(() => resolveBind("nonsense")));
 t("trust proxy 1/true/unset", trustProxyEnabled({ TRUST_PROXY: "1" }) && trustProxyEnabled({ TRUST_PROXY: "true" }) && !trustProxyEnabled({}));
+t("direct LAN without proxy warns even when LAN_ALLOW is empty", needsNetworkIdentityWarning("lan", false, "") && needsNetworkIdentityWarning("0.0.0.0", false, "") && !needsNetworkIdentityWarning("lan", true, "") && !needsNetworkIdentityWarning("", false, ""));
 t("direct mode ignores headers", trustedClientIp(headersOf({ "x-forwarded-for": "1.2.3.4", "x-real-ip": "5.6.7.8" }), false) === "local");
 t("trusted real-ip wins", trustedClientIp(headersOf({ "x-forwarded-for": "1.2.3.4", "x-real-ip": "9.9.9.9" }), true) === "9.9.9.9");
 t("trusted xff first", trustedClientIp(headersOf({ "x-forwarded-for": "10.9.9.5, 9.9.9.9" }), true) === "10.9.9.5");
@@ -24660,8 +25694,58 @@ t("backup snapshot requires every table", (() => {
   assertCompleteSnapshot({ shifts: [], settings: [], motors: [] }, ["shifts", "settings", "motors"]);
   return throws(() => assertCompleteSnapshot({ shifts: [], settings: [] }, ["shifts", "settings", "motors"]));
 })());
+const schemaSource = readFileSync("src/db/schema.ts", "utf8");
+const backupSource = readFileSync("src/lib/backup.ts", "utf8");
+const schemaTables = [...schemaSource.matchAll(/^export const (\w+) = pgTable\(/gm)].map((m) => m[1]);
+const backupBlock = backupSource.match(/export const TABLES = \{([\s\S]*?)\n\};/);
+const backupKeys = backupBlock ? [...backupBlock[1].matchAll(/^\s*([A-Za-z]\w*)\s*,?\s*$/gm)].map((m) => m[1]) : [];
+const intentionallyUnbacked = ["backups", "securityEvents", "sessions", "authLocks", "appEvents", "idempotencyKeys", "archiveRuns", "motorReadingsArchive", "processReadingsArchive", "backupMirrorRuns"];
+const coverageSet = new Set([...backupKeys, ...intentionallyUnbacked]);
+t("backup inventory explicitly classifies every schema table", schemaTables.length > 0 && schemaTables.every((name) => coverageSet.has(name)) && [...coverageSet].every((name) => schemaTables.includes(name)) && backupKeys.every((name) => !intentionallyUnbacked.includes(name)));
+const bundleBlock = backupSource.match(/export const BUNDLE_TABLES = \{([\s\S]*?)\n\};/);
+const bundleKeys = bundleBlock ? [...bundleBlock[1].matchAll(/^\s*([A-Za-z]\w*)\s*,?\s*$/gm)].map((m) => m[1]) : [];
+t("full recovery bundle includes archived reading tables and run history", ["archiveRuns", "motorReadingsArchive", "processReadingsArchive"].every((name) => bundleKeys.includes(name)));
+const bundleSource = readFileSync("src/lib/backup-bundle.ts", "utf8");
+t("full recovery bundle streams compressed tables and hashes files", bundleSource.includes("createWriteStream") && bundleSource.includes("createGzip") && bundleSource.includes("sha256") && bundleSource.includes("jsonl"));
+t("bundle export redacts channel tokens", bundleSource.includes('if (table === "channels") row.token = ""') && bundleSource.includes('row.token !== ""'));
+t("bundle restore validates before applying and retains matching local tokens", bundleSource.indexOf("verifyAt(BUNDLE_DIR, name)") < bundleSource.indexOf("restoreSnapshotFromBundle(BUNDLE_DIR") && bundleSource.includes("tokenMap.get(key)"));
+const mirrorSource = readFileSync("src/lib/mirror.ts", "utf8");
+const pgDumpSource = readFileSync("scripts/pg-dump.mjs", "utf8");
+t("file backups are never automatically pruned", !backupSource.includes("pruneFileBackups") && !backupSource.includes("BACKUP_KEEP"));
+t("mirror copies are never automatically pruned", !mirrorSource.includes("pruneMirror") && !mirrorSource.includes("MIRROR_KEEP"));
+t("PostgreSQL dumps are never automatically pruned", !pgDumpSource.includes("PGDUMP_KEEP") && !pgDumpSource.includes("حذف نسخهٔ قدیمی"));
+const tableDeclarations = [...schemaSource.matchAll(/^export const (\w+) = pgTable\("([^"]+)", \{/gm)];
+const tableDefinitions = tableDeclarations.map((match, index) => ({
+  key: match[1],
+  sqlName: match[2],
+  source: schemaSource.slice(match.index, tableDeclarations[index + 1]?.index ?? schemaSource.length),
+}));
+const expectedSerialTables = tableDefinitions.filter((table) => backupKeys.includes(table.key) && /id:\s*serial\("id"\)/.test(table.source)).map((table) => table.sqlName);
+const serialBlock = backupSource.match(/const SERIAL_TABLES = \[([\s\S]*?)\];/);
+const actualSerialTables = serialBlock ? [...serialBlock[1].matchAll(/"([^"]+)"/g)].map((match) => match[1]) : [];
+t("SERIAL_TABLES matches serial id columns in backed-up tables", expectedSerialTables.length > 0 && expectedSerialTables.length === actualSerialTables.length && expectedSerialTables.every((name) => actualSerialTables.includes(name)));
+const pkgVersion = JSON.parse(readFileSync("package.json", "utf8")).version;
+t("app version comes from package.json", readFileSync("src/lib/version.ts", "utf8").includes("packageJson.version") && APP_VERSION === pkgVersion);
+t("login does not print test PINs", !/1111|2222|3333|9999/.test(readFileSync("src/components/Login.tsx", "utf8")));
 
 // ---------- ب) روستر ----------
+const oldRosterEnv = { node: process.env.NODE_ENV, file: process.env.ROSTER_FILE };
+process.env.NODE_ENV = "production";
+process.env.ROSTER_FILE = "/tmp/audit6-no-local-roster.json";
+delete process.env.ALLOW_SAMPLE_ROSTER;
+t("production refuses missing local roster", throws(() => resolveRoster()));
+process.env.ALLOW_SAMPLE_ROSTER = "1";
+t("explicit test opt-in allows sample roster", resolveRoster().source === "sample");
+writeFileSync("/tmp/audit6-sample-local.json", readFileSync("data/roster.sample.json", "utf8"));
+process.env.ROSTER_FILE = "/tmp/audit6-sample-local.json";
+delete process.env.ALLOW_SAMPLE_ROSTER;
+t("production refuses sample PINs even in local roster file", throws(() => resolveRoster()));
+process.env.ALLOW_SAMPLE_ROSTER = "1";
+t("explicit opt-in allows local sample roster for tests", resolveRoster().source === "local");
+if (oldRosterEnv.node === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = oldRosterEnv.node;
+if (oldRosterEnv.file === undefined) delete process.env.ROSTER_FILE; else process.env.ROSTER_FILE = oldRosterEnv.file;
+process.env.ALLOW_SAMPLE_ROSTER = "1";
+process.env.ROSTER_FILE = "/tmp/audit6-no-local-roster.json";
 const sample = resolveRoster();
 t("sample roster resolves", sample.source === "sample" && sample.roster.length === 4);
 t("sample test PINs", sample.roster.find((e) => e.key === "A")?.pin === "1011" && sample.roster.find((e) => e.key === "admin")?.pin === "9009");
@@ -24694,6 +25778,17 @@ t("cloud paths detected",
 t("normal paths pass", detectCloudPath(".data/pglite") === null && detectCloudPath("/tmp/sandbox/ps") === null);
 t("cloud path throws", throws(() => requireLocalSqlite("/x/Dropbox/ps")));
 t("cloud override works", (() => { requireLocalSqlite("/x/Dropbox/ps", { PGLITE_ALLOW_CLOUD: "1" }); return true; })());
+const blockedSecretPath = `/tmp/audit6-secret-blocked-${process.pid}`;
+writeFileSync(blockedSecretPath, "not-a-directory");
+const secretFallback = await new Promise((resolve) => {
+  execFile(process.execPath, ["--input-type=module", "-e", 'const m = await import("./src/lib/secret.ts"); console.log(JSON.stringify(m.sessionSecretStatus()));'], {
+    cwd: process.cwd(),
+    env: { ...process.env, SESSION_SECRET: "", SESSION_SECRET_DIR: blockedSecretPath },
+    timeout: 15000,
+  }, (error, stdout, stderr) => resolve({ code: error ? 1 : 0, stdout: String(stdout ?? ""), stderr: String(stderr ?? "") }));
+});
+rmSync(blockedSecretPath, { force: true });
+t("session secret fallback is reported and logged", secretFallback.code === 0 && secretFallback.stdout.includes('"persistent":false') && secretFallback.stdout.includes('"source":"memory"') && secretFallback.stderr.includes("هشدار جدی"));
 
 // ---------- د) HTTP ----------
 async function login(key, pin, extraHeaders = {}) {
@@ -24707,6 +25802,9 @@ async function login(key, pin, extraHeaders = {}) {
 }
 const adm = await login("admin", "9009");
 t("login with test PIN", adm.status === 200 && !!adm.cookie);
+const fullHealth = await fetch(`${BASE}/api/health?full=1`, { headers: { cookie: adm.cookie } }).then((r) => r.json().catch(() => null));
+t("health reports persistent session-secret status", typeof fullHealth?.detail?.sessionSecret?.persistent === "boolean" && ["env", "file", "memory"].includes(fullHealth.detail.sessionSecret.source));
+t("health warns when sample roster is active", fullHealth?.detail?.roster?.source === "sample" ? fullHealth.warnings?.some((w) => String(w).includes("روستر نمونه")) : fullHealth?.detail?.roster?.source === "local");
 const csrfSpoof = await fetch(`${BASE}/api/actions`, {
   method: "POST",
   headers: { "Content-Type": "application/json", cookie: adm.cookie, Origin: "http://evil.test", "X-Forwarded-Host": "evil.test" },
@@ -24725,6 +25823,58 @@ t("spoofed headers ignored", spoof.status === 200 && !spoof.text.includes("9.9.9
 const state = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());
 const today = state.now?.day ?? "";
 t("today available", /^\d{4}\/\d{2}\/\d{2}$/.test(today), today);
+const reportZipPaths = [];
+for (const kind of ["process", "pm"]) {
+  const response = await fetch(`${BASE}/api/report-archives`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", cookie: adm.cookie },
+    body: JSON.stringify({ kind, day: today }),
+  });
+  const fileName = response.headers.get("x-report-archive-filename") ?? "";
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  const folder = path.resolve(kind === "process" ? (process.env.PROCESS_REPORT_DIR ?? ".data/report-archives/process") : (process.env.PM_REPORT_DIR ?? ".data/report-archives/PM"));
+  const savedPath = path.join(folder, fileName);
+  if (fileName) reportZipPaths.push(savedPath);
+  t(`${kind} report ZIP is compressed, downloaded, and saved`, response.status === 200 && response.headers.get("content-type") === "application/zip" && bytes[0] === 0x50 && bytes[1] === 0x4b && fileName.endsWith(".zip") && existsSync(savedPath), `status=${response.status} file=${fileName}`);
+}
+for (const file of reportZipPaths) unlinkSync(file);
+const catalogDir = process.env.CATALOG_DIR ?? "files/catalogs";
+mkdirSync(catalogDir, { recursive: true });
+const catalogFilesBefore = new Set(readdirSync(catalogDir));
+const catalogForm = new FormData();
+catalogForm.append("tag", "M-01");
+catalogForm.append("file", new Blob([Buffer.from("%PDF-1.4\n%%EOF")], { type: "application/pdf" }), "audit6-catalog.pdf");
+const catalogUpload = await fetch(`${BASE}/api/catalogs`, { method: "POST", headers: { cookie: adm.cookie }, body: catalogForm });
+const catalogUploadBody = await catalogUpload.json().catch(() => null);
+let missingPdfWarned = false;
+let backupTokensRedacted = false;
+let localTokenPreserved = false;
+if (catalogUpload.ok && catalogUploadBody?.ok) {
+  const channelSet = await fetch(`${BASE}/api/actions`, {
+    method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
+    body: JSON.stringify({ action: "admin.channel", payload: { key: "backup", provider: "bale", chatId: "audit6-test-channel", token: "AUDIT6-SECRET", enabled: false } }),
+  }).then((r) => r.json().catch(() => null));
+  const backupCreate = await fetch(`${BASE}/api/actions`, {
+    method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
+    body: JSON.stringify({ action: "backup.create", payload: {} }),
+  }).then((r) => r.json().catch(() => null));
+  if (backupCreate?.file) {
+    const backupPayload = JSON.parse(readFileSync(String(backupCreate.file), "utf8"));
+    backupTokensRedacted = channelSet?.ok === true && backupPayload.channels?.every((channel) => channel.token === "");
+    const newCatalogFiles = readdirSync(catalogDir).filter((file) => !catalogFilesBefore.has(file));
+    for (const file of newCatalogFiles) unlinkSync(path.join(catalogDir, file));
+    const restored = await fetch(`${BASE}/api/actions`, {
+      method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
+      body: JSON.stringify({ action: "backup.restore_file", payload: { file: backupCreate.file } }),
+    }).then((r) => r.json().catch(() => null));
+    missingPdfWarned = (restored?.catalogFiles?.missing ?? []).some((item) => String(item).includes("audit6-catalog.pdf")) && String(restored?.message ?? "").includes("PDF");
+    const restoredState = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());
+    localTokenPreserved = restoredState.channels?.some((channel) => channel.key === "backup" && channel.hasToken);
+  }
+}
+t("external backup redacts bot channel tokens", backupTokensRedacted);
+t("restore preserves matching local channel token", localTokenPreserved);
+t("restore reports missing catalog PDF attachment", missingPdfWarned);
 const criticalEquipment = (state.equipment ?? []).find((row) => row.safetyCritical === true);
 let criticalDeleteBlocked = false;
 if (criticalEquipment) {
@@ -24775,7 +25925,7 @@ const serveBogus = await run(["scripts/serve.mjs", "bogus"]);
 t("serve.mjs bogus mode exits 1", serveBogus.code === 1);
 const serveBadBind = await run(["scripts/serve.mjs", "dev"], { BIND: "nonsense" });
 t("serve.mjs invalid BIND exits 1", serveBadBind.code === 1 && serveBadBind.stderr.includes("BIND"));
-const serveCloud = await run(["scripts/serve.mjs", "dev"], { PGLITE_DATA_DIR: "/tmp/OneDrive-x/ps" });
+const serveCloud = await run(["scripts/serve.mjs", "dev"], { DATABASE_URL: "", PGLITE_DATA_DIR: "/tmp/OneDrive-x/ps" });
 t("serve.mjs cloud path exits 1", serveCloud.code === 1 && serveCloud.stderr.includes("OneDrive"));
 
 // ---------- و) ربات بله/ایتا (mock محلی، بدون اینترنت) ----------
@@ -24829,8 +25979,8 @@ for (let i = 0; i < 25; i += 1) { try { unlinkSync(`.data/backups/archive/audit6
 t("archive keeps 25 versions", archRes.status === 200 && archBody?.ok === true && dummiesLeft === 25, `left=${dummiesLeft}`);
 
 // ---------- ح) shebang خط اول اسکریپت‌ها ----------
-const SHEBANG_FILES = ["audit/audit5.mjs", "scripts/mirror-backup.mjs", "scripts/pg-init.mjs", "scripts/pg-dump.mjs", "scripts/pg-import-json.mjs"];
-t("shebang first line in 5 scripts", SHEBANG_FILES.every((f) => readFileSync(f, "utf8").split("\n")[0] === "#!/usr/bin/env node"));
+const SHEBANG_FILES = ["audit/audit5.mjs", "scripts/mirror-backup.mjs", "scripts/pg-init.mjs", "scripts/pg-dump.mjs", "scripts/pg-import-json.mjs", "scripts/stackblitz-warning.mjs"];
+t("shebang first line in 6 scripts", SHEBANG_FILES.every((f) => readFileSync(f, "utf8").split("\n")[0] === "#!/usr/bin/env node"));
 
 // ---------- ط) مهاجرت تازه شامل شش ستون مگر است (معادل 0005_fix_megger) ----------
 const migDir = "/tmp/audit6-mig";
@@ -24900,6 +26050,12 @@ const zipOut = zipStored([{ name: "a.json", data: new TextEncoder().encode('{"a"
 const zipText = Buffer.from(zipOut).toString("latin1");
 const eocdAt = zipOut.length - 22;
 t("zip stored structure", zipOut[0] === 0x50 && zipOut[1] === 0x4b && zipText.includes("a.json") && zipText.includes("b.sha256") && zipOut[eocdAt] === 0x50 && zipOut[eocdAt + 1] === 0x4b && zipOut[eocdAt + 2] === 0x05 && zipOut[eocdAt + 3] === 0x06 && zipOut[eocdAt + 8] === 2 && zipOut[eocdAt + 10] === 2);
+const deflated = zipDeflated([{ name: "sample.json", data: new TextEncoder().encode('{"value":"گزارش فرایندی"}') }]);
+const dv = new DataView(deflated.buffer, deflated.byteOffset, deflated.byteLength);
+const deflatedNameLength = dv.getUint16(26, true);
+const deflatedPayloadStart = 30 + deflatedNameLength + dv.getUint16(28, true);
+const restoredText = inflateRawSync(deflated.subarray(deflatedPayloadStart, deflatedPayloadStart + dv.getUint32(18, true))).toString("utf8");
+t("zip deflate data round-trips UTF-8", dv.getUint16(8, true) === 8 && restoredText.includes("گزارش فرایندی"));
 
 // ---------- جمع‌بندی ----------
 const pass = results.filter((r) => r.ok).length;
@@ -25047,24 +26203,76 @@ const t0 = Date.now();
 await Promise.all(Array.from({ length: 10 }, () => fetch(BASE + "/api/state", H).then((x) => x.json())));
 console.log("10 concurrent /api/state total:", Date.now() - t0, "ms");
 
-── FILE: audit/conc.mjs  (17 خط) ──
+── FILE: audit/conc.mjs  (69 خط) ──
 
 const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
-const login = async (k, p) => (await (await fetch(`${BASE}/api/auth`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: k, pin: p }) })).headers.get("set-cookie") || "").split(";")[0];
-const act = (cookie, action, payload) => fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie }, body: JSON.stringify({ action, payload }) }).then((r) => r.json());
-const state = (cookie, q = "") => fetch(`${BASE}/api/state${q}`, { headers: { cookie } }).then((r) => r.json());
-const A = await login("A", "1011");
-const s0 = await state(A);
-console.log("readings before:", s0.counts.readings, "alerts:", s0.counts.alerts);
-const day = "1405/10/01";
-await Promise.all(Array.from({ length: 10 }, (_, i) => act(A, "process.set", { tag: "PIT-004", day, intervalIndex: 3, value: 2 + i })));
-const s1 = await state(A, `?day=${day}&interval=3`);
-console.log("readings after 10 concurrent process.set:", s1.counts.readings, "expected +1, got +" + (s1.counts.readings - s0.counts.readings));
-console.log("alerts after:", s1.counts.alerts, "(alerts per write = flood risk)");
-const m0 = s1.counts.readings;
-await Promise.all(Array.from({ length: 10 }, (_, i) => act(A, "motor.values", { tag: "EM-03", day, intervalIndex: 3, values: { I1: 300 + i } })));
-const s2 = await state(A, `?day=${day}&interval=3`);
-console.log("readings after 10 concurrent motor.values:", s2.counts.readings, "delta=" + (s2.counts.readings - m0), "(expected +1)");
+const results = [];
+const check = (name, ok, detail = "") => {
+  results.push(Boolean(ok));
+  console.log(`${ok ? "PASS" : "FAIL"} | ${name}${detail ? ` | ${detail}` : ""}`);
+};
+const login = async (key, pin) => {
+  const response = await fetch(`${BASE}/api/auth`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key, pin }),
+    signal: AbortSignal.timeout(15000),
+  });
+  return { status: response.status, cookie: (response.headers.get("set-cookie") || "").split(";")[0] };
+};
+const act = async (cookie, action, payload) => {
+  const response = await fetch(`${BASE}/api/actions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", cookie },
+    body: JSON.stringify({ action, payload }),
+    signal: AbortSignal.timeout(20000),
+  });
+  return { status: response.status, body: await response.json().catch(() => null) };
+};
+const state = (cookie, query = "") => fetch(`${BASE}/api/state${query}`, {
+  headers: { cookie },
+  signal: AbortSignal.timeout(15000),
+}).then((response) => response.json());
+
+const [operator, second, third, admin] = await Promise.all([
+  login("A", "1011"), login("B", "2022"), login("C", "3033"), login("admin", "9009"),
+]);
+check("operator/admin logins", [operator, second, third, admin].every((user) => user.status === 200 && Boolean(user.cookie)), [operator, second, third, admin].map((user) => user.status).join(","));
+if (![operator, second, third, admin].every((user) => user.cookie)) {
+  console.log(`total=${results.length} pass=${results.filter(Boolean).length} fail=${results.filter((ok) => !ok).length}`);
+  process.exit(1);
+}
+
+const before = await state(operator.cookie);
+const day = before.now?.day ?? "1405/10/01";
+const users = [operator, second, third];
+const processWrites = await Promise.all(Array.from({ length: 9 }, (_, i) =>
+  act(users[i % users.length].cookie, "process.set", { tag: "PIT-004", day, intervalIndex: 3, value: 2 + i / 10 }),
+));
+check("9 concurrent process.set requests complete", processWrites.every((r) => r.status === 200 && r.body?.ok === true), processWrites.map((r) => `${r.status}:${r.body?.error ?? "ok"}`).join(","));
+const afterProcess = await state(operator.cookie, `?day=${day}&interval=3`);
+console.log("process readings:", before.counts.readings, "->", afterProcess.counts.readings, "(same unique cell is expected)");
+
+const motorWrites = await Promise.all(Array.from({ length: 9 }, (_, i) =>
+  act(users[i % users.length].cookie, "motor.values", { tag: "M-03", day, intervalIndex: 3, values: { I1: 300 + i } }),
+));
+check("9 concurrent motor.values requests complete", motorWrites.every((r) => r.status === 200 && r.body?.ok === true), motorWrites.map((r) => `${r.status}:${r.body?.error ?? "ok"}`).join(","));
+
+// Exercise the previously reported deadlock shape: two service transactions
+// touching different motors and their shared report/activity tables at once.
+const services = await Promise.allSettled([
+  act(operator.cookie, "motor.service", { tag: "M-01", day, note: `audit-concurrency-${Date.now()}-M01` }),
+  act(second.cookie, "motor.service", { tag: "M-02", day, note: `audit-concurrency-${Date.now()}-M02` }),
+]);
+const serviceDetails = services.map((result) => result.status === "fulfilled" ? `${result.value.status}:${result.value.body?.error ?? (result.value.body?.ok ? "ok" : "failed")}` : `rejected:${String(result.reason)}`);
+check("parallel motor.service on two different motors completes", services.every((result) => result.status === "fulfilled" && result.value.status === 200 && result.value.body?.ok === true), serviceDetails.join(" | "));
+
+const chain = await act(admin.cookie, "audit.verify", { limit: 5000 });
+check("activity hash chain remains valid after concurrent writes", chain.status === 200 && chain.body?.ok === true && chain.body?.brokenAtId === null, `checked=${chain.body?.checked ?? 0}`);
+
+const pass = results.filter(Boolean).length;
+console.log(`total=${results.length} pass=${pass} fail=${results.length - pass}`);
+if (pass !== results.length) process.exit(1);
 
 ── FILE: audit/db-inspect.mjs  (12 خط) ──
 
@@ -25080,9 +26288,9 @@ await q("invalid jalali days stored", `select day, count(*) from process_reading
 await q("db size", `select pg_size_pretty(pg_database_size(current_database())) s`);
 await db.close();
 
-── FILE: audit/jalali.test.mjs  (41 خط) ──
+── FILE: audit/jalali.test.mjs  (42 خط) ──
 
-import * as J from "/tmp/jal/jalali.js";
+import * as J from "../src/lib/jalali.ts";
 let fails = 0;
 const eq = (name, got, want) => { const ok = JSON.stringify(got) === JSON.stringify(want); if (!ok) fails++; console.log(`${ok ? "PASS" : "FAIL"} | ${name} | got=${JSON.stringify(got)} want=${JSON.stringify(want)}`); };
 
@@ -25103,8 +26311,8 @@ eq("Nowruz 1405", J.toGregorian(1405, 1, 1), { gy: 2026, gm: 3, gd: 21 });
 
 // day arithmetic across year/month boundaries
 eq("addDays 1405/12/29 +1", J.addDaysToDay("1405/12/29", 1), "1406/01/01");
-eq("addDays 1404/12/30 +1 (leap→next)", J.addDaysToDay("1404/12/30", 1), "1405/01/01");
-eq("addDays 1405/01/01 -1", J.addDaysToDay("1405/01/01", -1), "1404/12/30");
+eq("addDays 1404/12/29 +1 (non-leap→next)", J.addDaysToDay("1404/12/29", 1), "1405/01/01");
+eq("addDays 1405/01/01 -1", J.addDaysToDay("1405/01/01", -1), "1404/12/29");
 eq("addDays 1405/07/01 -1", J.addDaysToDay("1405/07/01", -1), "1405/06/31");
 eq("roundtrip 1000 days", (() => { let d = "1405/08/13"; for (let i = 0; i < 1000; i++) d = J.addDaysToDay(d, 1); for (let i = 0; i < 1000; i++) d = J.addDaysToDay(d, -1); return d; })(), "1405/08/13");
 
@@ -25122,6 +26330,7 @@ eq("weekday at 2026-11-04", op("2026-11-04T12:30:00Z").weekday, "چهارشنب�
 eq("faDigits", J.faDigits("PIT-001 12"), "PIT-۰۰۱ ۱۲");
 
 console.log(fails ? `\n${fails} FAILED` : "\nall jalali tests passed");
+if (fails) process.exitCode = 1;
 
 ── FILE: audit/probe.mjs  (10 خط) ──
 
@@ -25257,10 +26466,6 @@ node scripts/pg-import-json.mjs       # انتقال دادهٔ بک‌آپ JSON
 ```
 
 > پیش از هر اسکریپت عملیاتی، سامانه را ببندید؛ قفل پوشهٔ داده مانع اجرای هم‌زمان می‌شود.
-
-##############################################################################
-#  ۹) استقرار و CI
-##############################################################################
 
 ── FILE: deploy/Caddyfile  (73 خط) ──
 
