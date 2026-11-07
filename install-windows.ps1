@@ -7,6 +7,8 @@ $NpmVersion = '10.9.4'
 $NodeIntegrity = 'sha512-w6ir5BjNVuSIC43FWLchnuc/bu9hT0ntMH/FJFouaR2oxADkFhim4YlOp4r92Euyj5b15YdbiL5xYwgmELZuZg=='
 $NpmIntegrity = 'sha512-OnUG836FwboQIbqtefDNlyR0gTHzIfwRfE3DuiNewBvnMnWEpB0VEXwBlFVgqpNzIgYo/MHh3d2Hel/pszapAA=='
 $Registry = 'https://registry.npmjs.org'
+$InstallerErrorLog = $env:PUMPSTATION_ERROR_LOG
+if ([string]::IsNullOrWhiteSpace($InstallerErrorLog)) { $InstallerErrorLog = Join-Path $env:TEMP 'Pumpstation-install-error.log' }
 try {
   $utf8 = [System.Text.UTF8Encoding]::new($false)
   [Console]::OutputEncoding = $utf8
@@ -571,8 +573,24 @@ try {
     [IO.File]::WriteAllText($rosterMarker, "seeded=$(Get-Date -Format o)`r`n", ([System.Text.UTF8Encoding]::new($false)))
   }
 } catch {
+  $caught = $_
+  $failureDetails = @(
+    ("Time: {0}" -f (Get-Date -Format o)),
+    ("Message: {0}" -f $caught.Exception.Message),
+    ("Category: {0}" -f $caught.CategoryInfo),
+    ("Position: {0}" -f $caught.InvocationInfo.PositionMessage),
+    ("Script stack: {0}" -f $caught.ScriptStackTrace),
+    ("Working directory: {0}" -f (Get-Location).Path)
+  ) -join "`r`n"
+  try {
+    [IO.File]::WriteAllText($InstallerErrorLog, $failureDetails + "`r`n", ([System.Text.UTF8Encoding]::new($false)))
+    if ($paths -and $paths.logDir -and (Test-Path -LiteralPath $paths.logDir)) {
+      Copy-Item -LiteralPath $InstallerErrorLog -Destination (Join-Path $paths.logDir 'install-error.log') -Force -ErrorAction SilentlyContinue
+    }
+  } catch { }
   Write-Host ''
-  Write-Host ('خطای نصب: ' + $_.Exception.Message) -ForegroundColor Red
+  Write-Host ('خطای نصب: ' + $caught.Exception.Message) -ForegroundColor Red
+  Write-Host ("گزارش تشخیصی ذخیره شد: {0}" -f $InstallerErrorLog) -ForegroundColor Yellow
   Write-Host 'هیچ فایل پایگاه داده یا بک‌آپ قبلی حذف نمی‌شود. در صورت شکست به‌روزرسانی، نسخهٔ قبلی برنامه در app.previous باقی می‌ماند.' -ForegroundColor Yellow
   Read-Host 'برای بستن این پنجره Enter بزنید'
   exit 1
