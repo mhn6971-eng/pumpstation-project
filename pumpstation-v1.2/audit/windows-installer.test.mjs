@@ -10,7 +10,9 @@ const batch = await readFile(path.join(root, "install-windows.bat"), "utf8");
 const launcher = await readFile(path.join(root, "launch-pumpstation.ps1"), "utf8");
 const appLauncher = await readFile(path.join(root, "pumpstation-v1.2/launch-pumpstation.ps1"), "utf8");
 const packager = await readFile(path.join(root, "package-windows.ps1"), "utf8");
+const appPackage = JSON.parse(await readFile(path.join(root, "pumpstation-v1.2/package.json"), "utf8"));
 
+assert.equal(appPackage.scripts.build, "next build --webpack", "production Windows builds must avoid the broken Turbopack external-PGlite resolution");
 assert.equal(/\bRead-Host\b/i.test(installer), false, "the installation flow must not ask for interactive input");
 for (let step = 1; step <= 8; step += 1) {
   assert.ok(installer.includes(`STEP ${step}/8`), `installer should report step ${step}/8`);

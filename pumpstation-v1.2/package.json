@@ -8,7 +8,7 @@
     "stackblitz": "node scripts/init-db.mjs && node scripts/stackblitz-warning.mjs",
     "db:init": "node scripts/init-db.mjs",
     "db:migrate": "node scripts/init-db.mjs",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "node scripts/serve.mjs start",
     "start:lan": "node scripts/serve.mjs start --host lan",
     "lint": "eslint .",
