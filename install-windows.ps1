@@ -633,10 +633,11 @@ try {
     Remove-Item -LiteralPath $rosterMarker -Force -ErrorAction SilentlyContinue
     Write-Host 'The database is empty; temporary default PINs will be set for the new local accounts.' -ForegroundColor Yellow
   }
-  if ($databaseHasFiles -and -not (Test-Path -LiteralPath $rosterMarker) -and -not (Test-Path -LiteralPath $paths.rosterFile)) {
+  if ($databaseHasFiles -and -not (Test-Path -LiteralPath $rosterMarker) -and -not (Test-Path -LiteralPath $paths.rosterFile) -and -not $FreshData) {
     Write-Host 'Existing database files were found without an installer marker; saved PINs will not be replaced.' -ForegroundColor Yellow
-  } elseif (-not (Test-Path -LiteralPath $rosterMarker)) { New-LocalRoster $paths.rosterFile }
-  else { Write-Host 'Existing database PINs are preserved; no new PIN file will be created.' -ForegroundColor Green }
+  } elseif (-not (Test-Path -LiteralPath $rosterMarker)) {
+    if (-not (Test-Path -LiteralPath $paths.rosterFile)) { New-LocalRoster $paths.rosterFile }
+  } else { Write-Host 'Existing database PINs are preserved; no new PIN file will be created.' -ForegroundColor Green }
 
   $pidPath = Join-Path $configDir 'server.pid'
   $previousApp = Join-Path $installRoot 'app.previous'

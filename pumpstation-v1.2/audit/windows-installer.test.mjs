@@ -76,6 +76,7 @@ const browserOpen = installer.indexOf("Start-Process $applicationUrl", seedCheck
 assert.ok(seedCheck >= 0 && rosterDelete > seedCheck && browserOpen > rosterDelete, "seed verification and PIN cleanup must finish before opening the browser");
 assert.match(installer, /Existing data location preserved/);
 assert.match(installer, /Existing database files were found without an installer marker; saved PINs will not be replaced/);
+assert.match(installer, /if \(\$databaseHasFiles -and -not \(Test-Path -LiteralPath \$rosterMarker\) -and -not \(Test-Path -LiteralPath \$paths\.rosterFile\) -and -not \$FreshData\)/, "a fresh-data install must create its temporary local roster even when migration files already exist, without changing a pre-existing operational install");
 assert.equal(/\bRead-Host\b/i.test(launcher), true, "launch errors can wait for the user in a visible console");
 assert.match(launcher, /\[regex\]::Replace\(\[string\]\$item, '\[\^\\x00-\\x7F\]', '\?'\)/);
 assert.match(launcher, /PUMPSTATION_SKIP_BROWSER -eq '1'/);

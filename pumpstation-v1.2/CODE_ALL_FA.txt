@@ -1,7 +1,7 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.21   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: e273da1
-تاریخ تولید: 2026-11-07   |   132 فایل   |   26,762 خط
+نسخهٔ برنامه: 1.4.22   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 4e71b20
+تاریخ تولید: 2026-11-07   |   132 فایل   |   26,763 خط
 ==============================================================================
 
 این فایل، «نسخهٔ خوانا»ی کل کد برنامه است؛ هر فایل کامل و بدون حذف درج شده و
@@ -154,7 +154,7 @@
      audit/jalali.test.mjs                                42 خط
      audit/updater.test.mjs                               15 خط
      audit/update-zip.test.mjs                            68 خط
-     audit/windows-installer.test.mjs                     100 خط
+     audit/windows-installer.test.mjs                     101 خط
      audit/probe.mjs                                      10 خط
      audit/sess.mjs                                       34 خط
      audit/writeperf.mjs                                  14 خط
@@ -216,7 +216,7 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   },
-  "version": "1.4.21",
+  "version": "1.4.22",
   "overrides": {
     "@typescript-eslint/typescript-estree": {
       "minimatch": "11.0.5"
@@ -228,13 +228,13 @@
 
 {
   "name": "pumpstation-monitoring",
-  "version": "1.4.21",
+  "version": "1.4.22",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "pumpstation-monitoring",
-      "version": "1.4.21",
+      "version": "1.4.22",
       "dependencies": {
         "@electric-sql/pglite": "^0.5.15",
         "dotenv": "17.3.1",
@@ -26720,7 +26720,7 @@ await assert.rejects(
 );
 console.log("PASS | update zip | rejects prerelease or malformed versions");
 
-── FILE: audit/windows-installer.test.mjs  (100 خط) ──
+── FILE: audit/windows-installer.test.mjs  (101 خط) ──
 
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
@@ -26800,6 +26800,7 @@ const browserOpen = installer.indexOf("Start-Process $applicationUrl", seedCheck
 assert.ok(seedCheck >= 0 && rosterDelete > seedCheck && browserOpen > rosterDelete, "seed verification and PIN cleanup must finish before opening the browser");
 assert.match(installer, /Existing data location preserved/);
 assert.match(installer, /Existing database files were found without an installer marker; saved PINs will not be replaced/);
+assert.match(installer, /if \(\$databaseHasFiles -and -not \(Test-Path -LiteralPath \$rosterMarker\) -and -not \(Test-Path -LiteralPath \$paths\.rosterFile\) -and -not \$FreshData\)/, "a fresh-data install must create its temporary local roster even when migration files already exist, without changing a pre-existing operational install");
 assert.equal(/\bRead-Host\b/i.test(launcher), true, "launch errors can wait for the user in a visible console");
 assert.match(launcher, /\[regex\]::Replace\(\[string\]\$item, '\[\^\\x00-\\x7F\]', '\?'\)/);
 assert.match(launcher, /PUMPSTATION_SKIP_BROWSER -eq '1'/);
