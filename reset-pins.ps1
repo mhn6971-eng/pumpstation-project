@@ -56,8 +56,11 @@ function Stop-PumpstationServer([string]$InstallRoot, [string]$AppDir, [string]$
     try {
       $lock = [IO.File]::ReadAllText($lockPath, [Text.Encoding]::UTF8) | ConvertFrom-Json
       $parsedPid = [int]::TryParse([string]$lock.pid, [ref]$databaseOwnerPid)
-      if (-not $parsedPid -or $databaseOwnerPid -le 0) { throw 'Invalid owner PID' }
-    } catch { throw 'The database lock file is unreadable. No process was stopped and PINs were not changed.' }
+      if (-not $parsedPid -or $databaseOwnerPid -le 0 -or -not $lock.dir) { throw 'Invalid database lock owner' }
+      $expectedDataDir = [IO.Path]::GetFullPath($DatabaseDir).TrimEnd([char[]]@([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar))
+      $lockedDataDir = [IO.Path]::GetFullPath([string]$lock.dir).TrimEnd([char[]]@([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar))
+      if (-not $expectedDataDir.Equals($lockedDataDir, [StringComparison]::OrdinalIgnoreCase)) { throw 'Database lock path does not match installation config' }
+    } catch { throw 'The database lock file is unreadable or belongs to another data path. No process was stopped and PINs were not changed.' }
   }
   try {
     $processes = @(Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction Stop)
@@ -76,7 +79,10 @@ function Stop-PumpstationServer([string]$InstallRoot, [string]$AppDir, [string]$
     $mentionsApp = $command.IndexOf($AppDir, [StringComparison]::OrdinalIgnoreCase) -ge 0
     $isLauncher = $mentionsApp -and $command -match '(?i)scripts[\\/]+serve\.mjs\s+start'
     $isNextServer = ($command -match '(?i)node_modules[\\/]+next[\\/]+dist[\\/]') -and ($command -match '(?i)\bstart\b')
-    $isDatabaseOwner = ([int]$proc.ProcessId -eq $databaseOwnerPid) -and $sameRuntime -and $isNextServer
+    # The lock file is inside the configured database and its dir is validated above.
+    # The per-install Node binary is private to Pumpstation, so the lock PID plus that
+    # executable is a stronger owner signal than a version-dependent Next command line.
+    $isDatabaseOwner = ([int]$proc.ProcessId -eq $databaseOwnerPid) -and $sameRuntime
     $isManagedNext = $isNextServer -and $sameRuntime -and $mentionsApp
     if ($isLauncher -or $isManagedNext -or $isDatabaseOwner) { $killPids += [int]$proc.ProcessId }
   }

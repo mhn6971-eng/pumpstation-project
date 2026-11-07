@@ -1,7 +1,7 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.17   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 830259d
-تاریخ تولید: 2026-11-07   |   133 فایل   |   26,804 خط
+نسخهٔ برنامه: 1.4.18   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 4dbed4a
+تاریخ تولید: 2026-11-07   |   133 فایل   |   26,806 خط
 ==============================================================================
 
 این فایل، «نسخهٔ خوانا»ی کل کد برنامه است؛ هر فایل کامل و بدون حذف درج شده و
@@ -155,7 +155,7 @@
      audit/jalali.test.mjs                                42 خط
      audit/updater.test.mjs                               15 خط
      audit/update-zip.test.mjs                            68 خط
-     audit/windows-installer.test.mjs                     87 خط
+     audit/windows-installer.test.mjs                     89 خط
      audit/probe.mjs                                      10 خط
      audit/sess.mjs                                       34 خط
      audit/writeperf.mjs                                  14 خط
@@ -217,7 +217,7 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   },
-  "version": "1.4.17",
+  "version": "1.4.18",
   "overrides": {
     "@typescript-eslint/typescript-estree": {
       "minimatch": "11.0.5"
@@ -229,13 +229,13 @@
 
 {
   "name": "pumpstation-monitoring",
-  "version": "1.4.17",
+  "version": "1.4.18",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "pumpstation-monitoring",
-      "version": "1.4.17",
+      "version": "1.4.18",
       "dependencies": {
         "@electric-sql/pglite": "^0.5.15",
         "dotenv": "17.3.1",
@@ -26777,7 +26777,7 @@ await assert.rejects(
 );
 console.log("PASS | update zip | rejects prerelease or malformed versions");
 
-── FILE: audit/windows-installer.test.mjs  (87 خط) ──
+── FILE: audit/windows-installer.test.mjs  (89 خط) ──
 
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -26854,7 +26854,9 @@ assert.match(packager, /'reset-pins\.ps1'/);
 assert.match(pinReset, /credential-recovery/);
 assert.match(pinReset, /\.pumpstation\.lock/);
 assert.match(pinReset, /databaseOwnerPid/);
+assert.match(pinReset, /lockedDataDir/);
 assert.match(pinReset, /isDatabaseOwner/);
+assert.match(pinReset, /sameRuntime/);
 assert.match(pinReset, /Assert-DirectoryFilesEqual \$databaseDir \$databaseBackup/);
 assert.match(pinReset, /UPDATE shifts SET pin = \$1/);
 assert.match(pinReset, /hashPin\("1234"\)/);
