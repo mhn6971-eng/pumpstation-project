@@ -6,7 +6,7 @@ Dim appVersion, baseUrl, rosterPath, command, result, i
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 Set procEnv = sh.Environment("PROCESS")
-appVersion = "1.4.14"
+appVersion = "1.4.15"
 baseUrl = "http://127.0.0.1:3000"
 scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
 appDir = fso.BuildPath(scriptDir, "pumpstation-v1.2")
@@ -29,10 +29,10 @@ dataRoot = fso.GetDriveName(scriptDir) & "\Pumpstation-Data"
 If fso.FolderExists(fso.BuildPath(appDir, ".data\pglite")) Then dataRoot = fso.BuildPath(appDir, ".data")
 logDir = fso.BuildPath(dataRoot, "logs")
 EnsureFolder dataRoot
-EnsureFolder logDir
 stampText = Year(Now) & Right("0" & Month(Now), 2) & Right("0" & Day(Now), 2) & "-" & Right("0" & Hour(Now), 2) & Right("0" & Minute(Now), 2) & Right("0" & Second(Now), 2) & "-" & Right("000" & CStr(Int(Timer * 1000) Mod 1000), 3)
 logFile = fso.BuildPath(logDir, "one-click-start-" & stampText & ".log")
 ResetLog
+EnsureDesktopShortcut
 
 If Not CommandOk("where.exe node.exe >nul 2>&1") Then Fail "Node.js was not found. Install Node.js 22 or later once, then double-click this icon again."
 If Not CommandOk("where.exe npm.cmd >nul 2>&1") Then Fail "npm.cmd was not found. Repair the Node.js installation with npm enabled, then retry."
@@ -46,7 +46,6 @@ procEnv("PUMPSTATION_APP_DIR") = appDir
 procEnv("PUMPSTATION_DATA_ROOT") = dataRoot
 procEnv("PUMPSTATION_LAUNCHER") = WScript.ScriptFullName
 procEnv("PUMPSTATION_LAUNCHER_KIND") = "wscript"
-procEnv("PUMPSTATION_UPDATE_FEED") = "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/latest.json"
 procEnv("PUMPSTATION_UPDATE_STATUS_FILE") = fso.BuildPath(dataRoot, "update-status.json")
 procEnv("PUMPSTATION_UPDATE_LOCK_FILE") = fso.BuildPath(dataRoot, "update.lock")
 procEnv("PUMPSTATION_UPDATE_LOG_FILE") = fso.BuildPath(dataRoot, "logs\auto-update.log")
@@ -170,6 +169,27 @@ Function IsCloudPath(path)
   lowerPath = LCase(path)
   IsCloudPath = (InStr(lowerPath, "onedrive") > 0 Or InStr(lowerPath, "dropbox") > 0 Or InStr(lowerPath, "google drive") > 0 Or InStr(lowerPath, "icloud") > 0)
 End Function
+
+Sub EnsureDesktopShortcut()
+  Dim desktopPath, shortcut, iconPath
+  On Error Resume Next
+  desktopPath = sh.SpecialFolders("Desktop")
+  If desktopPath <> "" Then
+    Set shortcut = sh.CreateShortcut(fso.BuildPath(desktopPath, "Pumpstation.lnk"))
+    shortcut.TargetPath = WScript.FullName
+    shortcut.Arguments = Quote(WScript.ScriptFullName)
+    shortcut.WorkingDirectory = scriptDir
+    shortcut.Description = "سامانهٔ پایش ایستگاه پمپاژ"
+    iconPath = fso.BuildPath(appDir, "public\brand\logo.ico")
+    If fso.FileExists(iconPath) Then shortcut.IconLocation = iconPath & ",0"
+    shortcut.Save
+  End If
+  If Err.Number <> 0 Then
+    LogLine "Desktop shortcut could not be created: " & Err.Description
+    Err.Clear
+  End If
+  On Error GoTo 0
+End Sub
 
 Sub EnsureFolder(path)
   If Not fso.FolderExists(path) Then fso.CreateFolder path

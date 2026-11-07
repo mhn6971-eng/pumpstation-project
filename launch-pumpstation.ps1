@@ -30,9 +30,25 @@ function Write-Host {
 function Read-Host {
   [CmdletBinding()]
   param([Parameter(Position = 0)] [string] $Prompt = '', [switch] $AsSecureString)
+  if ($env:PUMPSTATION_LAUNCHER_HIDDEN -eq '1') {
+    try {
+      $popup = New-Object -ComObject WScript.Shell
+      $popup.Popup([string]$Prompt, 0, 'Pumpstation', 16) | Out-Null
+    } catch { }
+    return ''
+  }
   if ($Prompt -match '[\u0600-\u06FF]') { $Prompt = ([string][char]0x202B) + $Prompt + [char]0x202C }
   if ($AsSecureString) { return Microsoft.PowerShell.Utility\Read-Host -Prompt $Prompt -AsSecureString }
   return Microsoft.PowerShell.Utility\Read-Host -Prompt $Prompt
+}
+trap {
+  $message = $_.Exception.Message
+  if ($env:PUMPSTATION_LAUNCHER_HIDDEN -eq '1') {
+    try { $popup = New-Object -ComObject WScript.Shell; $popup.Popup("Pumpstation could not start.`r`n`r`n$message", 0, 'Pumpstation', 16) | Out-Null } catch { }
+  } else {
+    Write-Host $message -ForegroundColor Red
+  }
+  exit 1
 }
 $installRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $configPath = Join-Path $installRoot 'config\install.json'
@@ -69,7 +85,6 @@ $env:PUMPSTATION_APP_DIR = $config.appDir
 $env:PUMPSTATION_DATA_ROOT = $config.dataRoot
 $env:PUMPSTATION_LAUNCHER = Join-Path $installRoot 'launch-pumpstation.ps1'
 $env:PUMPSTATION_LAUNCHER_KIND = 'powershell'
-$env:PUMPSTATION_UPDATE_FEED = 'https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/latest.json'
 $env:PUMPSTATION_UPDATE_STATUS_FILE = Join-Path $config.dataRoot 'update-status.json'
 $env:PUMPSTATION_UPDATE_LOCK_FILE = Join-Path $config.dataRoot 'update.lock'
 $env:PUMPSTATION_UPDATE_LOG_FILE = Join-Path $config.logDir 'auto-update.log'

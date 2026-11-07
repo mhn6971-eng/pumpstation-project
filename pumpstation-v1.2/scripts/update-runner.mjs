@@ -1,17 +1,18 @@
 import { createHash } from "node:crypto";
-import { spawn, spawnSync } from "node:child_process";
-import { createReadStream, createWriteStream, existsSync } from "node:fs";
-import { appendFile, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
-import { pipeline } from "node:stream/promises";
+import { execFile as execFileCallback, spawn, spawnSync } from "node:child_process";
+import { promisify } from "node:util";
+import { createReadStream, existsSync } from "node:fs";
+import { appendFile, copyFile, cp, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+const execFile = promisify(execFileCallback);
 const env = process.env;
 const manifest = JSON.parse(env.PS_UPDATE_MANIFEST_JSON ?? "null");
 const appDir = path.resolve(env.PS_UPDATE_APP_DIR ?? "");
-const dataRoot = path.resolve(env.PS_UPDATE_DATA_ROOT ?? "");
-const statusFile = path.resolve(env.PS_UPDATE_STATUS_FILE ?? path.join(dataRoot, "update-status.json"));
-const logFile = path.resolve(env.PS_UPDATE_LOG_FILE ?? path.join(dataRoot, "logs", "auto-update.log"));
-const lockFile = path.resolve(env.PS_UPDATE_LOCK_FILE ?? path.join(dataRoot, "update.lock"));
+let dataRoot = path.resolve(env.PS_UPDATE_DATA_ROOT ?? "");
+let statusFile = path.resolve(env.PS_UPDATE_STATUS_FILE ?? path.join(dataRoot, "update-status.json"));
+let logFile = path.resolve(env.PS_UPDATE_LOG_FILE ?? path.join(dataRoot, "logs", "auto-update.log"));
+let lockFile = path.resolve(env.PS_UPDATE_LOCK_FILE ?? path.join(dataRoot, "update.lock"));
 const token = env.PS_UPDATE_STOP_TOKEN ?? "";
 const port = Number(env.PORT ?? 3000);
 const baseUrl = `http://127.0.0.1:${Number.isInteger(port) && port > 0 && port < 65536 ? port : 3000}`;
@@ -20,15 +21,48 @@ const stageRoot = path.join(path.dirname(appDir), `.pumpstation-update-${stamp}`
 const archivePath = path.join(stageRoot, "update.zip");
 const stageApp = path.join(stageRoot, "pumpstation-v1.2");
 const previousApp = path.join(path.dirname(appDir), `app.previous-${stamp}`);
-const dbDir = path.resolve(env.PGLITE_DATA_DIR ?? "");
-const backupBase = path.resolve(env.BACKUP_DIR ?? path.join(dataRoot, "backups"));
-const dbBackup = path.join(backupBase, "قبل از به‌روزرسانی", stamp, "پایگاه داده");
+let dbDir = path.resolve(env.PGLITE_DATA_DIR ?? "");
+let backupBase = path.resolve(env.BACKUP_DIR ?? path.join(dataRoot, "backups"));
+let dbBackup = path.join(backupBase, "قبل از به‌روزرسانی", stamp, "پایگاه داده");
 const launcher = path.resolve(env.PUMPSTATION_LAUNCHER ?? "");
 const launcherKind = env.PUMPSTATION_LAUNCHER_KIND ?? "";
+const localZip = path.resolve(env.PS_UPDATE_LOCAL_ZIP ?? "");
+const expectedSha256 = env.PS_UPDATE_EXPECTED_SHA256 ?? manifest?.sha256 ?? "";
+const expectedVersion = env.PS_UPDATE_EXPECTED_VERSION ?? manifest?.version ?? "";
+const dataRelativeToApp = appDir && dataRoot ? path.relative(appDir, dataRoot) : "..";
+const isDescendant = (root, target) => {
+  const relative = path.relative(root, target);
+  return relative !== "" && relative !== "." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
+};
+const appLocalData = isDescendant(appDir, dataRoot);
+const dbInsideApp = isDescendant(appDir, dbDir);
+const originalDataPaths = { dataRoot, statusFile, logFile, lockFile, dbDir, backupBase, dbBackup };
 let serverStopped = false;
 let databaseBackedUp = false;
 let appSwapped = false;
 let migrationStarted = false;
+
+function remapDataPath(current, root) {
+  const relative = path.relative(originalDataPaths.dataRoot, current);
+  if (relative === "" || (!relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))) return path.join(root, relative);
+  return current;
+}
+
+function switchDataRoot(root) {
+  dataRoot = path.resolve(root);
+  statusFile = remapDataPath(originalDataPaths.statusFile, dataRoot);
+  logFile = remapDataPath(originalDataPaths.logFile, dataRoot);
+  lockFile = remapDataPath(originalDataPaths.lockFile, dataRoot);
+  dbDir = remapDataPath(originalDataPaths.dbDir, dataRoot);
+  backupBase = remapDataPath(originalDataPaths.backupBase, dataRoot);
+  dbBackup = remapDataPath(originalDataPaths.dbBackup, dataRoot);
+  env.PUMPSTATION_DATA_ROOT = dataRoot;
+  env.PGLITE_DATA_DIR = dbDir;
+  env.BACKUP_DIR = backupBase;
+  env.PUMPSTATION_UPDATE_STATUS_FILE = statusFile;
+  env.PUMPSTATION_UPDATE_LOG_FILE = logFile;
+  env.PUMPSTATION_UPDATE_LOCK_FILE = lockFile;
+}
 
 function log(text) {
   const line = `${new Date().toISOString()}  ${text}\n`;
@@ -37,7 +71,7 @@ function log(text) {
 }
 
 async function setStatus(phase, message, extra = {}) {
-  const value = { phase, message, version: manifest?.version, updatedAt: new Date().toISOString(), logPath: logFile, ...extra };
+  const value = { phase, message, version: expectedVersion, updatedAt: new Date().toISOString(), logPath: logFile, ...extra };
   await mkdir(path.dirname(statusFile), { recursive: true });
   const temp = `${statusFile}.tmp`;
   await writeFile(temp, JSON.stringify(value, null, 2), "utf8");
@@ -75,16 +109,6 @@ async function sha256(file) {
   return hash.digest("hex");
 }
 
-async function download(url, target) {
-  const response = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(120_000) });
-  if (!response.ok || !response.body) throw new Error(`دریافت بسته ناموفق بود (HTTP ${response.status})`);
-  const length = Number(response.headers.get("content-length") ?? 0);
-  if (length > 300 * 1024 * 1024) throw new Error("حجم بستهٔ به‌روزرسانی از حد ۳۰۰ مگابایت بیشتر است");
-  await pipeline(response.body, createWriteStream(target, { flags: "wx" }));
-  const info = await stat(target);
-  if (info.size > 300 * 1024 * 1024) throw new Error("حجم بستهٔ دریافت‌شده از حد مجاز بیشتر است");
-}
-
 function validateArchive(file) {
   const tool = process.platform === "win32" ? "tar.exe" : "unzip";
   const listArgs = process.platform === "win32" ? ["-tf", file] : ["-Z1", file];
@@ -110,6 +134,7 @@ async function launch() {
     return;
   }
   if (launcherKind === "powershell") {
+    launchEnv.PUMPSTATION_LAUNCHER_HIDDEN = "1";
     const proc = spawn("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", launcher], { cwd: path.dirname(launcher), detached: true, windowsHide: true, stdio: "ignore", env: launchEnv });
     proc.unref();
     return;
@@ -200,45 +225,105 @@ async function restorePreviousApp() {
 }
 
 async function patchInstallConfig(version) {
-  const configPath = path.join(path.dirname(launcher), "config", "install.json");
-  if (!existsSync(configPath)) return;
-  const config = JSON.parse(await readFile(configPath, "utf8"));
-  config.appVersion = version;
-  await writeFile(`${configPath}.tmp`, JSON.stringify(config, null, 2), "utf8");
-  await rename(`${configPath}.tmp`, configPath);
+  const installRoot = path.dirname(launcher);
+  const configPath = path.join(installRoot, "config", "install.json");
+  if (existsSync(configPath)) {
+    const config = JSON.parse(await readFile(configPath, "utf8"));
+    config.appVersion = version;
+    await writeFile(`${configPath}.tmp`, JSON.stringify(config, null, 2), "utf8");
+    await rename(`${configPath}.tmp`, configPath);
+  }
+
+  // Production shortcuts used to point at a BAT file, which briefly displayed CMD.
+  // The bundled WSH wrapper keeps subsequent launches console-free and uses the app icon.
+  if (launcherKind === "powershell") {
+    const launcherSource = path.join(appDir, "launch-pumpstation.ps1");
+    const launcherTarget = path.join(installRoot, "launch-pumpstation.ps1");
+    const wrapperSource = path.join(appDir, "launch-pumpstation.vbs");
+    const wrapperTarget = path.join(installRoot, "launch-pumpstation.vbs");
+    if (existsSync(launcherSource) && existsSync(wrapperSource)) {
+      await copyFile(launcherSource, launcherTarget);
+      await copyFile(wrapperSource, wrapperTarget);
+      const quote = (value) => `'${String(value).replaceAll("'", "''")}'`;
+      const icon = path.join(appDir, "public", "brand", "logo.ico");
+      const wscript = path.join(env.SystemRoot ?? "C:\\Windows", "System32", "wscript.exe");
+      const shortcutScript = [
+        "$ErrorActionPreference='Stop'",
+        "$shell=New-Object -ComObject WScript.Shell",
+        `$target=${quote(wscript)}`,
+        `$vbs=${quote(wrapperTarget)}`,
+        `$icon=${quote(icon)}`,
+        "$targets=@((Join-Path ([Environment]::GetFolderPath('Desktop')) 'Pumpstation.lnk'),(Join-Path ([Environment]::GetFolderPath('StartMenu')) 'Programs\\Pumpstation.lnk'))",
+        "foreach($p in $targets){$parent=Split-Path -Parent $p;New-Item -ItemType Directory -Path $parent -Force|Out-Null;$s=$shell.CreateShortcut($p);$s.TargetPath=$target;$s.Arguments='\"'+$vbs+'\"';$s.WorkingDirectory=Split-Path -Parent $vbs;$s.Description='اجرای سامانهٔ Pumpstation';if(Test-Path -LiteralPath $icon){$s.IconLocation=$icon+',0'};$s.Save()}",
+      ].join(";");
+      try {
+        await execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", shortcutScript], {
+          windowsHide: true,
+          timeout: 30_000,
+          maxBuffer: 1024 * 1024,
+        });
+        await log("Desktop and Start Menu shortcuts now launch the hidden VBS wrapper");
+      } catch (error) {
+        await log(`WARN shortcut refresh failed; installer can repair it: ${error instanceof Error ? error.message : error}`);
+      }
+    }
+  }
 }
 
 async function main() {
   await mkdir(path.dirname(logFile), { recursive: true });
-  await log(`Updater started for ${manifest?.version ?? "unknown"}`);
-  if (!manifest || typeof manifest.version !== "string" || !/^\d+\.\d+\.\d+$/.test(manifest.version) || !/^([a-f0-9]{64})$/.test(manifest.sha256 ?? "")) throw new Error("اطلاعات نسخهٔ به‌روزرسانی نامعتبر است");
-  const archiveUrl = new URL(manifest.archiveUrl);
-  if (archiveUrl.protocol !== "https:" || archiveUrl.hostname !== "raw.githubusercontent.com" || !archiveUrl.pathname.startsWith("/mhn6971-eng/pumpstation-project/")) throw new Error("منبع بستهٔ به‌روزرسانی نامعتبر است");
-  if (!appDir || !existsSync(path.join(appDir, "package.json")) || !dataRoot || !dbDir) throw new Error("مسیر نصب یا مسیر دادهٔ پایدار پیدا نشد");
+  await log(`Updater started for ${expectedVersion || "unknown"}`);
+  if (!manifest || typeof expectedVersion !== "string" || !/^\d+\.\d+\.\d+$/.test(expectedVersion) || !/^[a-f0-9]{64}$/.test(expectedSha256)) throw new Error("اطلاعات نسخهٔ به‌روزرسانی نامعتبر است");
+  if (!appDir || !existsSync(path.join(appDir, "package.json")) || !dataRoot || !dbDir || !localZip || !existsSync(localZip)) throw new Error("مسیر برنامه، داده یا ZIP انتخاب‌شده پیدا نشد");
+  if (path.resolve(dataRoot) === path.resolve(appDir) || (dbInsideApp && !appLocalData) || (appLocalData && !isDescendant(dataRoot, dbDir))) {
+    throw new Error("مسیر پایگاه‌داده با مسیر دادهٔ پایدار سازگار نیست؛ برای جلوگیری از جابه‌جایی ناخواسته، به‌روزرسانی متوقف شد");
+  }
   if ((env.DATABASE_URL ?? "").trim()) throw new Error("منبع داده PostgreSQL سروری است؛ updater فقط از PGlite محلی پشتیبانی می‌کند");
   await mkdir(stageRoot, { recursive: true });
-  await setStatus("preparing", `دریافت و آماده‌سازی نسخهٔ ${manifest.version}؛ برنامه فعلاً در حال کار است.`);
-  await log(`Downloading ${archiveUrl}`);
-  await download(archiveUrl, archivePath);
+  await setStatus("preparing", `ساخت و آماده‌سازی نسخهٔ ${expectedVersion}؛ برنامه فعلاً در حال کار است.`);
+  await log(`Copying administrator-selected ZIP from ${localZip}`);
+  const archiveInfo = await stat(localZip);
+  if (archiveInfo.size < 1024 || archiveInfo.size > 100 * 1024 * 1024) throw new Error("اندازهٔ ZIP انتخاب‌شده خارج از محدودهٔ مجاز است");
+  await copyFile(localZip, archivePath);
   const actualHash = await sha256(archivePath);
-  if (actualHash !== manifest.sha256) throw new Error("کنترل SHA-256 بسته ناموفق بود؛ فایل اجرا نشد");
+  if (actualHash !== expectedSha256) throw new Error("کنترل SHA-256 بسته ناموفق بود؛ فایل اجرا نشد");
   const archiveTool = validateArchive(archivePath);
   if (process.platform === "win32") runSync(archiveTool, ["-xf", archivePath, "-C", stageRoot], stageRoot);
   else runSync(archiveTool, ["-q", archivePath, "-d", stageRoot], stageRoot);
   if (!existsSync(path.join(stageApp, "package.json"))) throw new Error("فایل‌های برنامه در بسته پیدا نشد");
   const stagedPackage = JSON.parse(await readFile(path.join(stageApp, "package.json"), "utf8"));
-  if (stagedPackage.version !== manifest.version) throw new Error("نسخهٔ داخل بسته با فهرست به‌روزرسانی یکی نیست");
+  if (stagedPackage.version !== expectedVersion) throw new Error("نسخهٔ داخل ZIP با نسخهٔ تأییدشده یکی نیست");
 
   await log("Installing pinned dependencies in staging folder");
   const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
   await run(npmCommand, ["ci", "--include=dev", "--no-audit", "--no-fund"], stageApp, "نصب وابستگی‌های نسخهٔ جدید");
   await run(npmCommand, ["run", "build"], stageApp, "ساخت نسخهٔ جدید");
 
-  await setStatus("restarting", `نسخهٔ ${manifest.version} آماده شد؛ در حال قفل نوشتن‌های جدید و گرفتن نسخهٔ پشتیبان.`, { logPath: logFile });
-  await writeFile(lockFile, JSON.stringify({ version: manifest.version, startedAt: new Date().toISOString() }), "utf8");
+  await setStatus("restarting", `نسخهٔ ${expectedVersion} آماده شد؛ در حال قفل نوشتن‌های جدید و گرفتن نسخهٔ پشتیبان.`, { logPath: logFile });
+  await writeFile(lockFile, JSON.stringify({ version: expectedVersion, startedAt: new Date().toISOString() }), "utf8");
   await new Promise((resolve) => setTimeout(resolve, 1_500));
   await stopServer();
   await copyDatabaseToBackup();
+
+  // Legacy one-click folders may keep .data inside the application directory.
+  // Copy it into the new code tree only after shutdown; the old app and its data
+  // remain untouched in previousApp for a complete rollback.
+  if (appLocalData) {
+    const stagedDataRoot = path.join(stageApp, dataRelativeToApp);
+    if (existsSync(stagedDataRoot)) throw new Error("بستهٔ ZIP حاوی مسیر دادهٔ محلی است؛ فایل‌های داده با کد مخلوط نمی‌شوند");
+    await mkdir(path.dirname(stagedDataRoot), { recursive: true });
+    await cp(dataRoot, stagedDataRoot, { recursive: true, errorOnExist: true });
+    switchDataRoot(stagedDataRoot);
+    await log(`Preserved app-local operational data into staged app: ${stagedDataRoot}`);
+  }
+
+  const localRoster = path.join(appDir, "data", "roster.local.json");
+  if (existsSync(localRoster)) {
+    const stagedRoster = path.join(stageApp, "data", "roster.local.json");
+    await mkdir(path.dirname(stagedRoster), { recursive: true });
+    await copyFile(localRoster, stagedRoster);
+    await log("Preserved local operator roster");
+  }
 
   migrationStarted = true;
   const nodePath = process.execPath;
@@ -253,16 +338,18 @@ async function main() {
     await rename(previousApp, appDir);
     throw error;
   }
-  await patchInstallConfig(manifest.version);
+  if (appLocalData) switchDataRoot(path.join(appDir, dataRelativeToApp));
+  await patchInstallConfig(expectedVersion);
   await log(`Application swapped. Previous version retained at ${previousApp}`);
   await launch();
-  if (!(await waitForHealth(manifest.version))) throw new Error("نسخهٔ جدید پس از ۹۰ ثانیه health-check را نگذرانْد");
+  if (!(await waitForHealth(expectedVersion))) throw new Error("نسخهٔ جدید پس از ۹۰ ثانیه health-check را نگذرانْد");
   await clearStopToken().catch((error) => log(`WARN could not clear temporary stop token: ${error instanceof Error ? error.message : error}`));
 
   await rm(lockFile, { force: true });
-  await setStatus("complete", `به‌روزرسانی به نسخهٔ ${manifest.version} انجام شد؛ داده‌ها حفظ و سرور دوباره راه‌اندازی شد.`, { logPath: logFile });
+  await setStatus("complete", `به‌روزرسانی به نسخهٔ ${expectedVersion} انجام شد؛ داده‌ها حفظ و سرور دوباره راه‌اندازی شد.`, { logPath: logFile });
   await log("Update completed and health-check passed");
   await rm(stageRoot, { recursive: true, force: true });
+  await rm(localZip, { force: true }).catch(() => {});
 }
 
 try {
@@ -274,7 +361,7 @@ try {
   if (appSwapped) {
     try { await stopServer(); } catch { /* failed candidate may already be down */ }
   }
-  if (migrationStarted && databaseBackedUp) {
+  if (migrationStarted && databaseBackedUp && !appLocalData) {
     try { await restoreDatabase(); }
     catch (rollbackError) {
       rollbackReady = false;
@@ -286,6 +373,8 @@ try {
     rollbackReady = false;
     await log(`APPLICATION ROLLBACK ERROR: ${rollbackError instanceof Error ? rollbackError.message : rollbackError}`);
   }
+  if (appLocalData && existsSync(path.join(appDir, dataRelativeToApp))) switchDataRoot(path.join(appDir, dataRelativeToApp));
+  else if (appLocalData) switchDataRoot(originalDataPaths.dataRoot);
   await rm(lockFile, { force: true }).catch(() => {});
   if (serverStopped && rollbackReady) {
     try {

@@ -121,8 +121,10 @@ export default function proxy(request: NextRequest) {
       );
     }
 
-    // سقف حجم بدنه
-    const bodyLimit = MAX_BODY_BYTES;
+    // ZIP upload is the sole large-body exception; all other APIs retain the small limit.
+    const isUpdateZipUpload = pathname === "/api/admin/update" && request.method === "POST" &&
+      (request.headers.get("content-type") ?? "").toLowerCase().includes("multipart/form-data");
+    const bodyLimit = isUpdateZipUpload ? 110 * 1024 * 1024 : MAX_BODY_BYTES;
     const declared = Number(request.headers.get("content-length") ?? 0);
     if (declared > bodyLimit) {
       return NextResponse.json(

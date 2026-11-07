@@ -14,7 +14,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "doctor": "node scripts/doctor.mjs",
-    "test:audit": "node audit/jalali.test.mjs && node audit/updater.test.mjs && node audit/audit1.mjs && node audit/audit2.mjs && node audit/audit3.mjs && node audit/audit4.mjs && node audit/audit5.mjs && node audit/audit6.mjs && node audit/conc.mjs",
+    "test:audit": "node audit/jalali.test.mjs && node audit/updater.test.mjs && node audit/update-zip.test.mjs && node audit/audit1.mjs && node audit/audit2.mjs && node audit/audit3.mjs && node audit/audit4.mjs && node audit/audit5.mjs && node audit/audit6.mjs && node audit/conc.mjs",
     "test:perf": "node audit/perf.mjs",
     "test": "npm run typecheck && npm run test:audit",
     "db:pg-init": "node scripts/pg-init.mjs",
@@ -29,7 +29,8 @@
     "next": "^16.4.5",
     "pg": "8.20.0",
     "react": "19.2.6",
-    "react-dom": "19.2.6"
+    "react-dom": "19.2.6",
+    "yauzl": "^3.4.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.1.17",
@@ -37,13 +38,14 @@
     "@types/pg": "8.18.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "@types/yauzl": "^3.4.0",
     "eslint": "9.39.4",
     "eslint-config-next": "^16.4.5",
     "postcss": "8.5.32",
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   },
-  "version": "1.4.14",
+  "version": "1.4.15",
   "overrides": {
     "@typescript-eslint/typescript-estree": {
       "minimatch": "11.0.5"

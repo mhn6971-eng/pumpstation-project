@@ -1,12 +1,12 @@
 {
-  "version": "1.4.14",
-  "archiveUrl": "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/Pumpstation-App-Update-1.4.14.zip",
-  "sha256": "a3202a1f72ada90a89be20609eaf0317264856682d08b1b0855822ed46c3b724",
+  "version": "1.4.15",
+  "archiveUrl": "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/Pumpstation-App-Update-1.4.15.zip",
+  "sha256": "5f2ef78f3a0b7b0db92dfb979b7771b970fd17b6d330523490421a6d47cc5b42",
   "publishedAt": "2026-11-07",
   "notes": [
-    "افزودن پنل بررسی و نصب نسخهٔ جدید در بخش ادمین.",
-    "دریافت و ساخت نسخه در پوشهٔ موقت، پیش از توقف کوتاه برنامه.",
-    "پشتیبان‌گیری خودکار از PGlite و rollback کد/داده در صورت شکست migration یا health-check.",
-    "ثبت خطاها در گزارش پایدار پوشهٔ دادهٔ Pumpstation."
+    "پنل ادمین فایل ZIP انتخاب‌شده از رایانه را بررسی و با تأیید و PIN مدیر اعمال می‌کند.",
+    "اعتبارسنجی مسیر، نوع، اندازه و CRC فایل‌های ZIP؛ نسخه و SHA-256 پیش از اعمال نمایش داده می‌شوند.",
+    "ساخت نسخهٔ جدید پیش از توقف برنامه؛ پشتیبان‌گیری از پایگاه‌داده، حفظ داده‌ها، health-check و rollback.",
+    "میان‌بر دسکتاپ با آیکون برنامه و اجرای راه‌انداز production بدون پنجرهٔ CMD/PowerShell؛ میان‌بر نصب‌های قدیمی نیز پس از ورود مدیر همگام می‌شود."
   ]
 }

@@ -287,7 +287,6 @@ function Set-AppEnvironment($Config) {
   $env:PUMPSTATION_DATA_ROOT = $Config.dataRoot
   $env:PUMPSTATION_LAUNCHER = Join-Path $Config.installRoot 'launch-pumpstation.ps1'
   $env:PUMPSTATION_LAUNCHER_KIND = 'powershell'
-  $env:PUMPSTATION_UPDATE_FEED = 'https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/latest.json'
   $env:PUMPSTATION_UPDATE_STATUS_FILE = Join-Path $Config.dataRoot 'update-status.json'
   $env:PUMPSTATION_UPDATE_LOCK_FILE = Join-Path $Config.dataRoot 'update.lock'
   $env:PUMPSTATION_UPDATE_LOG_FILE = Join-Path $Config.logDir 'auto-update.log'
@@ -341,6 +340,7 @@ try {
   $configPath = Join-Path $configDir 'install.json'
   $launcherPath = Join-Path $installRoot 'launch-pumpstation.ps1'
   $launcherBatPath = Join-Path $installRoot 'launch-pumpstation.bat'
+  $launcherVbsPath = Join-Path $installRoot 'launch-pumpstation.vbs'
   $previousConfig = $null
   if (Test-Path -LiteralPath $configPath) {
     $previousConfig = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
@@ -589,15 +589,18 @@ try {
   [IO.File]::WriteAllText($configPath, $configJson, ([System.Text.UTF8Encoding]::new($false)))
   Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'launch-pumpstation.ps1') -Destination $launcherPath -Force
   Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'launch-pumpstation.bat') -Destination $launcherBatPath -Force
+  Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'launch-pumpstation.vbs') -Destination $launcherVbsPath -Force
 
   $shortcutPath = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Pumpstation.lnk'
   $shell = New-Object -ComObject WScript.Shell
   $shortcut = $shell.CreateShortcut($shortcutPath)
-  $shortcut.TargetPath = $launcherBatPath
-  $shortcut.Arguments = ''
+  $shortcut.TargetPath = Join-Path $env:SystemRoot 'System32\wscript.exe'
+  $shortcut.Arguments = '"' + $launcherVbsPath + '"'
   $shortcut.WorkingDirectory = $installRoot
   $shortcut.Description = 'اجرای سامانهٔ Pumpstation'
-  $shortcut.IconLocation = $env:SystemRoot + '\System32\shell32.dll,220'
+  $iconPath = Join-Path $appDir 'public\brand\logo.ico'
+  if (Test-Path -LiteralPath $iconPath) { $shortcut.IconLocation = $iconPath + ',0' }
+  else { $shortcut.IconLocation = $env:SystemRoot + '\System32\shell32.dll,220' }
   $shortcut.Save()
   $startShortcut = Join-Path ([Environment]::GetFolderPath('StartMenu')) 'Programs\Pumpstation.lnk'
   $startFolder = Split-Path -Parent $startShortcut
