@@ -16,6 +16,7 @@ $lockPath = Join-Path $appSource 'package-lock.json'
 
 $requiredRootFiles = @(
   'install-windows.bat',
+  'install-windows-fresh.bat',
   'install-windows.ps1',
   'launch-pumpstation.bat',
   'launch-pumpstation.ps1',

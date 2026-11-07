@@ -1,4 +1,6 @@
-﻿$ErrorActionPreference = 'Stop'
+﻿param([switch]$FreshData)
+
+$ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
@@ -137,6 +139,22 @@ function Select-DataRoot {
   Write-Host "Data drive selected automatically: $($selected.Name) ($freeGb GB free)." -ForegroundColor Green
   Write-Host "Data location: $root" -ForegroundColor Green
   return $root
+}
+
+function Get-AvailableFreshSibling([string]$BasePath, [string]$Version) {
+  $full = [IO.Path]::GetFullPath($BasePath).TrimEnd([char[]]@([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar))
+  $parent = Split-Path -Parent $full
+  $leaf = Split-Path -Leaf $full
+  for ($index = 1; $index -le 100; $index++) {
+    $suffix = if ($index -eq 1) { "-Fresh-$Version" } else { "-Fresh-$Version-$index" }
+    $candidate = Join-Path $parent ($leaf + $suffix)
+    if (-not (Test-Path -LiteralPath $candidate)) { return $candidate }
+    if (Test-Path -LiteralPath $candidate -PathType Container) {
+      $entries = @(Get-ChildItem -LiteralPath $candidate -Force -ErrorAction SilentlyContinue)
+      if ($entries.Count -eq 0) { return $candidate }
+    }
+  }
+  throw 'Could not find an unused separate data folder; no existing data was changed.'
 }
 
 function Get-PhysicalDiskNumber([string]$Path) {
@@ -329,7 +347,15 @@ try {
   if ([int]$os.BuildNumber -lt 17763) { throw 'Minimum supported OS: Windows 10 version 1809 (build 17763) or Windows 11.' }
 
   Write-Title 'STEP 2/8 - Select persistent data storage'
-  $installRoot = Get-InstallRoot
+  $standardInstallRoot = Get-InstallRoot
+  if ($FreshData) {
+    $installParent = Split-Path -Parent $standardInstallRoot
+    $installRoot = Join-Path $installParent ("Pumpstation-Fresh-$appVersion")
+    Write-Host 'Fresh-data mode uses a separate application folder; the previous installation and its data stay untouched.' -ForegroundColor Yellow
+    Write-Host ("New application location: {0}" -f $installRoot) -ForegroundColor Green
+  } else {
+    $installRoot = $standardInstallRoot
+  }
   $systemDrive = @([IO.DriveInfo]::GetDrives() | Where-Object { $_.Name.ToUpperInvariant() -eq 'C:\' -and $_.IsReady }) | Select-Object -First 1
   if (-not $systemDrive -or $systemDrive.AvailableFreeSpace -lt 3221225472) { throw 'At least 3 GB of free space is required on drive C.' }
   $appDir = Join-Path $installRoot 'app'
@@ -341,29 +367,65 @@ try {
   $launcherVbsPath = Join-Path $installRoot 'launch-pumpstation.vbs'
   $previousConfig = $null
   $previousConfigRaw = $null
+  $freshDataSourceRoot = ''
+  $newFreshDataSet = $false
   if (Test-Path -LiteralPath $configPath) {
     $previousConfigRaw = [IO.File]::ReadAllText($configPath, [System.Text.Encoding]::UTF8)
     $previousConfig = $previousConfigRaw | ConvertFrom-Json
-    $dataRoot = [string]$previousConfig.dataRoot
-    if ([string]::IsNullOrWhiteSpace($dataRoot)) {
+    $previousDataRoot = [string]$previousConfig.dataRoot
+    if ([string]::IsNullOrWhiteSpace($previousDataRoot)) {
       throw 'The existing installation has no saved data path. Installation stopped to protect existing data.'
     }
-    if ([IO.Path]::GetPathRoot($dataRoot).ToUpperInvariant() -eq 'C:\') {
-      Write-Host 'WARNING: Existing data is on drive C and will stay in its current location.' -ForegroundColor Yellow
+    $freshDataSourceRoot = [string]$previousConfig.freshDataSourceRoot
+    if ($FreshData -and [string]::IsNullOrWhiteSpace($freshDataSourceRoot)) {
+      $dataRoot = Get-AvailableFreshSibling $previousDataRoot $appVersion
+      $freshDataSourceRoot = $previousDataRoot
+      $newFreshDataSet = $true
+      Write-Host ("A new empty data store was requested. The existing data will remain untouched at: {0}" -f $previousDataRoot) -ForegroundColor Yellow
+      Write-Host ("New data location: {0}" -f $dataRoot) -ForegroundColor Green
+    } else {
+      $dataRoot = $previousDataRoot
+      if ($FreshData) {
+        Write-Host ("Reusing the separate fresh data store: {0}" -f $dataRoot) -ForegroundColor Green
+      } else {
+        if ([IO.Path]::GetPathRoot($dataRoot).ToUpperInvariant() -eq 'C:\') {
+          Write-Host 'WARNING: Existing data is on drive C and will stay in its current location.' -ForegroundColor Yellow
+        }
+        Write-Host ("Existing data location preserved: {0}" -f $dataRoot) -ForegroundColor Green
+      }
     }
-    Write-Host ("Existing data location preserved: {0}" -f $dataRoot) -ForegroundColor Green
   } else {
-    $dataRoot = Select-DataRoot
+    $baseDataRoot = Select-DataRoot
+    $baseEntries = @()
+    if (Test-Path -LiteralPath $baseDataRoot -PathType Container) { $baseEntries = @(Get-ChildItem -LiteralPath $baseDataRoot -Force -ErrorAction SilentlyContinue) }
+    if ($FreshData -and $baseEntries.Count -gt 0) {
+      $dataRoot = Get-AvailableFreshSibling $baseDataRoot $appVersion
+      $freshDataSourceRoot = $baseDataRoot
+      $newFreshDataSet = $true
+      Write-Host ("A new empty data store was requested. Existing files remain untouched at: {0}" -f $baseDataRoot) -ForegroundColor Yellow
+      Write-Host ("New data location: {0}" -f $dataRoot) -ForegroundColor Green
+    } else {
+      $dataRoot = $baseDataRoot
+      if ($FreshData) { $newFreshDataSet = $true }
+    }
   }
-  if ($previousConfig) {
+  if ($previousConfig -and -not $newFreshDataSet) {
     $mirrorDir = [string]$previousConfig.mirrorDir
     if ([string]::IsNullOrWhiteSpace($mirrorDir)) { $mirrorDir = Join-Path $dataRoot 'Pumpstation-Mirror' }
     Write-Host ("Existing mirror location preserved: {0}" -f $mirrorDir) -ForegroundColor Green
   } else {
-    $mirrorDir = Select-MirrorRoot $dataRoot
+    $mirrorCandidate = Select-MirrorRoot $dataRoot
+    $sameDataMirror = Join-Path $dataRoot 'Pumpstation-Mirror'
+    if ([IO.Path]::GetFullPath($mirrorCandidate).TrimEnd('\') -eq [IO.Path]::GetFullPath($sameDataMirror).TrimEnd('\')) {
+      $mirrorDir = $mirrorCandidate
+    } else {
+      $mirrorDir = Get-AvailableFreshSibling $mirrorCandidate $appVersion
+    }
   }
   Write-MirrorReliabilityWarning $dataRoot $mirrorDir
 
+  $stateDir = if ($newFreshDataSet) { Join-Path $dataRoot 'LocalConfig' } else { $configDir }
+  if (-not $newFreshDataSet -and $previousConfig -and -not [string]::IsNullOrWhiteSpace([string]$previousConfig.stateDir)) { $stateDir = [string]$previousConfig.stateDir }
   $paths = @{
     databaseDir = Join-Path $dataRoot 'Database'
     processReportDir = Join-Path $dataRoot 'Process-Reports'
@@ -374,17 +436,18 @@ try {
     mirrorDir = $mirrorDir
     pgdumpDir = Join-Path $dataRoot 'Backups\Postgres-Dumps'
     logDir = Join-Path $dataRoot 'Logs'
-    rosterFile = Join-Path $configDir 'roster.local.json'
-    sessionSecretDir = Join-Path $configDir 'session-secret'
-    mirrorTokenFile = Join-Path $configDir 'mirror-token'
+    stateDir = $stateDir
+    rosterFile = Join-Path $stateDir 'roster.local.json'
+    sessionSecretDir = Join-Path $stateDir 'session-secret'
+    mirrorTokenFile = Join-Path $stateDir 'mirror-token'
   }
-  if ($previousConfig) {
-    foreach ($key in @('databaseDir', 'processReportDir', 'pmReportDir', 'backupDir', 'catalogDir', 'archiveDir', 'mirrorDir', 'pgdumpDir', 'logDir', 'rosterFile', 'sessionSecretDir', 'mirrorTokenFile')) {
+  if ($previousConfig -and -not $newFreshDataSet) {
+    foreach ($key in @('databaseDir', 'processReportDir', 'pmReportDir', 'backupDir', 'catalogDir', 'archiveDir', 'mirrorDir', 'pgdumpDir', 'logDir', 'stateDir', 'rosterFile', 'sessionSecretDir', 'mirrorTokenFile')) {
       $savedPath = [string]$previousConfig.$key
       if (-not [string]::IsNullOrWhiteSpace($savedPath)) { $paths[$key] = $savedPath }
     }
   }
-  foreach ($directory in @($dataRoot, $paths.databaseDir, $paths.processReportDir, $paths.pmReportDir, $paths.backupDir, $paths.catalogDir, $paths.archiveDir, $paths.mirrorDir, $paths.pgdumpDir, $paths.logDir, $configDir, $paths.sessionSecretDir)) {
+  foreach ($directory in @($dataRoot, $paths.databaseDir, $paths.processReportDir, $paths.pmReportDir, $paths.backupDir, $paths.catalogDir, $paths.archiveDir, $paths.mirrorDir, $paths.pgdumpDir, $paths.logDir, $configDir, $paths.stateDir, $paths.sessionSecretDir)) {
     New-Item -ItemType Directory -Path $directory -Force | Out-Null
   }
 
@@ -521,6 +584,7 @@ try {
 
   $config = [PSCustomObject]@{
     installRoot = $installRoot; appDir = $appDir; runtimeDir = $runtimeDir; dataRoot = $dataRoot
+    freshDataSourceRoot = $freshDataSourceRoot; stateDir = $paths.stateDir
     databaseDir = $paths.databaseDir; processReportDir = $paths.processReportDir; pmReportDir = $paths.pmReportDir
     backupDir = $paths.backupDir; catalogDir = $paths.catalogDir; archiveDir = $paths.archiveDir
     mirrorDir = $paths.mirrorDir; pgdumpDir = $paths.pgdumpDir; logDir = $paths.logDir
@@ -562,7 +626,7 @@ try {
   $buildArguments = @($npmCli, 'run', 'build')
   Invoke-Checked -Executable $nodePath -Arguments $buildArguments -WorkingDirectory $stageApp -Description 'Building the production application...'
   Write-Title 'STEP 6/8 - Preserve PINs, back up and prepare the database'
-  $rosterMarker = Join-Path $configDir 'roster-consumed.flag'
+  $rosterMarker = Join-Path $paths.stateDir 'roster-consumed.flag'
   $databaseHasFiles = $false
   if (Test-Path -LiteralPath $paths.databaseDir) { $databaseHasFiles = @(Get-ChildItem -LiteralPath $paths.databaseDir -Force -ErrorAction SilentlyContinue).Count -gt 0 }
   if ((Test-Path -LiteralPath $rosterMarker) -and -not $databaseHasFiles) {

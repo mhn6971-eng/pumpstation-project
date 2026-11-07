@@ -1,7 +1,7 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.20   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 35d3330
-تاریخ تولید: 2026-11-07   |   132 فایل   |   26,752 خط
+نسخهٔ برنامه: 1.4.21   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: e273da1
+تاریخ تولید: 2026-11-07   |   132 فایل   |   26,762 خط
 ==============================================================================
 
 این فایل، «نسخهٔ خوانا»ی کل کد برنامه است؛ هر فایل کامل و بدون حذف درج شده و
@@ -154,7 +154,7 @@
      audit/jalali.test.mjs                                42 خط
      audit/updater.test.mjs                               15 خط
      audit/update-zip.test.mjs                            68 خط
-     audit/windows-installer.test.mjs                     90 خط
+     audit/windows-installer.test.mjs                     100 خط
      audit/probe.mjs                                      10 خط
      audit/sess.mjs                                       34 خط
      audit/writeperf.mjs                                  14 خط
@@ -216,7 +216,7 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   },
-  "version": "1.4.20",
+  "version": "1.4.21",
   "overrides": {
     "@typescript-eslint/typescript-estree": {
       "minimatch": "11.0.5"
@@ -228,13 +228,13 @@
 
 {
   "name": "pumpstation-monitoring",
-  "version": "1.4.20",
+  "version": "1.4.21",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "pumpstation-monitoring",
-      "version": "1.4.20",
+      "version": "1.4.21",
       "dependencies": {
         "@electric-sql/pglite": "^0.5.15",
         "dotenv": "17.3.1",
@@ -26720,7 +26720,7 @@ await assert.rejects(
 );
 console.log("PASS | update zip | rejects prerelease or malformed versions");
 
-── FILE: audit/windows-installer.test.mjs  (90 خط) ──
+── FILE: audit/windows-installer.test.mjs  (100 خط) ──
 
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
@@ -26732,6 +26732,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 const installer = await readFile(path.join(root, "install-windows.ps1"), "utf8");
 const batch = await readFile(path.join(root, "install-windows.bat"), "utf8");
+const freshBatch = await readFile(path.join(root, "install-windows-fresh.bat"), "utf8");
 const launcher = await readFile(path.join(root, "launch-pumpstation.ps1"), "utf8");
 const appLauncher = await readFile(path.join(root, "pumpstation-v1.2/launch-pumpstation.ps1"), "utf8");
 const packager = await readFile(path.join(root, "package-windows.ps1"), "utf8");
@@ -26752,6 +26753,14 @@ for (let step = 1; step <= 8; step += 1) {
 }
 assert.match(installer, /\[regex\]::Replace\(\[string\]\$item, '\[\^\\x00-\\x7F\]', '\?'\)/);
 assert.match(installer, /INSTALLATION COMPLETE/);
+assert.match(installer, /param\(\[switch\]\$FreshData\)/);
+assert.match(installer, /Pumpstation-Fresh-\$appVersion/);
+assert.match(installer, /Get-AvailableFreshSibling/);
+assert.match(installer, /freshDataSourceRoot/);
+assert.match(installer, /stateDir = \$paths\.stateDir/);
+assert.match(freshBatch, /install-windows\.ps1" -FreshData/);
+assert.match(freshBatch, /Existing operational data will not be deleted or changed/);
+assert.match(freshBatch, /FRESH INSTALLATION COMPLETE/);
 assert.match(installer, /Verifying every database backup file by size and SHA-256/);
 assert.match(installer, /Assert-DirectoryFilesEqual/);
 assert.match(installer, /Get-CimInstance Win32_Process/);
@@ -26800,6 +26809,7 @@ assert.match(batch, /set \/p "PUMPSTATION_WAIT="/);
 assert.match(batch, /Diagnostic log:/);
 assert.match(packager, /Creating an online installer/);
 assert.match(packager, /Pumpstation-Windows-\$version\.zip/);
+assert.match(packager, /'install-windows-fresh\.bat'/);
 assert.match(packager, /\$downloadDir = Join-Path \$root 'downloads'/);
 assert.match(packager, /Join-Path \$downloadDir/);
 assert.match(packager, /'\.data'/);
