@@ -1,0 +1,12 @@
+{
+  "version": "1.4.14",
+  "archiveUrl": "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/Pumpstation-App-Update-1.4.14.zip",
+  "sha256": "a3202a1f72ada90a89be20609eaf0317264856682d08b1b0855822ed46c3b724",
+  "publishedAt": "2026-11-07",
+  "notes": [
+    "افزودن پنل بررسی و نصب نسخهٔ جدید در بخش ادمین.",
+    "دریافت و ساخت نسخه در پوشهٔ موقت، پیش از توقف کوتاه برنامه.",
+    "پشتیبان‌گیری خودکار از PGlite و rollback کد/داده در صورت شکست migration یا health-check.",
+    "ثبت خطاها در گزارش پایدار پوشهٔ دادهٔ Pumpstation."
+  ]
+}

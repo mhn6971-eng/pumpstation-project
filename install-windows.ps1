@@ -282,6 +282,15 @@ function Set-AppEnvironment($Config) {
   $env:ROSTER_FILE = $Config.rosterFile
   $env:SESSION_SECRET_DIR = $Config.sessionSecretDir
   $env:MIRROR_TOKEN_FILE = $Config.mirrorTokenFile
+  $env:PUMPSTATION_HOME = $Config.installRoot
+  $env:PUMPSTATION_APP_DIR = $Config.appDir
+  $env:PUMPSTATION_DATA_ROOT = $Config.dataRoot
+  $env:PUMPSTATION_LAUNCHER = Join-Path $Config.installRoot 'launch-pumpstation.ps1'
+  $env:PUMPSTATION_LAUNCHER_KIND = 'powershell'
+  $env:PUMPSTATION_UPDATE_FEED = 'https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/latest.json'
+  $env:PUMPSTATION_UPDATE_STATUS_FILE = Join-Path $Config.dataRoot 'update-status.json'
+  $env:PUMPSTATION_UPDATE_LOCK_FILE = Join-Path $Config.dataRoot 'update.lock'
+  $env:PUMPSTATION_UPDATE_LOG_FILE = Join-Path $Config.logDir 'auto-update.log'
   $env:NEXT_TELEMETRY_DISABLED = '1'
   $npmBin = Join-Path (Join-Path $Config.runtimeDir 'npm') 'bin'
   $env:PATH = $Config.runtimeDir + ';' + $npmBin + ';' + $env:PATH

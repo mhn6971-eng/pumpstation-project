@@ -1,12 +1,12 @@
 Option Explicit
 
-Dim sh, fso, procEnv, scriptDir, appDir, drive, dataRoot, logDir, logFile
+Dim sh, fso, procEnv, scriptDir, appDir, drive, dataRoot, logDir, logFile, stampText, tempLogDir
 Dim appVersion, baseUrl, rosterPath, command, result, i
 
 Set sh = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 Set procEnv = sh.Environment("PROCESS")
-appVersion = "1.4.13"
+appVersion = "1.4.14"
 baseUrl = "http://127.0.0.1:3000"
 scriptDir = fso.GetParentFolderName(WScript.ScriptFullName)
 appDir = fso.BuildPath(scriptDir, "pumpstation-v1.2")
@@ -30,7 +30,8 @@ If fso.FolderExists(fso.BuildPath(appDir, ".data\pglite")) Then dataRoot = fso.B
 logDir = fso.BuildPath(dataRoot, "logs")
 EnsureFolder dataRoot
 EnsureFolder logDir
-logFile = fso.BuildPath(logDir, "one-click-start.log")
+stampText = Year(Now) & Right("0" & Month(Now), 2) & Right("0" & Day(Now), 2) & "-" & Right("0" & Hour(Now), 2) & Right("0" & Minute(Now), 2) & Right("0" & Second(Now), 2) & "-" & Right("000" & CStr(Int(Timer * 1000) Mod 1000), 3)
+logFile = fso.BuildPath(logDir, "one-click-start-" & stampText & ".log")
 ResetLog
 
 If Not CommandOk("where.exe node.exe >nul 2>&1") Then Fail "Node.js was not found. Install Node.js 22 or later once, then double-click this icon again."
@@ -40,6 +41,15 @@ If Not CommandOk("node.exe -e " & Quote("process.exit(Number(process.versions.no
 procEnv("NODE_ENV") = "development"
 procEnv("DATABASE_URL") = ""
 procEnv("PORT") = "3000"
+procEnv("PUMPSTATION_HOME") = scriptDir
+procEnv("PUMPSTATION_APP_DIR") = appDir
+procEnv("PUMPSTATION_DATA_ROOT") = dataRoot
+procEnv("PUMPSTATION_LAUNCHER") = WScript.ScriptFullName
+procEnv("PUMPSTATION_LAUNCHER_KIND") = "wscript"
+procEnv("PUMPSTATION_UPDATE_FEED") = "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/latest.json"
+procEnv("PUMPSTATION_UPDATE_STATUS_FILE") = fso.BuildPath(dataRoot, "update-status.json")
+procEnv("PUMPSTATION_UPDATE_LOCK_FILE") = fso.BuildPath(dataRoot, "update.lock")
+procEnv("PUMPSTATION_UPDATE_LOG_FILE") = fso.BuildPath(dataRoot, "logs\auto-update.log")
 procEnv("PGLITE_DATA_DIR") = fso.BuildPath(dataRoot, "pglite")
 procEnv("BACKUP_DIR") = fso.BuildPath(dataRoot, "backups")
 procEnv("CATALOG_DIR") = fso.BuildPath(dataRoot, "catalog")
@@ -129,10 +139,10 @@ Function IsHealthy()
   req.SetTimeouts 500, 500, 1500, 1500
   req.Open "GET", baseUrl & "/api/health", False
   req.Send
-  token = Chr(34) & "version" & Chr(34) & ":" & Chr(34) & appVersion & Chr(34)
+  token = Chr(34) & "ok" & Chr(34) & ":true"
   If Err.Number = 0 Then
     If req.Status = 200 And req.ResponseText <> "" Then
-      If InStr(1, req.ResponseText, token, vbTextCompare) > 0 Then IsHealthy = True
+      If InStr(1, Replace(Replace(Replace(req.ResponseText, " ", ""), vbCr, ""), vbLf, ""), token, vbTextCompare) > 0 Then IsHealthy = True
     End If
   End If
   Err.Clear
@@ -166,8 +176,26 @@ Sub EnsureFolder(path)
 End Sub
 
 Sub ResetLog()
-  Dim file
+  Dim file, fallbackLog, logError, tempFolder
+  On Error Resume Next
   Set file = fso.CreateTextFile(logFile, True, False)
+  If Err.Number <> 0 Then
+    Err.Clear
+    Set tempFolder = fso.GetSpecialFolder(2)
+    tempLogDir = fso.BuildPath(tempFolder.Path, "Pumpstation-Logs")
+    If Not fso.FolderExists(tempLogDir) Then fso.CreateFolder tempLogDir
+    fallbackLog = fso.BuildPath(tempLogDir, "one-click-start-" & stampText & ".log")
+    logFile = fallbackLog
+    Set file = fso.CreateTextFile(logFile, True, False)
+  End If
+  If Err.Number <> 0 Then
+    logError = Err.Description
+    Err.Clear
+    On Error GoTo 0
+    MsgBox "Could not create a diagnostic log because Windows denied write access. Check the data folder and Windows TEMP permissions. Last error: " & logError, vbCritical, "Pumpstation"
+    WScript.Quit 1
+  End If
+  On Error GoTo 0
   file.WriteLine "Pumpstation one-click launcher " & appVersion & " - " & Now
   file.Close
 End Sub

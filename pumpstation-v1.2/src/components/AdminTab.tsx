@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useApp } from "./context";
 import { Icon, Panel } from "./ui";
 import { EquipmentForm } from "./RegistryTab";
@@ -38,6 +38,8 @@ export default function AdminTab() {
           <div className="l">هشدار در انتظار اقدام</div>
         </div>
       </div>
+
+      <UpdatePanel />
 
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(340px,1fr))" }}>
         <ShiftPanel />
@@ -303,6 +305,119 @@ function SetpointsPanel() {
           </tbody>
         </table>
       </div>
+    </Panel>
+  );
+}
+
+type UpdateApi = {
+  ok: boolean;
+  currentVersion?: string;
+  latestVersion?: string;
+  updateAvailable?: boolean;
+  notes?: string[];
+  publishedAt?: string;
+  enabled?: boolean;
+  error?: string;
+  status?: { phase: string; message: string; version?: string; logPath?: string };
+};
+
+function UpdatePanel() {
+  const [info, setInfo] = useState<UpdateApi | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [message, setMessage] = useState("");
+  const [targetVersion, setTargetVersion] = useState("");
+
+  const check = useCallback(async () => {
+    setChecking(true);
+    try {
+      const response = await fetch("/api/admin/update", { cache: "no-store" });
+      const result = await response.json() as UpdateApi;
+      setInfo(result);
+      if (!response.ok) setMessage(result.error ?? "بررسی به‌روزرسانی ناموفق بود");
+      else setMessage("");
+    } catch {
+      setMessage("ارتباط با منبع نسخه‌ها برقرار نشد؛ اتصال اینترنت را بررسی کنید.");
+    } finally {
+      setChecking(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void check(); }, 0);
+    return () => window.clearTimeout(timer);
+  }, [check]);
+
+  useEffect(() => {
+    if (!applying) return;
+    let alive = true;
+    const poll = async () => {
+      try {
+        const response = await fetch("/api/admin/update", { cache: "no-store" });
+        const result = await response.json() as UpdateApi;
+        if (!alive || !response.ok) return;
+        setInfo(result);
+        if (result.currentVersion === targetVersion && result.status?.phase === "complete") {
+          setMessage("نسخهٔ جدید آماده شد؛ صفحه در حال بارگذاری دوباره است.");
+          window.location.reload();
+        } else if (result.status?.phase === "failed") {
+          setApplying(false);
+          setMessage(`${result.status.message}${result.status.logPath ? ` — گزارش: ${result.status.logPath}` : ""}`);
+        }
+      } catch {
+        // During the short controlled restart the local server is expected to be unreachable.
+      }
+    };
+    const timer = window.setInterval(() => { void poll(); }, 1800);
+    void poll();
+    return () => { alive = false; window.clearInterval(timer); };
+  }, [applying, targetVersion]);
+
+  const startUpdate = async () => {
+    const version = info?.latestVersion;
+    if (!version || !window.confirm(`نسخهٔ ${version} دریافت و آماده می‌شود. در پایان، سامانه برای پشتیبان‌گیری و راه‌اندازی مجدد کوتاه متوقف خواهد شد. داده‌ها حذف نمی‌شوند. ادامه می‌دهید؟`)) return;
+    setApplying(true);
+    setTargetVersion(version);
+    setMessage("بسته در حال دریافت و آماده‌سازی است؛ این مرحله ممکن است چند دقیقه طول بکشد.");
+    try {
+      const response = await fetch("/api/admin/update", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+      const result = await response.json() as { ok?: boolean; error?: string; message?: string };
+      if (!response.ok || !result.ok) {
+        setApplying(false);
+        setMessage(result.error ?? "شروع به‌روزرسانی ناموفق بود");
+        return;
+      }
+      setMessage(result.message ?? "به‌روزرسانی در پس‌زمینه شروع شد.");
+    } catch {
+      setApplying(false);
+      setMessage("پاسخ سرور دریافت نشد؛ وضعیت برنامه را بررسی کنید. گزارش به‌روزرسانی در پوشهٔ داده ذخیره می‌شود.");
+    }
+  };
+
+  const currentVersion = info?.currentVersion ?? "—";
+  const status = info?.status;
+  const busy = applying || status?.phase === "preparing" || status?.phase === "restarting";
+
+  return (
+    <Panel title="به‌روزرسانی سامانه" icon="refresh" hint="دریافت امن، پشتیبان‌گیری، راه‌اندازی مجدد و بازگشت خودکار در صورت شکست">
+      <div className="row" style={{ justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div>
+          <div className="tiny">نسخهٔ نصب‌شده: <b className="mono">{currentVersion}</b>{info?.latestVersion ? <>　نسخهٔ آماده: <b className="mono">{info.latestVersion}</b></> : null}</div>
+          <div className="tiny muted" style={{ marginTop: 6 }}>{busy ? (status?.message ?? message) : message || (info?.updateAvailable ? "نسخهٔ جدید برای نصب آماده است." : info?.latestVersion ? "نسخهٔ نصب‌شده به‌روز است." : "برای بررسی نسخهٔ جدید اقدام کنید.")}</div>
+        </div>
+        <div className="row" style={{ gap: 8 }}>
+          <button type="button" className="btn" disabled={checking || busy} onClick={() => void check()}>
+            <Icon name="refresh" size={13} /> {checking ? "در حال بررسی…" : "بررسی نسخه"}
+          </button>
+          <button type="button" className="btn primary" disabled={!info?.updateAvailable || !info.enabled || busy} onClick={() => void startUpdate()}>
+            <Icon name="download" size={13} /> {busy ? "در حال آماده‌سازی…" : "دریافت و نصب"}
+          </button>
+        </div>
+      </div>
+      {info?.notes?.length ? <ul className="tiny" style={{ margin: "10px 0 0", paddingInlineStart: 22 }}>{info.notes.map((note, index) => <li key={`${index}-${note}`}>{note}</li>)}</ul> : null}
+      {!info?.enabled && <div className="note warn-note" style={{ marginTop: 10 }}>این نصب هنوز به راه‌انداز پایدار و مسیر دادهٔ جداگانه متصل نشده است؛ دکمهٔ نصب تا آماده‌شدن نصب رسمی غیرفعال می‌ماند.</div>}
+      {status?.phase === "failed" && <div className="note warn-note" style={{ marginTop: 10 }}>{status.message}{status.logPath ? <> گزارش: <span className="mono">{status.logPath}</span></> : null}</div>}
+      <div className="tiny muted" style={{ marginTop: 10 }}>پیش از اعمال نسخه، برنامه پایگاه‌داده را در مسیر پشتیبان ثبت می‌کند. تغییرات داده‌ایِ پس از آخرین پشتیبان در زمان مهاجرت متوقف می‌شوند؛ برای ادامهٔ کار چند ثانیه صبر کنید.</div>
     </Panel>
   );
 }

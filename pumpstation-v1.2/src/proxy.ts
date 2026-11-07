@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import { NextResponse, type NextRequest } from "next/server";
 import { lanAllowed, needsNetworkIdentityWarning, trustProxyEnabled, trustedClientIp, trustedRequestHost } from "./lib/netbind";
 
@@ -102,6 +103,15 @@ export default function proxy(request: NextRequest) {
   }
 
   if (pathname.startsWith("/api/")) {
+    // هنگام hand-off آپدیت، نوشتن جدید پذیرفته نمی‌شود تا دیتابیس پیش از backup/migration آرام شود.
+    const updateLock = process.env.PUMPSTATION_UPDATE_LOCK_FILE;
+    if (MUTATING.has(request.method) && pathname !== "/api/admin/update/stop" && updateLock && existsSync(updateLock)) {
+      return NextResponse.json(
+        { ok: false, error: "سامانه برای به‌روزرسانی کوتاه در حالت نگهداشت است؛ پس از راه‌اندازی دوباره تلاش کنید", code: "maintenance", requestId },
+        { status: 503, headers: { "retry-after": "10", "x-request-id": requestId } },
+      );
+    }
+
     // ضدسیل: درخواست‌های بیش از حد از یک IP
     const retry = rateLimited(ipOf(request));
     if (retry > 0) {
