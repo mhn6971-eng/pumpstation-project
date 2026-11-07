@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $appPackagePath = Join-Path $root 'pumpstation-v1.2\package.json'
 if (-not (Test-Path -LiteralPath $appPackagePath)) { throw 'پوشهٔ pumpstation-v1.2 پیدا نشد.' }

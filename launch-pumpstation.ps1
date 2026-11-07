@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 try {
   $utf8 = [System.Text.UTF8Encoding]::new($false)
