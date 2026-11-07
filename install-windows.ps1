@@ -380,20 +380,29 @@ try {
 
   $nodePath = Join-Path $runtimeDir 'node.exe'
   $npmCli = Join-Path $runtimeDir 'npm\package\bin\npm-cli.js'
-  $runtimeReady = $false
-  if ((Test-Path -LiteralPath $nodePath) -and (Test-Path -LiteralPath $npmCli)) {
+  $nodeReady = $false
+  $npmReady = $false
+  if (Test-Path -LiteralPath $nodePath) {
     try {
       $installedNode = (& $nodePath --version 2>$null).Trim()
-      $installedNpm = (& $nodePath $npmCli --version 2>$null).Trim()
-      $runtimeReady = ($installedNode -eq "v$NodeVersion" -and $installedNpm -eq $NpmVersion)
-    } catch { $runtimeReady = $false }
+      $nodeReady = ($installedNode -eq "v$NodeVersion")
+    } catch { $nodeReady = $false }
   }
+  if ($nodeReady -and (Test-Path -LiteralPath $npmCli)) {
+    try {
+      $installedNpm = (& $nodePath $npmCli --version 2>$null).Trim()
+      $npmReady = ($installedNpm -eq $NpmVersion)
+    } catch { $npmReady = $false }
+  }
+  $runtimeReady = ($nodeReady -and $npmReady)
   if ($runtimeReady) {
     Write-Host ("نسخهٔ دقیق Node.js {0} و npm {1} از قبل نصب است؛ دوباره دانلود نمی‌شود." -f $NodeVersion, $NpmVersion) -ForegroundColor Green
+  } elseif ($nodeReady) {
+    Write-Host ("Node.js {0} سالم است و حفظ می‌شود؛ فقط npm {1} نصب/ترمیم خواهد شد." -f $NodeVersion, $NpmVersion) -ForegroundColor Yellow
   }
 
   $onlineAvailable = Test-RegistryOnline
-  if (-not $onlineAvailable -and -not $offlineAvailable -and -not $runtimeReady) { throw 'اینترنت در دسترس نیست و cache آفلاین معتبر/سازگار کنار نصاب پیدا نشد. ZIP کامل را از نو استخراج کنید یا اینترنت را وصل کنید.' }
+  if (-not $onlineAvailable -and -not $offlineAvailable -and (-not $nodeReady -or -not $npmReady)) { throw 'اینترنت در دسترس نیست و cache آفلاین معتبر/سازگار کنار نصاب پیدا نشد. ZIP کامل را از نو استخراج کنید یا اینترنت را وصل کنید.' }
   if ($offlineAvailable -and $onlineAvailable) {
     $choice = Read-Host 'روش نصب: 1 اینترنتی (پیش‌فرض)، 2 آفلاین از فایل‌های همین ZIP'
     $installMode = if ($choice -eq '2') { 'offline' } else { 'online' }
@@ -402,15 +411,15 @@ try {
     Write-Host 'اتصال اینترنت پیدا نشد؛ نصب آفلاین از بسته‌های همراه ZIP انتخاب شد.' -ForegroundColor Yellow
   } elseif ($onlineAvailable) {
     $installMode = 'online'
-    Write-Host 'بستهٔ آفلاین کامل موجود نیست؛ نصب وابستگی‌ها از اینترنت انجام می‌شود.' -ForegroundColor Yellow
+    Write-Host 'بستهٔ آفلاین کامل موجود نیست؛ نصب وابستگی‌های موردنیاز از اینترنت انجام می‌شود.' -ForegroundColor Yellow
   } else {
     $installMode = 'offline'
-    Write-Host 'runtime دقیق از قبل نصب است؛ وابستگی‌های برنامه با cache npm محلی نصب می‌شوند.' -ForegroundColor Yellow
+    Write-Host 'runtime موجود است؛ dependencyهای برنامه با cache npm محلی نصب می‌شوند.' -ForegroundColor Yellow
   }
   $tar = $null
   if (-not $runtimeReady) {
     $tar = Get-Command tar.exe -ErrorAction SilentlyContinue
-    if (-not $tar) { throw 'برای نصب runtime، ابزار tar.exe ویندوز لازم است؛ Windows 10 را به‌روز کنید.' }
+    if (-not $tar) { throw 'برای نصب یا ترمیم runtime، ابزار tar.exe ویندوز لازم است؛ Windows 10 را به‌روز کنید.' }
   }
 
   $npmCacheDir = Join-Path $installRoot 'cache\npm'
@@ -418,37 +427,53 @@ try {
   $npmArchive = $null
   if (-not $runtimeReady) {
     if ($installMode -eq 'offline') {
-      $nodeArchive = Get-VerifiedOfflinePackage 'node-win-x64' $NodeVersion $NodeIntegrity $vendorDir
-      $npmArchive = Get-VerifiedOfflinePackage 'npm' $NpmVersion $NpmIntegrity $vendorDir
-      Copy-OfflineNpmCache $offlineNpmCache $npmCacheDir
+      if (-not $nodeReady) { $nodeArchive = Get-VerifiedOfflinePackage 'node-win-x64' $NodeVersion $NodeIntegrity $vendorDir }
+      if (-not $npmReady) { $npmArchive = Get-VerifiedOfflinePackage 'npm' $NpmVersion $NpmIntegrity $vendorDir }
+      if ($offlineAvailable) { Copy-OfflineNpmCache $offlineNpmCache $npmCacheDir }
     } else {
       try {
-        $nodeArchive = Get-PinnedPackage 'node-win-x64' $NodeVersion $NodeIntegrity $cacheDir
-        $npmArchive = Get-PinnedPackage 'npm' $NpmVersion $NpmIntegrity $cacheDir
+        if (-not $nodeReady) { $nodeArchive = Get-PinnedPackage 'node-win-x64' $NodeVersion $NodeIntegrity $cacheDir }
+        if (-not $npmReady) { $npmArchive = Get-PinnedPackage 'npm' $NpmVersion $NpmIntegrity $cacheDir }
       } catch {
         if (-not $offlineAvailable) { throw }
         Write-Host 'دریافت آنلاین runtime شکست خورد؛ به بستهٔ آفلاین تأییدشده برمی‌گردیم.' -ForegroundColor Yellow
         $installMode = 'offline'
-        $nodeArchive = Get-VerifiedOfflinePackage 'node-win-x64' $NodeVersion $NodeIntegrity $vendorDir
-        $npmArchive = Get-VerifiedOfflinePackage 'npm' $NpmVersion $NpmIntegrity $vendorDir
+        if (-not $nodeReady) { $nodeArchive = Get-VerifiedOfflinePackage 'node-win-x64' $NodeVersion $NodeIntegrity $vendorDir }
+        if (-not $npmReady) { $npmArchive = Get-VerifiedOfflinePackage 'npm' $NpmVersion $NpmIntegrity $vendorDir }
         Copy-OfflineNpmCache $offlineNpmCache $npmCacheDir
       }
     }
+
     $unpackRoot = Join-Path $env:TEMP ('pumpstation-runtime-' + [Guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $unpackRoot -Force | Out-Null
     $nodeUnpack = Join-Path $unpackRoot 'node'
     $npmUnpack = Join-Path $unpackRoot 'npm'
-    New-Item -ItemType Directory -Path $nodeUnpack -Force | Out-Null
-    New-Item -ItemType Directory -Path $npmUnpack -Force | Out-Null
+    if (-not $nodeReady) { New-Item -ItemType Directory -Path $nodeUnpack -Force | Out-Null }
+    if (-not $npmReady) { New-Item -ItemType Directory -Path $npmUnpack -Force | Out-Null }
     try {
-      & $tar.Source -xzf $nodeArchive -C $nodeUnpack 'package/bin/node.exe'
-      if ($LASTEXITCODE -ne 0) { throw 'استخراج فایل Node.js ناموفق بود.' }
-      & $tar.Source -xzf $npmArchive -C $npmUnpack 'package'
-      if ($LASTEXITCODE -ne 0) { throw 'استخراج فایل npm ناموفق بود.' }
+      if (-not $nodeReady) {
+        & $tar.Source -xzf $nodeArchive -C $nodeUnpack 'package/bin/node.exe'
+        if ($LASTEXITCODE -ne 0) { throw 'استخراج فایل Node.js ناموفق بود.' }
+      }
+      if (-not $npmReady) {
+        & $tar.Source -xzf $npmArchive -C $npmUnpack 'package'
+        if ($LASTEXITCODE -ne 0) { throw 'استخراج فایل npm ناموفق بود.' }
+        if (-not (Test-Path -LiteralPath (Join-Path $npmUnpack 'package/bin/npm-cli.js'))) { throw 'فایل npm-cli.js پس از استخراج پیدا نشد.' }
+      }
       New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
-      Copy-Item -LiteralPath (Join-Path $nodeUnpack 'package\bin\node.exe') -Destination $nodePath -Force
-      $npmDestination = Join-Path $runtimeDir 'npm'
-      if (Test-Path -LiteralPath $npmDestination) { Remove-Item -LiteralPath $npmDestination -Recurse -Force }
-      Copy-Item -LiteralPath (Join-Path $npmUnpack 'package') -Destination $npmDestination -Recurse -Force
+      if (-not $nodeReady) {
+        Copy-Item -LiteralPath (Join-Path $nodeUnpack 'package\bin\node.exe') -Destination $nodePath -Force
+      }
+      if (-not $npmReady) {
+        $npmRoot = Join-Path $runtimeDir 'npm'
+        if (Test-Path -LiteralPath $npmRoot) { Remove-Item -LiteralPath $npmRoot -Recurse -Force }
+        $npmPackageDestination = Join-Path $npmRoot 'package'
+        New-Item -ItemType Directory -Path $npmPackageDestination -Force | Out-Null
+        & robocopy.exe (Join-Path $npmUnpack 'package') $npmPackageDestination /E /R:1 /W:1 /NFL /NDL /NP
+        $npmCopyCode = $LASTEXITCODE
+        if ($npmCopyCode -ge 8) { throw "کپی فایل‌های npm ناموفق بود (robocopy $npmCopyCode)." }
+        if (-not (Test-Path -LiteralPath $npmCli)) { throw "npm-cli.js پس از نصب در مسیر مورد انتظار پیدا نشد: $npmCli" }
+      }
     } finally { Remove-Item -LiteralPath $unpackRoot -Recurse -Force -ErrorAction SilentlyContinue }
   }
   if ($runtimeReady -and $installMode -eq 'offline' -and $offlineAvailable) {

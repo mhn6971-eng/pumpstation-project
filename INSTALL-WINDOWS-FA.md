@@ -1,4 +1,4 @@
-# نصب Pumpstation روی Windows 10/11 x64
+﻿# نصب Pumpstation روی Windows 10/11 x64
 
 ## نصب نخست
 
@@ -13,7 +13,7 @@
 
 ## Runtimeها، dependencyها و لینک دریافت
 
-نصاب به‌جای استفاده از Node سیستم، runtime خصوصی برنامه را در `%LOCALAPPDATA%\Programs\Pumpstation\runtime` نگه می‌دارد. نسخهٔ موردنیاز **Node.js 22.22.2** به‌صورت بستهٔ `node-win-x64` و **npm 10.9.4** از npm registry دریافت و SHA-512 آن‌ها قبل از استخراج تطبیق داده می‌شود. اگر همین نسخه‌ها در پوشهٔ runtime برنامه سالم باشند، فایل‌های Node/npm دوباره دانلود یا استخراج نمی‌شوند. سیستم باید به اینترنت و `registry.npmjs.org` دسترسی داشته باشد، مگر آن‌که cache کامل `offline-vendor` در ZIP موجود باشد. نصب dependencyهای برنامه در هر نسخه با `npm ci` و براساس `package-lock.json` انجام می‌شود.
+نصاب به‌جای استفاده از Node سیستم، runtime خصوصی برنامه را در `%LOCALAPPDATA%\Programs\Pumpstation\runtime` نگه می‌دارد. نسخهٔ موردنیاز **Node.js 22.22.2** به‌صورت بستهٔ `node-win-x64` و **npm 10.9.4** از npm registry دریافت و SHA-512 آن‌ها قبل از استخراج تطبیق داده می‌شود. اگر Node.js یا npm سالم و دقیق باشد، همان جزء حفظ می‌شود و دوباره دانلود/جایگزین نمی‌شود؛ اگر فقط npm ناقص باشد، فقط npm ترمیم می‌شود. سیستم باید به اینترنت و `registry.npmjs.org` دسترسی داشته باشد، مگر آن‌که cache کامل `offline-vendor` در ZIP موجود باشد. نصب dependencyهای برنامه در هر نسخه با `npm ci` و براساس `package-lock.json` انجام می‌شود.
 
 لینک‌های مستقیم runtime (Windows x64):
 
