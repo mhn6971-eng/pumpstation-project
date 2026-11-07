@@ -1,6 +1,6 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.11   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 12a66ba
+نسخهٔ برنامه: 1.4.12   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 9bc2dd0
 تاریخ تولید: 2026-11-07   |   122 فایل   |   25,015 خط
 ==============================================================================
 
@@ -204,7 +204,7 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   },
-  "version": "1.4.11",
+  "version": "1.4.12",
   "overrides": {
     "@typescript-eslint/typescript-estree": {
       "minimatch": "11.0.5"
@@ -216,13 +216,13 @@
 
 {
   "name": "pumpstation-monitoring",
-  "version": "1.4.11",
+  "version": "1.4.12",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "pumpstation-monitoring",
-      "version": "1.4.11",
+      "version": "1.4.12",
       "dependencies": {
         "@electric-sql/pglite": "^0.5.15",
         "dotenv": "17.3.1",
