@@ -283,7 +283,8 @@ function Set-AppEnvironment($Config) {
   $env:SESSION_SECRET_DIR = $Config.sessionSecretDir
   $env:MIRROR_TOKEN_FILE = $Config.mirrorTokenFile
   $env:NEXT_TELEMETRY_DISABLED = '1'
-  $env:PATH = $Config.runtimeDir + ';' + (Join-Path $Config.runtimeDir 'npm\package\bin') + ';' + $env:PATH
+  $npmBin = Join-Path (Join-Path $Config.runtimeDir 'npm') 'bin'
+  $env:PATH = $Config.runtimeDir + ';' + $npmBin + ';' + $env:PATH
 }
 
 function Stop-PumpstationServer([string]$PidPath, [string]$AppDir) {
@@ -311,7 +312,10 @@ function Invoke-Checked([string]$Executable, [string[]]$Arguments, [string]$Work
 }
 
 try {
-  Write-Title 'نصب‌کنندهٔ Pumpstation برای Windows 10/11 x64'
+  $packageJson = Join-Path (Join-Path $PSScriptRoot 'pumpstation-v1.2') 'package.json'
+  if (-not (Test-Path -LiteralPath $packageJson)) { throw 'فایل‌های برنامه کنار install-windows.bat پیدا نشد. ZIP کامل را در یک پوشه استخراج کنید و BAT را از همان پوشه اجرا کنید.' }
+  $appVersion = (Get-Content -LiteralPath $packageJson -Raw | ConvertFrom-Json).version
+  Write-Title ("نصب‌کنندهٔ Pumpstation نسخهٔ {0} برای Windows 10/11 x64" -f $appVersion)
   Write-Host 'این نصب‌کننده نسخه‌های ثابت Node.js و npm را با SHA-512 بررسی می‌کند و در صورت نیاز بین cache آفلاین و اینترنت انتخاب می‌کند.'
   if (-not [Environment]::Is64BitOperatingSystem) { throw 'این بسته فقط برای Windows 10/11 نسخهٔ 64-bit است.' }
   if ([version]$PSVersionTable.PSVersion -lt [version]'5.1') { throw 'برای نصب، Windows PowerShell 5.1 لازم است؛ PowerShell ویندوز را به‌روزرسانی کنید.' }
@@ -366,9 +370,6 @@ try {
     New-Item -ItemType Directory -Path $directory -Force | Out-Null
   }
 
-  $packageJson = Join-Path (Join-Path $PSScriptRoot 'pumpstation-v1.2') 'package.json'
-  if (-not (Test-Path -LiteralPath $packageJson)) { throw 'فایل‌های برنامه کنار install-windows.bat پیدا نشد. ZIP کامل را در یک پوشه استخراج کنید و BAT را از همان پوشه اجرا کنید.' }
-  $appVersion = (Get-Content -LiteralPath $packageJson -Raw | ConvertFrom-Json).version
   $cacheDir = Join-Path $installRoot 'cache\pinned-runtimes'
   New-Item -ItemType Directory -Path $cacheDir -Force | Out-Null
   $vendorDir = Join-Path $PSScriptRoot 'offline-vendor'
@@ -383,19 +384,24 @@ try {
   }
 
   $nodePath = Join-Path $runtimeDir 'node.exe'
-  $npmCli = Join-Path $runtimeDir 'npm\package\bin\npm-cli.js'
+  $npmBin = Join-Path (Join-Path $runtimeDir 'npm') 'bin'
+  $npmCli = Join-Path $npmBin 'npm-cli.js'
   $nodeReady = $false
   $npmReady = $false
   if (Test-Path -LiteralPath $nodePath) {
     try {
-      $installedNode = (& $nodePath --version 2>$null).Trim()
-      $nodeReady = ($installedNode -eq "v$NodeVersion")
+      $nodeOutput = @(& $nodePath --version 2>$null)
+      $nodeExitCode = $LASTEXITCODE
+      $installedNode = ($nodeOutput | Out-String).Trim()
+      $nodeReady = ($nodeExitCode -eq 0 -and $installedNode -eq "v$NodeVersion")
     } catch { $nodeReady = $false }
   }
   if ($nodeReady -and (Test-Path -LiteralPath $npmCli)) {
     try {
-      $installedNpm = (& $nodePath $npmCli --version 2>$null).Trim()
-      $npmReady = ($installedNpm -eq $NpmVersion)
+      $npmOutput = @(& $nodePath $npmCli --version 2>$null)
+      $npmExitCode = $LASTEXITCODE
+      $installedNpm = ($npmOutput | Out-String).Trim()
+      $npmReady = ($npmExitCode -eq 0 -and $installedNpm -eq $NpmVersion)
     } catch { $npmReady = $false }
   }
   $runtimeReady = ($nodeReady -and $npmReady)
@@ -471,21 +477,26 @@ try {
       if (-not $npmReady) {
         $npmRoot = Join-Path $runtimeDir 'npm'
         if (Test-Path -LiteralPath $npmRoot) { Remove-Item -LiteralPath $npmRoot -Recurse -Force }
-        $npmPackageDestination = Join-Path $npmRoot 'package'
-        New-Item -ItemType Directory -Path $npmPackageDestination -Force | Out-Null
-        & robocopy.exe (Join-Path $npmUnpack 'package') $npmPackageDestination /E /R:1 /W:1 /NFL /NDL /NP
+        New-Item -ItemType Directory -Path $npmRoot -Force | Out-Null
+        & robocopy.exe (Join-Path $npmUnpack 'package') $npmRoot /E /R:1 /W:1 /NFL /NDL /NP
         $npmCopyCode = $LASTEXITCODE
         if ($npmCopyCode -ge 8) { throw "کپی فایل‌های npm ناموفق بود (robocopy $npmCopyCode)." }
-        if (-not (Test-Path -LiteralPath $npmCli)) { throw "npm-cli.js پس از نصب در مسیر مورد انتظار پیدا نشد: $npmCli" }
+        if (-not (Test-Path -LiteralPath $npmCli -PathType Leaf)) { throw "فایل npm-cli.js پس از کپی پیدا نشد: $npmCli؛ کد robocopy: $npmCopyCode" }
       }
     } finally { Remove-Item -LiteralPath $unpackRoot -Recurse -Force -ErrorAction SilentlyContinue }
   }
   if ($runtimeReady -and $installMode -eq 'offline' -and $offlineAvailable) {
     Copy-OfflineNpmCache $offlineNpmCache $npmCacheDir
   }
-  $nodeActual = (& $nodePath --version).Trim()
-  $npmActual = (& $nodePath $npmCli --version).Trim()
-  if ($nodeActual -ne "v$NodeVersion" -or $npmActual -ne $NpmVersion) { throw "نسخهٔ runtime نادرست است: Node=$nodeActual npm=$npmActual" }
+  $nodeOutput = @(& $nodePath --version 2>&1)
+  $nodeExitCode = $LASTEXITCODE
+  $nodeActual = ($nodeOutput | Out-String).Trim()
+  if ($nodeExitCode -ne 0 -or $nodeActual -ne "v$NodeVersion") { throw "Node.js اجرا نشد یا نسخه‌اش درست نیست؛ exit=$nodeExitCode؛ خروجی: $nodeActual؛ مسیر: $nodePath" }
+  if (-not (Test-Path -LiteralPath $npmCli -PathType Leaf)) { throw "npm-cli.js در مسیر نهایی وجود ندارد: $npmCli" }
+  $npmOutput = @(& $nodePath $npmCli --version 2>&1)
+  $npmExitCode = $LASTEXITCODE
+  $npmActual = ($npmOutput | Out-String).Trim()
+  if ($npmExitCode -ne 0 -or $npmActual -ne $NpmVersion) { throw "npm اجرا نشد یا نسخه‌اش درست نیست؛ exit=$npmExitCode؛ خروجی: $npmActual؛ مسیر CLI: $npmCli" }
   $runtimeNotices = Join-Path $PSScriptRoot 'RUNTIME-LICENSES.txt'
   if (-not (Test-Path -LiteralPath $runtimeNotices)) { throw 'فایل مجوزهای runtime کنار نصب‌کننده پیدا نشد.' }
   Copy-Item -LiteralPath $runtimeNotices -Destination (Join-Path $runtimeDir 'LICENSES.txt') -Force

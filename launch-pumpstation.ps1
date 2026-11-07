@@ -65,7 +65,8 @@ $env:ROSTER_FILE = $config.rosterFile
 $env:SESSION_SECRET_DIR = $config.sessionSecretDir
 $env:MIRROR_TOKEN_FILE = $config.mirrorTokenFile
 $env:NEXT_TELEMETRY_DISABLED = '1'
-$env:PATH = $config.runtimeDir + ';' + (Join-Path $config.runtimeDir 'npm\package\bin') + ';' + (Join-Path $config.appDir 'node_modules\.bin') + ';' + $env:PATH
+$npmBin = Join-Path (Join-Path $config.runtimeDir 'npm') 'bin'
+$env:PATH = $config.runtimeDir + ';' + $npmBin + ';' + (Join-Path $config.appDir 'node_modules\.bin') + ';' + $env:PATH
 
 $preferredPort = 3000
 try {
