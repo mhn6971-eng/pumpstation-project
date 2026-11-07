@@ -70,7 +70,7 @@ const SECTIONS = [
   ] },
   { title: "اسکریپت‌های عملیاتی (scripts)", files: [
     "launch-pumpstation.ps1", "launch-pumpstation.vbs",
-    "scripts/init-db.mjs", "scripts/doctor.mjs", "scripts/reset-admin-pin.mjs",
+    "scripts/init-db.mjs", "scripts/doctor.mjs",
     "scripts/mirror-backup.mjs", "scripts/pg-init.mjs", "scripts/pg-dump.mjs",
     "scripts/pg-import-json.mjs", "scripts/serve.mjs", "scripts/bulk-import.mjs", "scripts/update-runner.mjs",
     "scripts/generate-code-all.mjs", "scripts/extract-code-all.mjs", "scripts/test-fresh-install.mjs", "scripts/stackblitz-warning.mjs",

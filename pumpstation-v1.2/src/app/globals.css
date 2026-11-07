@@ -1321,6 +1321,13 @@ textarea.input {
   .login-card {
     grid-template-columns: 1fr;
   }
+  .login-hero {
+    min-height: 320px;
+  }
+  .designer-credit {
+    left: 8px;
+    bottom: 5px;
+  }
 }
 
 .login-hero {
@@ -1415,15 +1422,37 @@ textarea.input {
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12);
 }
 
-.hero-machine {
-  border-radius: 14px;
-  background: rgba(255,255,255,0.92);
-  border: 1px solid rgba(255,255,255,0.6);
-  padding: 10px 14px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--navy);
+.hero-logo {
+  display: block;
+  width: 116px;
+  height: auto;
+  max-height: 88px;
+  object-fit: contain;
+  align-self: flex-start;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.32));
+}
+
+.login-form-logo {
+  display: block;
+  width: 58px;
+  height: auto;
+  max-height: 46px;
+  object-fit: contain;
+  flex: none;
+}
+
+.designer-credit {
+  position: fixed;
+  left: 12px;
+  bottom: 8px;
+  z-index: 20;
+  padding: 2px 6px;
+  border-radius: 5px;
+  color: rgba(15, 34, 54, 0.62);
+  background: rgba(255, 255, 255, 0.62);
+  font-size: 10px;
+  line-height: 1.5;
+  pointer-events: none;
 }
 
 /* ---------- misc ---------- */

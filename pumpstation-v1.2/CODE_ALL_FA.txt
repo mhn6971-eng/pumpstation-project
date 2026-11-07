@@ -1,7 +1,7 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.19   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 5ff43f5
-تاریخ تولید: 2026-11-07   |   133 فایل   |   26,809 خط
+نسخهٔ برنامه: 1.4.20   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 35d3330
+تاریخ تولید: 2026-11-07   |   132 فایل   |   26,752 خط
 ==============================================================================
 
 این فایل، «نسخهٔ خوانا»ی کل کد برنامه است؛ هر فایل کامل و بدون حذف درج شده و
@@ -93,7 +93,7 @@
      src/app/not-found.tsx                                14 خط
      src/app/report/[id]/page.tsx                         232 خط
      src/app/totals/page.tsx                              81 خط
-     src/app/globals.css                                  2160 خط
+     src/app/globals.css                                  2189 خط
      src/proxy.ts                                         155 خط
      src/instrumentation.ts                               32 خط
      src/instrumentation.node.ts                          38 خط
@@ -102,7 +102,7 @@
      src/components/context.tsx                           31 خط
      src/components/ui.tsx                                134 خط
      src/components/AppShell.tsx                          412 خط
-     src/components/Login.tsx                             121 خط
+     src/components/Login.tsx                             118 خط
      src/components/Dashboard.tsx                         165 خط
      src/components/MotorCard.tsx                         107 خط
      src/components/MotorVisual.tsx                       123 خط
@@ -118,7 +118,7 @@
      src/components/AlertsTab.tsx                         49 خط
      src/components/ProblemsTab.tsx                       27 خط
      src/components/TrainingTab.tsx                       102 خط
-     src/components/AdminTab.tsx                          926 خط
+     src/components/AdminTab.tsx                          929 خط
      src/components/TwoFactorPanel.tsx                    284 خط
      src/components/MirrorPanel.tsx                       143 خط
      src/components/UpdatePanel.tsx                       315 خط
@@ -128,7 +128,6 @@
      launch-pumpstation.vbs                               34 خط
      scripts/init-db.mjs                                  87 خط
      scripts/doctor.mjs                                   259 خط
-     scripts/reset-admin-pin.mjs                          83 خط
      scripts/mirror-backup.mjs                            74 خط
      scripts/pg-init.mjs                                  65 خط
      scripts/pg-dump.mjs                                  67 خط
@@ -155,11 +154,11 @@
      audit/jalali.test.mjs                                42 خط
      audit/updater.test.mjs                               15 خط
      audit/update-zip.test.mjs                            68 خط
-     audit/windows-installer.test.mjs                     92 خط
+     audit/windows-installer.test.mjs                     90 خط
      audit/probe.mjs                                      10 خط
      audit/sess.mjs                                       34 خط
      audit/writeperf.mjs                                  14 خط
-     audit/README.md                                      69 خط
+     audit/README.md                                      68 خط
 
   ۹) استقرار و CI
      deploy/Caddyfile                                     73 خط
@@ -217,7 +216,7 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   },
-  "version": "1.4.19",
+  "version": "1.4.20",
   "overrides": {
     "@typescript-eslint/typescript-estree": {
       "minimatch": "11.0.5"
@@ -229,13 +228,13 @@
 
 {
   "name": "pumpstation-monitoring",
-  "version": "1.4.19",
+  "version": "1.4.20",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "pumpstation-monitoring",
-      "version": "1.4.19",
+      "version": "1.4.20",
       "dependencies": {
         "@electric-sql/pglite": "^0.5.15",
         "dotenv": "17.3.1",
@@ -15929,7 +15928,7 @@ export default async function TotalsPage({ searchParams }: { searchParams: Promi
   );
 }
 
-── FILE: src/app/globals.css  (2160 خط) ──
+── FILE: src/app/globals.css  (2189 خط) ──
 
 @import "tailwindcss";
 
@@ -17254,6 +17253,13 @@ textarea.input {
   .login-card {
     grid-template-columns: 1fr;
   }
+  .login-hero {
+    min-height: 320px;
+  }
+  .designer-credit {
+    left: 8px;
+    bottom: 5px;
+  }
 }
 
 .login-hero {
@@ -17348,15 +17354,37 @@ textarea.input {
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12);
 }
 
-.hero-machine {
-  border-radius: 14px;
-  background: rgba(255,255,255,0.92);
-  border: 1px solid rgba(255,255,255,0.6);
-  padding: 10px 14px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  color: var(--navy);
+.hero-logo {
+  display: block;
+  width: 116px;
+  height: auto;
+  max-height: 88px;
+  object-fit: contain;
+  align-self: flex-start;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.32));
+}
+
+.login-form-logo {
+  display: block;
+  width: 58px;
+  height: auto;
+  max-height: 46px;
+  object-fit: contain;
+  flex: none;
+}
+
+.designer-credit {
+  position: fixed;
+  left: 12px;
+  bottom: 8px;
+  z-index: 20;
+  padding: 2px 6px;
+  border-radius: 5px;
+  color: rgba(15, 34, 54, 0.62);
+  background: rgba(255, 255, 255, 0.62);
+  font-size: 10px;
+  line-height: 1.5;
+  pointer-events: none;
 }
 
 /* ---------- misc ---------- */
@@ -18905,7 +18933,7 @@ export default function AppShell({ initial }: { initial: AppState }) {
   );
 }
 
-── FILE: src/components/Login.tsx  (121 خط) ──
+── FILE: src/components/Login.tsx  (118 خط) ──
 
 "use client";
 
@@ -18955,11 +18983,8 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
     <main className="login-page">
       <div className="login-card">
         <div className="login-hero">
-          <div className="hero-machine">
-            {/* لوگوی رسمی شرکت — عین فایل ارسالی کارفرما */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo.jpg" alt={ORG_NAME} style={{ height: 64, width: "auto", background: "#fff", borderRadius: 8, padding: 4 }} />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="hero-logo" src="/brand/logo-transparent.png" alt={ORG_NAME} />
           <div>
             <h2>{APP_NAME}</h2>
             <p style={{ fontSize: 16, fontWeight: 600 }}>{APP_SUBTITLE}</p>
@@ -18975,7 +19000,7 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
           <div className="row" style={{ justifyContent: "space-between", marginBottom: 14 }}>
             <div className="panel-title" style={{ fontSize: 16 }}><Icon name="users" size={18} className="muted" /> انتخاب شیفت و ورود</div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo.jpg" alt={ORG_NAME} style={{ height: 44, width: "auto", background: "#fff", borderRadius: 8, padding: 4 }} />
+            <img className="login-form-logo" src="/brand/logo-transparent.png" alt={ORG_NAME} />
           </div>
 
           <div className="shift-options">
@@ -19021,9 +19046,9 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
             {busy ? "در حال ورود…" : "ورود به سامانه"}
           </button>
 
-          <p className="tiny muted" style={{ marginTop: 10, textAlign: "center" }}>{ORG_NAME} — در گزارش‌ها نام شیفت و اپراتورهای همان شیفت ثبت می‌شود.</p>
         </form>
       </div>
+      <small className="designer-credit">طراح: محسن نقی‌پور</small>
     </main>
   );
 }
@@ -21075,7 +21100,7 @@ export default function TrainingTab() {
   );
 }
 
-── FILE: src/components/AdminTab.tsx  (926 خط) ──
+── FILE: src/components/AdminTab.tsx  (929 خط) ──
 
 "use client";
 
@@ -21399,6 +21424,9 @@ function ShiftPanel() {
 
   return (
     <Panel title="افراد، PIN و چرخش شیفت" icon="users" hint="روستر اپراتورها و شیفت فعال">
+      <div className="tiny muted" style={{ marginBottom: 10 }}>
+        برای هر حساب یک PIN مستقل چهاررقمی تعیین کنید؛ عدد جدید را وارد کنید و دکمهٔ PIN همان سطر را بزنید.
+      </div>
       <div className="services-list">
         {state.roster.map((r) => (
           <div key={r.key} className="service-item" style={{ alignItems: "center" }}>
@@ -23352,91 +23380,6 @@ try {
   }
 }
 
-── FILE: scripts/reset-admin-pin.mjs  (83 خط) ──
-
-/**
- * بازنشانی اضطراری PIN (وقتی کسی به سامانه دسترسی ندارد) — نسخهٔ ۱٫۴٫۱.
- *
- *   node scripts/reset-admin-pin.mjs --pin 123456 --confirm 123456 [--shift admin]
- *
- * بدون --pin و --confirmِ یکسان، هیچ کاری انجام نمی‌شود (PIN پیش‌فرضی در کار نیست).
- * شرط‌ها: سامانه باید خاموش باشد (قفل پوشهٔ داده بررسی می‌شود) و
- * رویداد در دفتر فعالیت ثبت می‌شود تا رد پا بماند.
- */
-import { PGlite } from "@electric-sql/pglite";
-import { randomBytes, scryptSync } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
-import path from "node:path";
-
-const args = process.argv.slice(2);
-const flag = (name) => {
-  const i = args.findIndex((a) => a === name);
-  return i >= 0 ? (args[i + 1] ?? "").trim() : "";
-};
-
-const pin = flag("--pin");
-const confirm = flag("--confirm");
-const shiftKey = flag("--shift") || "admin";
-
-if (!pin || !confirm) {
-  console.error("استفاده: node scripts/reset-admin-pin.mjs --pin <4تا6 رقم> --confirm <تکرار PIN> [--shift admin]");
-  console.error("بدون --pin و --confirm هیچ کاری انجام نمی‌شود.");
-  process.exit(1);
-}
-if (pin !== confirm) {
-  console.error("PIN و تکرار آن یکسان نیست؛ هیچ کاری انجام نشد.");
-  process.exit(1);
-}
-if (!/^\d{4,6}$/.test(pin)) {
-  console.error("PIN باید چهار تا شش رقم باشد.");
-  process.exit(1);
-}
-
-const dataDir = process.env.PGLITE_DATA_DIR ?? ".data/pglite";
-const lockFile = path.join(path.resolve(dataDir), ".pumpstation.lock");
-
-if (existsSync(lockFile)) {
-  try {
-    const info = JSON.parse(readFileSync(lockFile, "utf8"));
-    if (info?.pid) {
-      try {
-        process.kill(info.pid, 0);
-        console.error(`سامانه در حال اجراست (PID ${info.pid}). ابتدا آن را ببندید.`);
-        process.exit(1);
-      } catch {
-        /* قفل قدیمی */
-      }
-    }
-  } catch {
-    /* ignore */
-  }
-}
-
-const salt = randomBytes(16).toString("hex");
-const hash = `scrypt$${salt}$${scryptSync(pin, salt, 32).toString("hex")}`;
-
-const db = new PGlite(dataDir);
-try {
-  const exists = await db.query(`select count(*)::int as n from shifts where key = $1`, [shiftKey]);
-  if (!exists.rows[0].n) {
-    console.error(`شیفت «${shiftKey}» در دیتابیس نیست. کلیدهای موجود:`);
-    const keys = await db.query(`select key from shifts order by key`);
-    for (const row of keys.rows) console.error(`  - ${row.key}`);
-    process.exit(1);
-  }
-  await db.query(`update shifts set pin = $1 where key = $2`, [hash, shiftKey]);
-  await db.query(
-    `insert into activity (at, shift_key, action, detail, prev_hash, hash) values ($1,$2,$3,$4,'','')`,
-    [new Date().toLocaleString("fa-IR"), "system", "بازنشانی اضطراری PIN", `شیفت ${shiftKey} با اسکریپت محلی`],
-  );
-  console.log(`PIN شیفت «${shiftKey}» بازنشانی شد. پس از ورود، PIN را از تب ادمین عوض کنید.`);
-} catch (error) {
-  console.error("بازنشانی ناموفق:", error instanceof Error ? error.message : error);
-  process.exitCode = 1;
-} finally {
-  await db.close();
-}
-
 ── FILE: scripts/mirror-backup.mjs  (74 خط) ──
 
 #!/usr/bin/env node
@@ -24608,7 +24551,7 @@ const SECTIONS = [
   ] },
   { title: "اسکریپت‌های عملیاتی (scripts)", files: [
     "launch-pumpstation.ps1", "launch-pumpstation.vbs",
-    "scripts/init-db.mjs", "scripts/doctor.mjs", "scripts/reset-admin-pin.mjs",
+    "scripts/init-db.mjs", "scripts/doctor.mjs",
     "scripts/mirror-backup.mjs", "scripts/pg-init.mjs", "scripts/pg-dump.mjs",
     "scripts/pg-import-json.mjs", "scripts/serve.mjs", "scripts/bulk-import.mjs", "scripts/update-runner.mjs",
     "scripts/generate-code-all.mjs", "scripts/extract-code-all.mjs", "scripts/test-fresh-install.mjs", "scripts/stackblitz-warning.mjs",
@@ -26777,9 +26720,10 @@ await assert.rejects(
 );
 console.log("PASS | update zip | rejects prerelease or malformed versions");
 
-── FILE: audit/windows-installer.test.mjs  (92 خط) ──
+── FILE: audit/windows-installer.test.mjs  (90 خط) ──
 
 import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26788,13 +26732,15 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 const installer = await readFile(path.join(root, "install-windows.ps1"), "utf8");
 const batch = await readFile(path.join(root, "install-windows.bat"), "utf8");
-const pinReset = await readFile(path.join(root, "reset-pins.ps1"), "utf8");
-const pinResetBatch = await readFile(path.join(root, "reset-pins.bat"), "utf8");
 const launcher = await readFile(path.join(root, "launch-pumpstation.ps1"), "utf8");
 const appLauncher = await readFile(path.join(root, "pumpstation-v1.2/launch-pumpstation.ps1"), "utf8");
 const packager = await readFile(path.join(root, "package-windows.ps1"), "utf8");
 const appPackage = JSON.parse(await readFile(path.join(root, "pumpstation-v1.2/package.json"), "utf8"));
 const adminTab = await readFile(path.join(root, "pumpstation-v1.2/src/components/AdminTab.tsx"), "utf8");
+const loginPage = await readFile(path.join(root, "pumpstation-v1.2/src/components/Login.tsx"), "utf8");
+const styles = await readFile(path.join(root, "pumpstation-v1.2/src/app/globals.css"), "utf8");
+const logoPng = await readFile(path.join(root, "pumpstation-v1.2/public/brand/logo-transparent.png"));
+const loginPhoto = await readFile(path.join(root, "pumpstation-v1.2/public/images/pump-hall.jpg"));
 const authRoute = await readFile(path.join(root, "pumpstation-v1.2/src/app/api/auth/route.ts"), "utf8");
 const actionsRoute = await readFile(path.join(root, "pumpstation-v1.2/src/app/api/actions/route.ts"), "utf8");
 const roster = await readFile(path.join(root, "pumpstation-v1.2/src/lib/roster.ts"), "utf8");
@@ -26815,12 +26761,21 @@ assert.doesNotMatch(installer, /Get-NetTCPConnection|Stop-Process\s+-Name\s+node
 assert.match(installer, /DATABASE ROLLBACK FAILED/);
 assert.match(installer, /Previous application code and configuration were restored/);
 assert.match(installer, /Data drive selected automatically/);
-assert.match(installer, /function New-DefaultPin\s*\{\s*return '1234'/);
-assert.match(installer, /Temporary default PIN 1234 is set for all four accounts/);
-assert.doesNotMatch(installer, /New-RandomPin|BitConverter\]::ToUInt32\(\$bytes/);
+assert.match(installer, /function New-DefaultPin\(\[string\]\$Key\)/);
+assert.match(installer, /A = '1111'; B = '2222'; C = '3333'; admin = '4444'/);
+assert.match(installer, /Shift A 1111, Shift B 2222, Shift C 3333, Administrator 4444/);
+assert.doesNotMatch(installer, /New-RandomPin|BitConverter\]::ToUInt32\(\$bytes|1234/);
 assert.match(adminTab, /maxLength=\{4\}/);
 assert.match(adminTab, /slice\(0, 4\)/);
 assert.match(adminTab, /\.length !== 4/);
+assert.match(adminTab, /یک PIN مستقل چهاررقمی تعیین کنید/);
+assert.ok(loginPage.includes('src="/brand/logo-transparent.png"'));
+assert.ok(loginPage.includes("طراح: محسن نقی‌پور"));
+assert.doesNotMatch(loginPage, /ORG_NAME.*گزارش‌ها/);
+assert.match(styles, /\.hero-logo\s*\{[\s\S]*?filter: drop-shadow/);
+assert.match(styles, /\.designer-credit\s*\{/);
+assert.deepEqual([...logoPng.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+assert.ok(loginPhoto.length > 100_000, "login background must use the supplied high-resolution pump-station image");
 assert.ok(authRoute.includes("!/^\\d{4}$/.test(pin)"));
 assert.ok(actionsRoute.includes("!/^\\d{4}$/.test(pin)"));
 assert.ok(roster.includes("if (!/^\\d{4}$/.test(pin))"));
@@ -26849,27 +26804,13 @@ assert.match(packager, /\$downloadDir = Join-Path \$root 'downloads'/);
 assert.match(packager, /Join-Path \$downloadDir/);
 assert.match(packager, /'\.data'/);
 assert.match(packager, /'\*\.local\.json'/);
-assert.match(packager, /'reset-pins\.bat'/);
-assert.match(packager, /'reset-pins\.ps1'/);
-assert.match(pinReset, /credential-recovery/);
-assert.match(pinReset, /\.pumpstation\.lock/);
-assert.match(pinReset, /databaseOwnerPid/);
-assert.match(pinReset, /lockedDataDir/);
-assert.match(pinReset, /lockStartedAt/);
-assert.match(pinReset, /CreationDate/);
-assert.match(pinReset, /lockIdentityVerified/);
-assert.match(pinReset, /isDatabaseOwner/);
-assert.match(pinReset, /sameRuntime/);
-assert.match(pinReset, /Assert-DirectoryFilesEqual \$databaseDir \$databaseBackup/);
-assert.match(pinReset, /UPDATE shifts SET pin = \$1/);
-assert.match(pinReset, /hashPin\("1234"\)/);
-assert.match(pinReset, /totp_enabled/);
-assert.match(pinReset, /does not reset|not reset/i);
-assert.match(pinReset, /launch-pumpstation\.ps1/);
-assert.doesNotMatch(pinReset, /DROP TABLE|DELETE FROM|Remove-Item.+databaseDir/i);
-assert.match(pinResetBatch, /reset-pins\.ps1/);
+assert.doesNotMatch(packager, /reset-pins/);
+assert.equal(existsSync(path.join(root, "reset-pins.bat")), false);
+assert.equal(existsSync(path.join(root, "reset-pins.ps1")), false);
+assert.equal(existsSync(path.join(root, "pumpstation-v1.2/scripts/reset-admin-pin.mjs")), false);
+assert.ok(styles.includes('url("/images/pump-hall.jpg")'));
 
-console.log("PASS | windows installer | default four-digit PINs, verified data-preserving reset, backups, rollback and visible completion");
+console.log("PASS | Windows/login | four distinct fresh-install PINs, editable Admin PINs, supplied login artwork and no reset utility");
 
 ── FILE: audit/probe.mjs  (10 خط) ──
 
@@ -26935,7 +26876,7 @@ ts.sort((a, b) => a.ms - b.ms);
 console.log("writes ms:", ts.map((x) => x.ms).join(", "));
 console.log("median:", ts[5].ms, "| statuses:", [...new Set(ts.map((x) => x.status))].join(","), "| errors:", ts.filter(x=>x.err).map(x=>x.err).slice(0,2));
 
-── FILE: audit/README.md  (69 خط) ──
+── FILE: audit/README.md  (68 خط) ──
 
 # پوشهٔ تست و بازبینی (Audit)
 
@@ -26997,7 +26938,6 @@ npm run test            # بررسی نوع‌ها + همهٔ تست‌های ب
 npm run doctor                        # بررسی سلامت دیتابیس و شمارش ردیف‌ها
 node scripts/doctor.mjs --repair      # قرنطینهٔ دیتابیس خراب و بازیابی از آخرین بک‌آپ
 node scripts/doctor.mjs --restore FILE
-node scripts/reset-admin-pin.mjs      # بازنشانی اضطراری PIN ادمین (سامانه خاموش)
 node scripts/mirror-backup.mjs        # کپی بک‌آپ روی آینه (سامانه روشن؛ برای Task Scheduler)
 node scripts/pg-init.mjs              # ساخت اسکیما روی PostgreSQL سروری (DATABASE_URL)
 node scripts/pg-dump.mjs              # دامپ فشردهٔ روزانه با pg_dump

@@ -46,11 +46,8 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
     <main className="login-page">
       <div className="login-card">
         <div className="login-hero">
-          <div className="hero-machine">
-            {/* لوگوی رسمی شرکت — عین فایل ارسالی کارفرما */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo.jpg" alt={ORG_NAME} style={{ height: 64, width: "auto", background: "#fff", borderRadius: 8, padding: 4 }} />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="hero-logo" src="/brand/logo-transparent.png" alt={ORG_NAME} />
           <div>
             <h2>{APP_NAME}</h2>
             <p style={{ fontSize: 16, fontWeight: 600 }}>{APP_SUBTITLE}</p>
@@ -66,7 +63,7 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
           <div className="row" style={{ justifyContent: "space-between", marginBottom: 14 }}>
             <div className="panel-title" style={{ fontSize: 16 }}><Icon name="users" size={18} className="muted" /> انتخاب شیفت و ورود</div>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logo.jpg" alt={ORG_NAME} style={{ height: 44, width: "auto", background: "#fff", borderRadius: 8, padding: 4 }} />
+            <img className="login-form-logo" src="/brand/logo-transparent.png" alt={ORG_NAME} />
           </div>
 
           <div className="shift-options">
@@ -112,9 +109,9 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
             {busy ? "در حال ورود…" : "ورود به سامانه"}
           </button>
 
-          <p className="tiny muted" style={{ marginTop: 10, textAlign: "center" }}>{ORG_NAME} — در گزارش‌ها نام شیفت و اپراتورهای همان شیفت ثبت می‌شود.</p>
         </form>
       </div>
+      <small className="designer-credit">طراح: محسن نقی‌پور</small>
     </main>
   );
 }

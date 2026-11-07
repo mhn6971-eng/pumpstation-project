@@ -58,7 +58,6 @@ npm run test            # بررسی نوع‌ها + همهٔ تست‌های ب
 npm run doctor                        # بررسی سلامت دیتابیس و شمارش ردیف‌ها
 node scripts/doctor.mjs --repair      # قرنطینهٔ دیتابیس خراب و بازیابی از آخرین بک‌آپ
 node scripts/doctor.mjs --restore FILE
-node scripts/reset-admin-pin.mjs      # بازنشانی اضطراری PIN ادمین (سامانه خاموش)
 node scripts/mirror-backup.mjs        # کپی بک‌آپ روی آینه (سامانه روشن؛ برای Task Scheduler)
 node scripts/pg-init.mjs              # ساخت اسکیما روی PostgreSQL سروری (DATABASE_URL)
 node scripts/pg-dump.mjs              # دامپ فشردهٔ روزانه با pg_dump

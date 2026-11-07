@@ -320,6 +320,9 @@ function ShiftPanel() {
 
   return (
     <Panel title="افراد، PIN و چرخش شیفت" icon="users" hint="روستر اپراتورها و شیفت فعال">
+      <div className="tiny muted" style={{ marginBottom: 10 }}>
+        برای هر حساب یک PIN مستقل چهاررقمی تعیین کنید؛ عدد جدید را وارد کنید و دکمهٔ PIN همان سطر را بزنید.
+      </div>
       <div className="services-list">
         {state.roster.map((r) => (
           <div key={r.key} className="service-item" style={{ alignItems: "center" }}>

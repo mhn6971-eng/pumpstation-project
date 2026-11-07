@@ -20,8 +20,6 @@ $requiredRootFiles = @(
   'launch-pumpstation.bat',
   'launch-pumpstation.ps1',
   'launch-pumpstation.vbs',
-  'reset-pins.bat',
-  'reset-pins.ps1',
   'RUNTIME-LICENSES.txt',
   'INSTALL-WINDOWS-FA.md'
 )

@@ -185,12 +185,14 @@ function Write-MirrorReliabilityWarning([string]$DataRoot, [string]$MirrorRoot) 
   }
 }
 
-function New-DefaultPin {
-  return '1234'
+function New-DefaultPin([string]$Key) {
+  $defaults = @{ A = '1111'; B = '2222'; C = '3333'; admin = '4444' }
+  if (-not $defaults.ContainsKey($Key)) { throw "No temporary default PIN is defined for account $Key." }
+  return $defaults[$Key]
 }
 
 function New-LocalPin([string]$Key, [string]$Role, [string[]]$Used) {
-  return New-DefaultPin
+  return New-DefaultPin $Key
 }
 
 function New-LocalRoster([string]$RosterPath) {
@@ -199,8 +201,8 @@ function New-LocalRoster([string]$RosterPath) {
     return
   }
   Write-Title 'Set temporary operator PINs'
-  Write-Host 'Temporary default PIN 1234 is set for all four accounts. Change each PIN from Admin settings after sign-in.' -ForegroundColor Yellow
-  Write-Host 'The PIN is shown below and is not written to the installer log.' -ForegroundColor Yellow
+  Write-Host 'Temporary initial PINs: Shift A 1111, Shift B 2222, Shift C 3333, Administrator 4444.' -ForegroundColor Yellow
+  Write-Host 'Change each account PIN from Admin settings after sign-in. PINs are not written to installer logs.' -ForegroundColor Yellow
   $used = @()
   $roster = @()
   $script:InstallerPins = @()
