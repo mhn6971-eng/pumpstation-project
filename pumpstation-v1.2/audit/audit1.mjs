@@ -109,8 +109,10 @@ const H = (cookie) => ({ cookie });
   const admState = await fetch(`${BASE}/api/state`, { headers: H(ADM) }).then((r) => r.json());
   log("admin sees admin panel data", admState.me.role === "admin", `role=${admState.me.role}`);
   const pinSix = await act(ADM, "admin.pin", { key: "B", pin: "654321" });
+  const pinFour = await act(ADM, "admin.pin", { key: "B", pin: "6543" });
+  const loginFour = await fetch(`${BASE}/api/auth`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: "B", pin: "6543" }) });
   const loginSix = await fetch(`${BASE}/api/auth`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: "B", pin: "654321" }) });
-  log("six-digit PIN can be set and used", pinSix.status === 200 && loginSix.status === 200, `set=${pinSix.status} login=${loginSix.status}`);
+  log("only four-digit PIN can be set and used", pinSix.status === 400 && pinFour.status === 200 && loginFour.status === 200 && loginSix.status === 400, `six-set=${pinSix.status} four-set=${pinFour.status} four-login=${loginFour.status} six-login=${loginSix.status}`);
   await act(ADM, "admin.pin", { key: "B", pin: "2022" });
 
   // ---------- E: input validation / injection ----------

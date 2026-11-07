@@ -61,7 +61,7 @@ export function validateRoster(input: unknown, sourceName: string): RosterEntry[
     const role = e.role;
     if (role !== "operator" && role !== "admin") throw bad(`نقش شیفت ${key} باید operator یا admin باشد`);
     const pin = String(e.pin ?? "");
-    if (!/^\d{4,6}$/.test(pin)) throw bad(`PIN شیفت ${key} باید چهار تا شش رقم باشد`);
+    if (!/^\d{4}$/.test(pin)) throw bad(`PIN شیفت ${key} باید دقیقاً چهار رقم باشد`);
     const members = Array.isArray(e.members) ? e.members.map((m) => String(m ?? "").trim()).filter(Boolean) : [];
     if (members.length === 0 || members.length > 4) throw bad(`اعضای شیفت ${key} باید یک تا چهار نام باشد`);
     if (members.some((m) => m.length > 80)) throw bad(`نام یکی از اعضای شیفت ${key} بیش از حد طولانی است`);

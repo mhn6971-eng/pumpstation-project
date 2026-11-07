@@ -185,20 +185,12 @@ function Write-MirrorReliabilityWarning([string]$DataRoot, [string]$MirrorRoot) 
   }
 }
 
-function New-RandomPin([string[]]$Used) {
-  $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
-  try {
-    do {
-      $bytes = New-Object byte[] 4
-      $rng.GetBytes($bytes)
-      $pin = [string](1000 + ([BitConverter]::ToUInt32($bytes, 0) % 9000))
-    } while ($Used -contains $pin -or $pin -in @('1011', '2022', '3033', '9009'))
-  } finally { $rng.Dispose() }
-  return $pin
+function New-DefaultPin {
+  return '1234'
 }
 
 function New-LocalPin([string]$Key, [string]$Role, [string[]]$Used) {
-  return New-RandomPin $Used
+  return New-DefaultPin
 }
 
 function New-LocalRoster([string]$RosterPath) {
@@ -206,8 +198,9 @@ function New-LocalRoster([string]$RosterPath) {
     Write-Host 'Existing local operator accounts will be preserved.' -ForegroundColor Green
     return
   }
-  Write-Title 'Create secure operator PINs'
-  Write-Host 'Unique PINs are generated automatically. Save the PINs shown below; the installer log never stores them.' -ForegroundColor Yellow
+  Write-Title 'Set temporary operator PINs'
+  Write-Host 'Temporary default PIN 1234 is set for all four accounts. Change each PIN from Admin settings after sign-in.' -ForegroundColor Yellow
+  Write-Host 'The PIN is shown below and is not written to the installer log.' -ForegroundColor Yellow
   $used = @()
   $roster = @()
   $script:InstallerPins = @()
@@ -572,7 +565,7 @@ try {
   if (Test-Path -LiteralPath $paths.databaseDir) { $databaseHasFiles = @(Get-ChildItem -LiteralPath $paths.databaseDir -Force -ErrorAction SilentlyContinue).Count -gt 0 }
   if ((Test-Path -LiteralPath $rosterMarker) -and -not $databaseHasFiles) {
     Remove-Item -LiteralPath $rosterMarker -Force -ErrorAction SilentlyContinue
-    Write-Host 'The database is empty; new local operator PINs will be generated.' -ForegroundColor Yellow
+    Write-Host 'The database is empty; temporary default PINs will be set for the new local accounts.' -ForegroundColor Yellow
   }
   if ($databaseHasFiles -and -not (Test-Path -LiteralPath $rosterMarker) -and -not (Test-Path -LiteralPath $paths.rosterFile)) {
     Write-Host 'Existing database files were found without an installer marker; saved PINs will not be replaced.' -ForegroundColor Yellow
@@ -646,7 +639,7 @@ try {
   if ($LASTEXITCODE -ne 0) { throw 'The application did not start successfully. Check the server logs.' }
   $finalConfig = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
   $applicationUrl = "http://127.0.0.1:$([int]$finalConfig.port)"
-  Write-Host 'Verifying first-run database setup and securely hashing the generated PINs...' -ForegroundColor Cyan
+  Write-Host 'Verifying first-run database setup and securely hashing the default PINs...' -ForegroundColor Cyan
   # The auth route runs ensureSeed before rejecting this intentionally empty login body; HTTP 400 confirms seed completed.
   $seedStatus = 0
   try {

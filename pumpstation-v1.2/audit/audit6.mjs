@@ -153,7 +153,7 @@ t("roster dup key rejected", throws(() => validateRoster([
 t("roster empty members rejected", throws(() => validateRoster([{ key: "admin", label: "x", role: "admin", pin: "9009", members: [] }], "t")));
 writeFileSync("/tmp/audit6-good.json", JSON.stringify({ roster: [
   { key: "A", label: "ش", role: "operator", pin: "5555", members: ["x"] },
-  { key: "admin", label: "ا", role: "admin", pin: "666666", members: ["y"] },
+  { key: "admin", label: "ا", role: "admin", pin: "6666", members: ["y"] },
 ] }));
 writeFileSync("/tmp/audit6-bad.json", JSON.stringify({ roster: [{ key: "A" }] }));
 process.env.ROSTER_FILE = "/tmp/audit6-good.json";
@@ -199,7 +199,7 @@ const adm = await login("admin", "9009");
 t("login with test PIN", adm.status === 200 && !!adm.cookie);
 const fullHealth = await fetch(`${BASE}/api/health?full=1`, { headers: { cookie: adm.cookie } }).then((r) => r.json().catch(() => null));
 t("health reports persistent session-secret status", typeof fullHealth?.detail?.sessionSecret?.persistent === "boolean" && ["env", "file", "memory"].includes(fullHealth.detail.sessionSecret.source));
-t("health warns when sample roster is active", fullHealth?.detail?.roster?.source === "sample" ? fullHealth.warnings?.some((w) => String(w).includes("روستر نمونه")) : fullHealth?.detail?.roster?.source === "local");
+t("health reports sample, local, or persisted roster source", fullHealth?.detail?.roster?.source === "sample" ? fullHealth.warnings?.some((w) => String(w).includes("روستر نمونه")) : ["local", "database"].includes(fullHealth?.detail?.roster?.source));
 const csrfSpoof = await fetch(`${BASE}/api/actions`, {
   method: "POST",
   headers: { "Content-Type": "application/json", cookie: adm.cookie, Origin: "http://evil.test", "X-Forwarded-Host": "evil.test" },

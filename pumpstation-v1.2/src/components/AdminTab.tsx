@@ -337,10 +337,10 @@ function ShiftPanel() {
             <input
               className="input mono"
               style={{ width: 90, fontSize: 11 }}
-              placeholder="PIN جدید"
-              maxLength={6}
+              placeholder="PIN جدید (۴ رقم)"
+              maxLength={4}
               value={pins[r.key] ?? ""}
-              onChange={(e) => setPins({ ...pins, [r.key]: e.target.value.replace(/\D/g, "").slice(0, 6) })}
+              onChange={(e) => setPins({ ...pins, [r.key]: e.target.value.replace(/\D/g, "").slice(0, 4) })}
             />
             <div className="row" style={{ gap: 4 }}>
               <button
@@ -351,7 +351,7 @@ function ShiftPanel() {
               >
                 نام‌ها
               </button>
-              <button type="button" className="btn tiny warn" disabled={busy || ![4, 5, 6].includes((pins[r.key] ?? "").length)} onClick={() => act("admin.pin", { key: r.key, pin: pins[r.key] })}>
+              <button type="button" className="btn tiny warn" disabled={busy || (pins[r.key] ?? "").length !== 4} onClick={() => act("admin.pin", { key: r.key, pin: pins[r.key] })}>
                 PIN
               </button>
             </div>

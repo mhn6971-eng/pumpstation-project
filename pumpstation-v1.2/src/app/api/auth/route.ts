@@ -57,8 +57,8 @@ export async function POST(request: Request) {
     const ip = clientIp(request);
     const agent = clientAgent(request);
 
-    if (!/^[A-Za-z0-9_-]{1,10}$/.test(key) || !/^\d{4,6}$/.test(pin)) {
-      return jsonResponse({ ok: false, error: "PIN باید چهار تا شش رقم باشد" }, { status: 400, requestId: rid });
+    if (!/^[A-Za-z0-9_-]{1,10}$/.test(key) || !/^\d{4}$/.test(pin)) {
+      return jsonResponse({ ok: false, error: "PIN باید دقیقاً چهار رقم باشد" }, { status: 400, requestId: rid });
     }
 
     // قفل موقت پس از چند تلاش ناموفق

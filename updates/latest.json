@@ -1,12 +1,12 @@
 {
-  "version": "1.4.15",
-  "archiveUrl": "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/Pumpstation-App-Update-1.4.15.zip",
-  "sha256": "0d75a6c6acddb67b77385995585daf006e5bec801bb87d729f2064d40f708905",
+  "version": "1.4.16",
+  "archiveUrl": "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/Pumpstation-App-Update-1.4.16.zip",
+  "sha256": "143a9b5b8ce785a2f340a56d50bf9be6faf94ddcd7af588f282244399a86e722",
   "publishedAt": "2026-11-07",
   "notes": [
-    "پنل ادمین فایل ZIP انتخاب‌شده از رایانه را بررسی و با تأیید و PIN مدیر اعمال می‌کند.",
-    "اعتبارسنجی مسیر، نوع، اندازه و CRC فایل‌های ZIP؛ نسخه و SHA-256 پیش از اعمال نمایش داده می‌شوند.",
-    "ساخت نسخهٔ جدید پیش از توقف برنامه؛ پشتیبان‌گیری از پایگاه‌داده، حفظ داده‌ها، health-check و rollback.",
-    "میان‌بر دسکتاپ با آیکون برنامه و اجرای راه‌انداز production بدون پنجرهٔ CMD/PowerShell؛ میان‌بر نصب‌های قدیمی نیز پس از ورود مدیر همگام می‌شود."
+    "نصب تازه برای همهٔ حساب‌های شیفت و مدیر PIN موقت 1234 تنظیم می‌کند؛ بعد از ورود PIN هر حساب را در Admin تغییر دهید.",
+    "ورود و تغییر PIN فقط چهار رقم می‌پذیرد؛ PINهای غیرچهاررقمی رد می‌شوند.",
+    "بستهٔ Windows ابزار reset-pins.bat دارد که پس از بک‌آپ و راستی‌آزمایی SHA-256، PINها را بدون پاک‌کردن داده‌های عملیاتی بازنشانی می‌کند.",
+    "تنظیمات TOTP حفظ می‌شود؛ اگر دومرحله‌ای مدیر فعال است، کد authenticator همچنان لازم است."
   ]
 }

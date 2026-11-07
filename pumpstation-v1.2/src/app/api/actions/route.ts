@@ -716,7 +716,7 @@ export async function POST(request: Request) {
         const key = str(p.key, 10);
         const pin = str(p.pin, 10);
         if (!["A", "B", "C", "admin"].includes(key)) throw badRequest("شیفت نامعتبر است");
-        if (!/^\d{4,6}$/.test(pin)) throw badRequest("PIN باید چهار تا شش رقم باشد");
+        if (!/^\d{4}$/.test(pin)) throw badRequest("PIN باید دقیقاً چهار رقم باشد");
         await db.update(shifts).set({ pin: hashPin(pin) }).where(eq(shifts.key, key));
         await logActivity(shiftKey, "تغییر PIN شیفت", key);
         return Response.json({ ok: true });
