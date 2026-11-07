@@ -8,6 +8,7 @@ $NodeIntegrity = 'sha512-w6ir5BjNVuSIC43FWLchnuc/bu9hT0ntMH/FJFouaR2oxADkFhim4Yl
 $NpmIntegrity = 'sha512-OnUG836FwboQIbqtefDNlyR0gTHzIfwRfE3DuiNewBvnMnWEpB0VEXwBlFVgqpNzIgYo/MHh3d2Hel/pszapAA=='
 $Registry = 'https://registry.npmjs.org'
 $InstallerErrorLog = $env:PUMPSTATION_ERROR_LOG
+$script:InstallerPins = @()
 if ([string]::IsNullOrWhiteSpace($InstallerErrorLog)) { $InstallerErrorLog = Join-Path $env:TEMP 'Pumpstation-install-error.log' }
 try {
   $utf8 = [System.Text.UTF8Encoding]::new($false)
@@ -15,8 +16,7 @@ try {
   [Console]::InputEncoding = $utf8
 } catch { }
 
-# Windows Console historically handles bidirectional scripts inconsistently.
-# Surround Persian strings with explicit RTL embedding marks instead of changing their text.
+# Keep every installer message ASCII so CMD/Windows PowerShell never renders RTL text incorrectly.
 function Write-Host {
   [CmdletBinding()]
   param(
@@ -29,8 +29,7 @@ function Write-Host {
   $shown = @(
     foreach ($item in $Object) {
       if ($null -eq $item) { '' }
-      elseif ([string]$item -match '[\u0600-\u06FF]') { ([string][char]0x202B) + [string]$item + [char]0x202C }
-      else { $item }
+      else { [regex]::Replace([string]$item, '[^\x00-\x7F]', '?') }
     }
   )
   $hostParams = @{ Object = $shown; Separator = $Separator }
@@ -38,13 +37,6 @@ function Write-Host {
   if ($PSBoundParameters.ContainsKey('BackgroundColor')) { $hostParams.BackgroundColor = $BackgroundColor }
   if ($NoNewline) { $hostParams.NoNewline = $true }
   Microsoft.PowerShell.Utility\Write-Host @hostParams
-}
-function Read-Host {
-  [CmdletBinding()]
-  param([Parameter(Position = 0)] [string] $Prompt = '', [switch] $AsSecureString)
-  if ($Prompt -match '[\u0600-\u06FF]') { $Prompt = ([string][char]0x202B) + $Prompt + [char]0x202C }
-  if ($AsSecureString) { return Microsoft.PowerShell.Utility\Read-Host -Prompt $Prompt -AsSecureString }
-  return Microsoft.PowerShell.Utility\Read-Host -Prompt $Prompt
 }
 
 function Write-Title([string]$Text) {
@@ -64,27 +56,27 @@ function Get-Sha512Integrity([string]$File) {
 function Get-PinnedPackage([string]$Name, [string]$Version, [string]$Integrity, [string]$CacheDir) {
   $cacheFile = Join-Path $CacheDir ($Name + '-' + $Version + '.tgz')
   if ((Test-Path -LiteralPath $cacheFile) -and (Get-Sha512Integrity $cacheFile) -eq $Integrity) {
-    Write-Host ("بستهٔ ثابت و تأییدشده از cache استفاده می‌شود: {0}@{1}" -f $Name, $Version)
+    Write-Host ("Using verified cached package: {0}@{1}" -f $Name, $Version)
     return $cacheFile
   }
   if (Test-Path -LiteralPath $cacheFile) { Remove-Item -LiteralPath $cacheFile -Force }
   $url = "$Registry/$Name/-/$Name-$Version.tgz"
-  Write-Host ("دریافت نسخهٔ ثابت {0}@{1} از npm registry..." -f $Name, $Version)
+  Write-Host ("Downloading pinned package {0}@{1} from npm registry..." -f $Name, $Version)
   Invoke-WebRequest -Uri $url -OutFile $cacheFile -UseBasicParsing
   $actual = Get-Sha512Integrity $cacheFile
   if ($actual -ne $Integrity) {
     Remove-Item -LiteralPath $cacheFile -Force -ErrorAction SilentlyContinue
-    throw "تأیید SHA-512 بستهٔ $Name@$Version ناموفق بود. فایل نصب اجرا نشد."
+    throw "SHA-512 verification failed for $Name@$Version. The package was not installed."
   }
   return $cacheFile
 }
 
 function Get-VerifiedOfflinePackage([string]$Name, [string]$Version, [string]$Integrity, [string]$VendorDir) {
   $file = Join-Path $VendorDir ($Name + '-' + $Version + '.tgz')
-  if (-not (Test-Path -LiteralPath $file)) { throw "بستهٔ آفلاین $Name@$Version در offline-vendor پیدا نشد." }
+  if (-not (Test-Path -LiteralPath $file)) { throw "Offline package $Name@$Version was not found in offline-vendor." }
   $actual = Get-Sha512Integrity $file
-  if ($actual -ne $Integrity) { throw "تأیید SHA-512 بستهٔ آفلاین $Name@$Version ناموفق بود؛ فایل اجرا نشد." }
-  Write-Host ("بستهٔ آفلاین تأیید شد: {0}@{1}" -f $Name, $Version) -ForegroundColor Green
+  if ($actual -ne $Integrity) { throw "SHA-512 verification failed for offline package $Name@$Version." }
+  Write-Host ("Verified offline package: {0}@{1}" -f $Name, $Version) -ForegroundColor Green
   return $file
 }
 
@@ -100,49 +92,51 @@ function Test-RegistryOnline {
 function Copy-OfflineNpmCache([string]$Source, [string]$Destination) {
   New-Item -ItemType Directory -Path $Destination -Force | Out-Null
   & robocopy.exe $Source $Destination /E /R:1 /W:1 /NFL /NDL /NP
-  if ($LASTEXITCODE -ge 8) { throw 'کپی cache آفلاین npm روی C ناموفق بود.' }
+  if ($LASTEXITCODE -ge 8) { throw 'Could not copy the offline npm cache.' }
+}
+
+function Assert-DirectoryFilesEqual([string]$Source, [string]$Destination) {
+  $sourceFiles = @(Get-ChildItem -LiteralPath $Source -File -Recurse -Force | Sort-Object -Property FullName)
+  $destinationFiles = @(Get-ChildItem -LiteralPath $Destination -File -Recurse -Force | Sort-Object -Property FullName)
+  if ($sourceFiles.Count -ne $destinationFiles.Count) { throw 'Database backup file count does not match the source.' }
+  $sourceBase = [IO.Path]::GetFullPath($Source).TrimEnd([char[]]@([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)) + [IO.Path]::DirectorySeparatorChar
+  foreach ($sourceFile in $sourceFiles) {
+    $relative = $sourceFile.FullName.Substring($sourceBase.Length)
+    $destinationFile = Join-Path $Destination $relative
+    if (-not (Test-Path -LiteralPath $destinationFile -PathType Leaf)) { throw "Database backup is missing: $relative" }
+    $destinationInfo = Get-Item -LiteralPath $destinationFile
+    if ($sourceFile.Length -ne $destinationInfo.Length) { throw "Database backup size mismatch: $relative" }
+    $sourceHash = (Get-FileHash -LiteralPath $sourceFile.FullName -Algorithm SHA256).Hash
+    $destinationHash = (Get-FileHash -LiteralPath $destinationFile -Algorithm SHA256).Hash
+    if ($sourceHash -ne $destinationHash) { throw "Database backup hash mismatch: $relative" }
+  }
 }
 
 function Get-InstallRoot {
   $local = [Environment]::GetFolderPath('LocalApplicationData')
   if ([string]::IsNullOrWhiteSpace($local) -or [IO.Path]::GetPathRoot($local).ToUpperInvariant() -ne 'C:\') {
-    throw 'پوشهٔ پروفایل ویندوز روی درایو C نیست. برای رعایت محل نصب، ابتدا پروفایل محلی C را فراهم کنید یا نصب را متوقف کنید؛ داده‌ها به درایو غیر C می‌روند.'
+    throw 'Windows LocalAppData must be on drive C for this installer.'
   }
   return Join-Path $local 'Programs\Pumpstation'
 }
 
 function Select-DataRoot {
-  $drives = @([IO.DriveInfo]::GetDrives() | Where-Object { $_.DriveType -eq [IO.DriveType]::Fixed -and $_.Name.ToUpperInvariant() -ne 'C:\' -and $_.IsReady })
-  if ($drives.Count -eq 0) { throw 'هیچ درایو محلیِ ثابت به‌جز C پیدا نشد؛ برای جلوگیری از نگهداری داده روی C نصب متوقف شد.' }
-  Write-Host 'پوشهٔ داده و گزارش‌ها روی یک درایو ثابتِ غیر C ذخیره می‌شود:' -ForegroundColor Yellow
-  for ($i = 0; $i -lt $drives.Count; $i++) {
-    $freeGb = [Math]::Round($drives[$i].AvailableFreeSpace / 1GB, 1)
-    Write-Host ("  {0}) {1}  برچسب: {2}  فضای خالی: {3} GB" -f ($i + 1), $drives[$i].Name, $drives[$i].VolumeLabel, $freeGb)
-  }
-  $default = $drives[0]
-  while ($true) {
-    $choice = Read-Host ("شمارهٔ درایو را انتخاب کنید (پیش‌فرض {0})" -f $default.Name)
-    $selected = $default
-    if (-not [string]::IsNullOrWhiteSpace($choice)) {
-      if ($choice -notmatch '^\d+$' -or [int]$choice -lt 1 -or [int]$choice -gt $drives.Count) {
-        Write-Host 'شمارهٔ انتخابی معتبر نیست.' -ForegroundColor Red
-        continue
-      }
-      $selected = $drives[[int]$choice - 1]
-    }
-    $root = Join-Path $selected.Name 'گزارشات'
-    $custom = Read-Host ("مسیر اصلی داده‌ها (Enter برای {0})" -f $root)
-    if (-not [string]::IsNullOrWhiteSpace($custom)) { $root = [IO.Path]::GetFullPath($custom.Trim()) }
-    if ([IO.Path]::GetPathRoot($root).ToUpperInvariant() -ne $selected.Name.ToUpperInvariant()) {
-      Write-Host 'مسیر داده باید روی همان درایو محلیِ انتخاب‌شده و غیر C باشد.' -ForegroundColor Red
-      continue
-    }
-    if ($root -match '(?i)OneDrive|Dropbox|Google Drive|iCloud|CloudStorage') {
-      Write-Host 'پوشهٔ همگام‌سازی ابری انتخاب نشود؛ یک مسیر محلی پایدار انتخاب کنید.' -ForegroundColor Red
-      continue
-    }
+  $drives = @([IO.DriveInfo]::GetDrives() | Where-Object {
+    $_.DriveType -eq [IO.DriveType]::Fixed -and $_.Name.ToUpperInvariant() -ne 'C:\' -and $_.IsReady
+  } | Sort-Object -Property AvailableFreeSpace -Descending)
+  if ($drives.Count -eq 0) {
+    $local = [Environment]::GetFolderPath('LocalApplicationData')
+    if ([string]::IsNullOrWhiteSpace($local)) { throw 'No writable local data location was found.' }
+    $root = Join-Path $local 'Pumpstation-Data'
+    Write-Host "WARNING: No non-system data drive was found. Data will be stored separately from the app at $root." -ForegroundColor Yellow
     return $root
   }
+  $selected = $drives[0]
+  $root = Join-Path $selected.Name 'Pumpstation-Data'
+  $freeGb = [Math]::Round($selected.AvailableFreeSpace / 1073741824, 1)
+  Write-Host "Data drive selected automatically: $($selected.Name) ($freeGb GB free)." -ForegroundColor Green
+  Write-Host "Data location: $root" -ForegroundColor Green
+  return $root
 }
 
 function Get-PhysicalDiskNumber([string]$Path) {
@@ -156,53 +150,38 @@ function Get-PhysicalDiskNumber([string]$Path) {
 }
 
 function Select-MirrorRoot([string]$DataRoot) {
+  $sameDriveMirror = Join-Path $DataRoot 'Pumpstation-Mirror'
   $dataDrive = [IO.Path]::GetPathRoot([IO.Path]::GetFullPath($DataRoot))
-  $drives = @([IO.DriveInfo]::GetDrives() | Where-Object {
-    $_.IsReady -and $_.DriveType -in @([IO.DriveType]::Fixed, [IO.DriveType]::Removable) -and
-    $_.Name.ToUpperInvariant() -ne 'C:\' -and $_.Name.ToUpperInvariant() -ne $dataDrive.ToUpperInvariant()
-  })
-  $sameDriveMirror = Join-Path $DataRoot 'بک آپ\آینه'
-  if ($drives.Count -eq 0) {
-    Write-Host 'درایو جداگانه‌ای برای آینه پیدا نشد؛ فعلاً آینه روی همان درایو داده می‌ماند و جای نسخهٔ بیرونی را نمی‌گیرد.' -ForegroundColor Yellow
-    return $sameDriveMirror
-  }
-  Write-Host 'برای مقاومت در برابر خرابی دیسک، آینه را ترجیحاً روی یک درایو فیزیکی جدا بگذارید:' -ForegroundColor Yellow
-  for ($i = 0; $i -lt $drives.Count; $i++) {
-    $freeGb = [Math]::Round($drives[$i].AvailableFreeSpace / 1GB, 1)
-    Write-Host ("  {0}) {1}  برچسب: {2}  فضای خالی: {3} GB" -f ($i + 1), $drives[$i].Name, $drives[$i].VolumeLabel, $freeGb)
-  }
-  $choice = Read-Host 'شمارهٔ درایو آینه را انتخاب کنید؛ Enter برای حفظ آینه روی درایو داده'
-  if ([string]::IsNullOrWhiteSpace($choice)) { return $sameDriveMirror }
-  if ($choice -notmatch '^\d+$' -or [int]$choice -lt 1 -or [int]$choice -gt $drives.Count) {
-    Write-Host 'انتخاب نامعتبر است؛ آینه فعلاً روی درایو داده قرار می‌گیرد.' -ForegroundColor Yellow
-    return $sameDriveMirror
-  }
-  $selected = $drives[[int]$choice - 1]
   $dataDisk = Get-PhysicalDiskNumber $DataRoot
-  $mirrorDisk = Get-PhysicalDiskNumber $selected.Name
-  if ($null -ne $dataDisk -and $null -ne $mirrorDisk -and $dataDisk -eq $mirrorDisk) {
-    Write-Host 'این دو درایو letter متفاوت دارند اما روی یک دیسک فیزیکی‌اند؛ آینه روی درایو داده می‌ماند.' -ForegroundColor Yellow
-    return $sameDriveMirror
+  $candidates = @([IO.DriveInfo]::GetDrives() | Where-Object {
+    $_.IsReady -and $_.DriveType -eq [IO.DriveType]::Fixed -and
+    $_.Name.ToUpperInvariant() -ne 'C:\' -and $_.Name.ToUpperInvariant() -ne $dataDrive.ToUpperInvariant()
+  } | Sort-Object -Property AvailableFreeSpace -Descending)
+  foreach ($drive in $candidates) {
+    $disk = Get-PhysicalDiskNumber $drive.Name
+    if ($null -ne $dataDisk -and $null -ne $disk -and $dataDisk -ne $disk) {
+      $mirror = Join-Path $drive.Name 'Pumpstation-Mirror'
+      Write-Host "Mirror drive selected automatically: $($drive.Name)." -ForegroundColor Green
+      return $mirror
+    }
   }
-  if ($null -eq $dataDisk -or $null -eq $mirrorDisk) {
-    Write-Host 'Windows نتوانست دیسک فیزیکی را تأیید کند؛ استقلال فیزیکی آینه تضمین نمی‌شود.' -ForegroundColor Yellow
-  }
-  return Join-Path $selected.Name 'Pumpstation-Mirror'
+  Write-Host 'WARNING: A separate physical mirror drive could not be verified; the mirror will stay beside the data.' -ForegroundColor Yellow
+  return $sameDriveMirror
 }
 
 function Write-MirrorReliabilityWarning([string]$DataRoot, [string]$MirrorRoot) {
   $dataDrive = [IO.Path]::GetPathRoot([IO.Path]::GetFullPath($DataRoot))
   $mirrorDrive = [IO.Path]::GetPathRoot([IO.Path]::GetFullPath($MirrorRoot))
   if ($dataDrive -and $mirrorDrive -and $dataDrive.ToUpperInvariant() -eq $mirrorDrive.ToUpperInvariant()) {
-    Write-Host 'هشدار: بک‌آپ و آینه روی یک volume هستند؛ خرابی همان درایو هر دو را از بین می‌برد. یک نسخه را دوره‌ای به رسانهٔ مستقل کپی کنید.' -ForegroundColor Yellow
+    Write-Host 'WARNING: Data and mirror are on the same volume. Copy backups to separate physical media regularly.' -ForegroundColor Yellow
     return
   }
   $dataDisk = Get-PhysicalDiskNumber $DataRoot
   $mirrorDisk = Get-PhysicalDiskNumber $MirrorRoot
   if ($null -ne $dataDisk -and $null -ne $mirrorDisk -and $dataDisk -eq $mirrorDisk) {
-    Write-Host 'هشدار: مسیرهای جدا روی یک دیسک فیزیکی هستند؛ این آینه در برابر خرابی دیسک مستقل نیست.' -ForegroundColor Yellow
+    Write-Host 'WARNING: Data and mirror are on the same physical disk; the mirror is not independent.' -ForegroundColor Yellow
   } elseif ($null -eq $dataDisk -or $null -eq $mirrorDisk) {
-    Write-Host 'نصاب نتوانست استقلال دیسک فیزیکی آینه را بررسی کند؛ آن را با رسانهٔ بیرونی مستقل تأیید کنید.' -ForegroundColor Yellow
+    Write-Host 'WARNING: The installer could not verify a separate physical mirror disk.' -ForegroundColor Yellow
   }
 }
 
@@ -218,33 +197,20 @@ function New-RandomPin([string[]]$Used) {
   return $pin
 }
 
-function Read-LocalPin([string]$Key, [string]$Role, [string[]]$Used) {
-  while ($true) {
-    $secure = Read-Host -Prompt ("PIN تازه برای {0} (۴ تا ۶ رقم؛ Enter = تولید تصادفی امن)" -f $Role) -AsSecureString
-    if ($secure.Length -eq 0) {
-      $pin = New-RandomPin $Used
-      Write-Host ("PIN تصادفی {0}: {1}  (اکنون آن را ثبت کنید)" -f $Role, $pin) -ForegroundColor Yellow
-    } else {
-      $ptr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
-      try { $pin = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($ptr) }
-      finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
-    }
-    if ($pin -notmatch '^\d{4,6}$') { Write-Host 'PIN باید فقط ۴ تا ۶ رقم باشد.' -ForegroundColor Red; continue }
-    if ($Used -contains $pin) { Write-Host 'PIN تکراری است؛ برای هر نقش یک PIN جدا تعیین کنید.' -ForegroundColor Red; continue }
-    if ($pin -in @('1011', '2022', '3033', '9009')) { Write-Host 'این PIN در نمونهٔ آزمایشی پروژه آمده و پذیرفته نمی‌شود.' -ForegroundColor Red; continue }
-    return $pin
-  }
+function New-LocalPin([string]$Key, [string]$Role, [string[]]$Used) {
+  return New-RandomPin $Used
 }
 
 function New-LocalRoster([string]$RosterPath) {
   if (Test-Path -LiteralPath $RosterPath) {
-    Write-Host 'روستر محلی موجود حفظ می‌شود؛ PINها بازنویسی نمی‌شوند.' -ForegroundColor Green
+    Write-Host 'Existing local operator accounts will be preserved.' -ForegroundColor Green
     return
   }
-  Write-Title 'ساخت PINهای اختصاصی سامانه'
-  Write-Host 'PINها موقتاً در فایل محلیِ محدودشده به حساب ویندوز نگه داشته می‌شوند و پس از seed موفق حذف می‌شوند. PINهای واقعی را با اپراتورها امن به‌اشتراک بگذارید.' -ForegroundColor Yellow
+  Write-Title 'Create secure operator PINs'
+  Write-Host 'Unique PINs are generated automatically. Save the PINs shown below; the installer log never stores them.' -ForegroundColor Yellow
   $used = @()
   $roster = @()
+  $script:InstallerPins = @()
   $definitions = @(
     @{ key = 'A'; label = 'شیفت A'; role = 'operator'; members = @('اپراتور شیفت A') },
     @{ key = 'B'; label = 'شیفت B'; role = 'operator'; members = @('اپراتور شیفت B') },
@@ -252,9 +218,11 @@ function New-LocalRoster([string]$RosterPath) {
     @{ key = 'admin'; label = 'مدیر سامانه'; role = 'admin'; members = @('مدیر سامانه') }
   )
   foreach ($definition in $definitions) {
-    $pin = Read-LocalPin $definition.key $definition.label $used
+    $pin = New-LocalPin $definition.key $definition.label $used
     $used += $pin
     $roster += [PSCustomObject]@{ key = $definition.key; label = $definition.label; role = $definition.role; pin = $pin; members = $definition.members }
+    $roleName = @{ A = 'Shift A'; B = 'Shift B'; C = 'Shift C'; admin = 'Administrator' }[$definition.key]
+    $script:InstallerPins += [PSCustomObject]@{ Role = $roleName; Pin = $pin }
   }
   $json = @{ roster = $roster } | ConvertTo-Json -Depth 8
   $parent = Split-Path -Parent $RosterPath
@@ -263,9 +231,12 @@ function New-LocalRoster([string]$RosterPath) {
   try {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent().Name
     & icacls.exe $RosterPath /inheritance:r /grant:r "$identity`:(R,W)" | Out-Null
-    if ($LASTEXITCODE -ne 0) { Write-Host 'هشدار: محدودکردن ACL روستر خودکار نشد؛ دسترسی فایل را در Properties بررسی کنید.' -ForegroundColor Yellow }
-  } catch { Write-Host 'هشدار: ACL فایل روستر را در Properties محدود کنید.' -ForegroundColor Yellow }
-  Write-Host 'روستر محلی ساخته شد. می‌توانید نام اپراتورها را بعداً در بخش مدیریت تغییر دهید.' -ForegroundColor Green
+    if ($LASTEXITCODE -ne 0) { Write-Host 'WARNING: Could not restrict roster-file permissions automatically.' -ForegroundColor Yellow }
+  } catch { Write-Host 'WARNING: Review roster-file permissions in Windows Properties.' -ForegroundColor Yellow }
+  Write-Host 'Initial operator accounts are ready. You can change their names later in Admin settings.' -ForegroundColor Green
+  Write-Title 'SAVE THESE INITIAL ACCESS PINS'
+  Write-Host 'Write them down now. PIN values are not written to installer logs.' -ForegroundColor Yellow
+  foreach ($credential in $script:InstallerPins) { Write-Host ("{0}: {1}" -f $credential.Role, $credential.Pin) -ForegroundColor Yellow }
 }
 
 function Set-AppEnvironment($Config) {
@@ -291,21 +262,42 @@ function Set-AppEnvironment($Config) {
   $env:PUMPSTATION_UPDATE_LOCK_FILE = Join-Path $Config.dataRoot 'update.lock'
   $env:PUMPSTATION_UPDATE_LOG_FILE = Join-Path $Config.logDir 'auto-update.log'
   $env:NEXT_TELEMETRY_DISABLED = '1'
+  $env:npm_config_color = 'false'
+  $env:FORCE_COLOR = '0'
   $npmBin = Join-Path (Join-Path $Config.runtimeDir 'npm') 'bin'
   $env:PATH = $Config.runtimeDir + ';' + $npmBin + ';' + $env:PATH
 }
 
 function Stop-PumpstationServer([string]$PidPath, [string]$AppDir) {
-  if (-not (Test-Path -LiteralPath $PidPath)) { return }
-  $raw = (Get-Content -LiteralPath $PidPath -Raw).Trim()
-  $serverPid = 0
-  if ([int]::TryParse($raw, [ref]$serverPid)) {
+  $serverPids = @()
+  if (Test-Path -LiteralPath $PidPath) {
+    $raw = (Get-Content -LiteralPath $PidPath -Raw).Trim()
+    $savedPid = 0
+    if ([int]::TryParse($raw, [ref]$savedPid)) { $serverPids += $savedPid }
+  }
+  # If the PID file was lost, discover only this app's exact production serve command.
+  try {
+    $managed = @(Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction Stop | Where-Object {
+      $_.CommandLine -and
+      $_.CommandLine.IndexOf($AppDir, [StringComparison]::OrdinalIgnoreCase) -ge 0 -and
+      $_.CommandLine -match '(?i)scripts[\\/]+serve\.mjs\s+start'
+    })
+    $serverPids += @($managed | ForEach-Object { [int]$_.ProcessId })
+  } catch { }
+
+  foreach ($serverPid in @($serverPids | Select-Object -Unique)) {
     $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $serverPid" -ErrorAction SilentlyContinue
-    if ($proc -and $proc.CommandLine -and $proc.CommandLine.IndexOf($AppDir, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
-      & taskkill.exe /PID $serverPid /T /F 2>$null | Out-Null
-      if ($LASTEXITCODE -ne 0) { Stop-Process -Id $serverPid -Force -ErrorAction SilentlyContinue }
-      Start-Sleep -Seconds 2
+    $isThisApp = $proc -and $proc.CommandLine -and
+      $proc.CommandLine.IndexOf($AppDir, [StringComparison]::OrdinalIgnoreCase) -ge 0 -and
+      $proc.CommandLine -match '(?i)scripts[\\/]+serve\.mjs\s+start'
+    if (-not $isThisApp) { continue }
+    & taskkill.exe /PID $serverPid /T /F 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) { Stop-Process -Id $serverPid -Force -ErrorAction SilentlyContinue }
+    for ($attempt = 0; $attempt -lt 10; $attempt++) {
+      if (-not (Get-Process -Id $serverPid -ErrorAction SilentlyContinue)) { break }
+      Start-Sleep -Milliseconds 500
     }
+    if (Get-Process -Id $serverPid -ErrorAction SilentlyContinue) { throw 'The Pumpstation server could not be stopped safely; database migration was cancelled.' }
   }
   Remove-Item -LiteralPath $PidPath -Force -ErrorAction SilentlyContinue
 }
@@ -315,25 +307,36 @@ function Invoke-Checked([string]$Executable, [string[]]$Arguments, [string]$Work
   Push-Location $WorkingDirectory
   try {
     & $Executable @Arguments
-    if ($LASTEXITCODE -ne 0) { throw ("فرمان ناموفق بود (exit {0}): {1}" -f $LASTEXITCODE, $Description) }
+    if ($LASTEXITCODE -ne 0) { throw ("Command failed (exit {0}): {1}" -f $LASTEXITCODE, $Description) }
   } finally { Pop-Location }
 }
 
+$paths = $null
+$databaseBackupPath = $null
+$databaseExistedBeforeMigration = $false
+$databaseHadFilesBeforeMigration = $false
+$migrationStarted = $false
+$appSwapped = $false
+$previousApp = $null
+$pidPath = $null
+
 try {
   $packageJson = Join-Path (Join-Path $PSScriptRoot 'pumpstation-v1.2') 'package.json'
-  if (-not (Test-Path -LiteralPath $packageJson)) { throw 'فایل‌های برنامه کنار install-windows.bat پیدا نشد. ZIP کامل را در یک پوشه استخراج کنید و BAT را از همان پوشه اجرا کنید.' }
+  if (-not (Test-Path -LiteralPath $packageJson)) { throw 'App files were not found beside install-windows.bat. Extract the complete ZIP, then run the installer again.' }
   $appVersion = (Get-Content -LiteralPath $packageJson -Raw | ConvertFrom-Json).version
-  Write-Title ("نصب‌کنندهٔ Pumpstation نسخهٔ {0} برای Windows 10/11 x64" -f $appVersion)
-  Write-Host 'این نصب‌کننده نسخه‌های ثابت Node.js و npm را با SHA-512 بررسی می‌کند و در صورت نیاز بین cache آفلاین و اینترنت انتخاب می‌کند.'
-  if (-not [Environment]::Is64BitOperatingSystem) { throw 'این بسته فقط برای Windows 10/11 نسخهٔ 64-bit است.' }
-  if ([version]$PSVersionTable.PSVersion -lt [version]'5.1') { throw 'برای نصب، Windows PowerShell 5.1 لازم است؛ PowerShell ویندوز را به‌روزرسانی کنید.' }
+  Write-Title ("Pumpstation Windows Installer v{0} (Windows 10/11 x64)" -f $appVersion)
+  Write-Host 'STEP 1/8 - Check Windows, available space, and installer files.' -ForegroundColor Cyan
+  Write-Host 'The installer verifies pinned Node.js and npm packages, installs dependencies, prepares the database, and creates shortcuts automatically.'
+  if (-not [Environment]::Is64BitOperatingSystem) { throw 'This installer requires 64-bit Windows 10 or Windows 11.' }
+  if ([version]$PSVersionTable.PSVersion -lt [version]'5.1') { throw 'Windows PowerShell 5.1 is required.' }
   $os = Get-CimInstance Win32_OperatingSystem
-  if (-not $os -or [int]$os.ProductType -ne 1) { throw 'این نصاب برای Windows 10/11 دسکتاپ است، نه Windows Server.' }
-  if ([int]$os.BuildNumber -lt 17763) { throw 'حداقل سیستم‌عامل پشتیبانی‌شده Windows 10 نسخهٔ 1809 (Build 17763) است؛ Windows 11 نیز پشتیبانی می‌شود.' }
+  if (-not $os -or [int]$os.ProductType -ne 1) { throw 'This installer supports Windows 10/11 desktop, not Windows Server.' }
+  if ([int]$os.BuildNumber -lt 17763) { throw 'Minimum supported OS: Windows 10 version 1809 (build 17763) or Windows 11.' }
 
+  Write-Title 'STEP 2/8 - Select persistent data storage'
   $installRoot = Get-InstallRoot
   $systemDrive = @([IO.DriveInfo]::GetDrives() | Where-Object { $_.Name.ToUpperInvariant() -eq 'C:\' -and $_.IsReady }) | Select-Object -First 1
-  if (-not $systemDrive -or $systemDrive.AvailableFreeSpace -lt 3GB) { throw 'برای نصب و ساخت برنامه دست‌کم ۳ گیگابایت فضای خالی روی C لازم است.' }
+  if (-not $systemDrive -or $systemDrive.AvailableFreeSpace -lt 3221225472) { throw 'At least 3 GB of free space is required on drive C.' }
   $appDir = Join-Path $installRoot 'app'
   $runtimeDir = Join-Path $installRoot 'runtime'
   $configDir = Join-Path $installRoot 'config'
@@ -342,38 +345,49 @@ try {
   $launcherBatPath = Join-Path $installRoot 'launch-pumpstation.bat'
   $launcherVbsPath = Join-Path $installRoot 'launch-pumpstation.vbs'
   $previousConfig = $null
+  $previousConfigRaw = $null
   if (Test-Path -LiteralPath $configPath) {
-    $previousConfig = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+    $previousConfigRaw = [IO.File]::ReadAllText($configPath, [System.Text.Encoding]::UTF8)
+    $previousConfig = $previousConfigRaw | ConvertFrom-Json
     $dataRoot = [string]$previousConfig.dataRoot
-    if ([string]::IsNullOrWhiteSpace($dataRoot) -or [IO.Path]::GetPathRoot($dataRoot).ToUpperInvariant() -eq 'C:\') {
-      throw 'پیکربندی قبلی، مسیر دادهٔ غیر C ندارد. نصب متوقف شد تا دادهٔ قبلی ناخواسته جابه‌جا یا جایگزین نشود.'
+    if ([string]::IsNullOrWhiteSpace($dataRoot)) {
+      throw 'The existing installation has no saved data path. Installation stopped to protect existing data.'
     }
-    Write-Host ("درایو دادهٔ قبلی بدون تغییر حفظ می‌شود: {0}" -f $dataRoot) -ForegroundColor Green
+    if ([IO.Path]::GetPathRoot($dataRoot).ToUpperInvariant() -eq 'C:\') {
+      Write-Host 'WARNING: Existing data is on drive C and will stay in its current location.' -ForegroundColor Yellow
+    }
+    Write-Host ("Existing data location preserved: {0}" -f $dataRoot) -ForegroundColor Green
   } else {
     $dataRoot = Select-DataRoot
   }
   if ($previousConfig) {
     $mirrorDir = [string]$previousConfig.mirrorDir
-    if ([string]::IsNullOrWhiteSpace($mirrorDir)) { $mirrorDir = Join-Path $dataRoot 'بک آپ\آینه' }
-    Write-Host ("مسیر آینهٔ قبلی حفظ می‌شود: {0}" -f $mirrorDir) -ForegroundColor Green
+    if ([string]::IsNullOrWhiteSpace($mirrorDir)) { $mirrorDir = Join-Path $dataRoot 'Pumpstation-Mirror' }
+    Write-Host ("Existing mirror location preserved: {0}" -f $mirrorDir) -ForegroundColor Green
   } else {
     $mirrorDir = Select-MirrorRoot $dataRoot
   }
   Write-MirrorReliabilityWarning $dataRoot $mirrorDir
 
   $paths = @{
-    databaseDir = Join-Path $dataRoot 'پایگاه داده'
-    processReportDir = Join-Path $dataRoot 'گزارشات فرایند'
-    pmReportDir = Join-Path $dataRoot 'PM'
-    backupDir = Join-Path $dataRoot 'بک آپ'
-    catalogDir = Join-Path $dataRoot 'بک آپ\پیوست‌ها و کاتالوگ'
-    archiveDir = Join-Path $dataRoot 'بک آپ\آرشیو سرد'
+    databaseDir = Join-Path $dataRoot 'Database'
+    processReportDir = Join-Path $dataRoot 'Process-Reports'
+    pmReportDir = Join-Path $dataRoot 'PM-Reports'
+    backupDir = Join-Path $dataRoot 'Backups'
+    catalogDir = Join-Path $dataRoot 'Backups\Attachments-Catalog'
+    archiveDir = Join-Path $dataRoot 'Backups\Cold-Archive'
     mirrorDir = $mirrorDir
-    pgdumpDir = Join-Path $dataRoot 'بک آپ\دامپ PostgreSQL'
-    logDir = Join-Path $dataRoot 'لاگ‌ها'
+    pgdumpDir = Join-Path $dataRoot 'Backups\Postgres-Dumps'
+    logDir = Join-Path $dataRoot 'Logs'
     rosterFile = Join-Path $configDir 'roster.local.json'
     sessionSecretDir = Join-Path $configDir 'session-secret'
     mirrorTokenFile = Join-Path $configDir 'mirror-token'
+  }
+  if ($previousConfig) {
+    foreach ($key in @('databaseDir', 'processReportDir', 'pmReportDir', 'backupDir', 'catalogDir', 'archiveDir', 'mirrorDir', 'pgdumpDir', 'logDir', 'rosterFile', 'sessionSecretDir', 'mirrorTokenFile')) {
+      $savedPath = [string]$previousConfig.$key
+      if (-not [string]::IsNullOrWhiteSpace($savedPath)) { $paths[$key] = $savedPath }
+    }
   }
   foreach ($directory in @($dataRoot, $paths.databaseDir, $paths.processReportDir, $paths.pmReportDir, $paths.backupDir, $paths.catalogDir, $paths.archiveDir, $paths.mirrorDir, $paths.pgdumpDir, $paths.logDir, $configDir, $paths.sessionSecretDir)) {
     New-Item -ItemType Directory -Path $directory -Force | Out-Null
@@ -415,30 +429,30 @@ try {
   }
   $runtimeReady = ($nodeReady -and $npmReady)
   if ($runtimeReady) {
-    Write-Host ("نسخهٔ دقیق Node.js {0} و npm {1} از قبل نصب است؛ دوباره دانلود نمی‌شود." -f $NodeVersion, $NpmVersion) -ForegroundColor Green
+    Write-Host ("Pinned Node.js {0} and npm {1} are already installed; download skipped." -f $NodeVersion, $NpmVersion) -ForegroundColor Green
   } elseif ($nodeReady) {
-    Write-Host ("Node.js {0} سالم است و حفظ می‌شود؛ فقط npm {1} نصب/ترمیم خواهد شد." -f $NodeVersion, $NpmVersion) -ForegroundColor Yellow
+    Write-Host ("Node.js {0} is valid; npm {1} will be installed or repaired." -f $NodeVersion, $NpmVersion) -ForegroundColor Yellow
   }
 
   $onlineAvailable = Test-RegistryOnline
-  if (-not $onlineAvailable -and -not $offlineAvailable -and (-not $nodeReady -or -not $npmReady)) { throw 'اینترنت در دسترس نیست و cache آفلاین معتبر/سازگار کنار نصاب پیدا نشد. ZIP کامل را از نو استخراج کنید یا اینترنت را وصل کنید.' }
-  if ($offlineAvailable -and $onlineAvailable) {
-    $choice = Read-Host 'روش نصب: 1 اینترنتی (پیش‌فرض)، 2 آفلاین از فایل‌های همین ZIP'
-    $installMode = if ($choice -eq '2') { 'offline' } else { 'online' }
+  if (-not $onlineAvailable -and -not $offlineAvailable -and (-not $nodeReady -or -not $npmReady)) { throw 'Internet is unavailable and no verified offline cache is present. Connect to the internet and retry.' }
+  Write-Title 'STEP 3/8 - Verify or download Node.js and npm'
+  if ($onlineAvailable) {
+    $installMode = 'online'
+    Write-Host 'Internet connection detected. Runtime and application dependencies will be installed automatically.' -ForegroundColor Green
   } elseif ($offlineAvailable) {
     $installMode = 'offline'
-    Write-Host 'اتصال اینترنت پیدا نشد؛ نصب آفلاین از بسته‌های همراه ZIP انتخاب شد.' -ForegroundColor Yellow
-  } elseif ($onlineAvailable) {
-    $installMode = 'online'
-    Write-Host 'بستهٔ آفلاین کامل موجود نیست؛ نصب وابستگی‌های موردنیاز از اینترنت انجام می‌شود.' -ForegroundColor Yellow
-  } else {
+    Write-Host 'Internet is unavailable. Using the verified offline bundle automatically.' -ForegroundColor Yellow
+  } elseif ($nodeReady -and $npmReady) {
     $installMode = 'offline'
-    Write-Host 'runtime موجود است؛ dependencyهای برنامه با cache npm محلی نصب می‌شوند.' -ForegroundColor Yellow
+    Write-Host 'Internet is unavailable. The installer will try the local npm cache.' -ForegroundColor Yellow
+  } else {
+    throw 'Internet is unavailable and no verified offline bundle is present. Connect to the internet and retry.'
   }
   $tar = $null
   if (-not $runtimeReady) {
     $tar = Get-Command tar.exe -ErrorAction SilentlyContinue
-    if (-not $tar) { throw 'برای نصب یا ترمیم runtime، ابزار tar.exe ویندوز لازم است؛ Windows 10 را به‌روز کنید.' }
+    if (-not $tar) { throw 'Windows tar.exe is required to unpack the runtime. Update Windows and retry.' }
   }
 
   $npmCacheDir = Join-Path $installRoot 'cache\npm'
@@ -455,7 +469,7 @@ try {
         if (-not $npmReady) { $npmArchive = Get-PinnedPackage 'npm' $NpmVersion $NpmIntegrity $cacheDir }
       } catch {
         if (-not $offlineAvailable) { throw }
-        Write-Host 'دریافت آنلاین runtime شکست خورد؛ به بستهٔ آفلاین تأییدشده برمی‌گردیم.' -ForegroundColor Yellow
+        Write-Host 'Online runtime download failed; trying the verified offline bundle.' -ForegroundColor Yellow
         $installMode = 'offline'
         if (-not $nodeReady) { $nodeArchive = Get-VerifiedOfflinePackage 'node-win-x64' $NodeVersion $NodeIntegrity $vendorDir }
         if (-not $npmReady) { $npmArchive = Get-VerifiedOfflinePackage 'npm' $NpmVersion $NpmIntegrity $vendorDir }
@@ -472,12 +486,12 @@ try {
     try {
       if (-not $nodeReady) {
         & $tar.Source -xzf $nodeArchive -C $nodeUnpack 'package/bin/node.exe'
-        if ($LASTEXITCODE -ne 0) { throw 'استخراج فایل Node.js ناموفق بود.' }
+        if ($LASTEXITCODE -ne 0) { throw 'Could not extract Node.js.' }
       }
       if (-not $npmReady) {
         & $tar.Source -xzf $npmArchive -C $npmUnpack 'package'
-        if ($LASTEXITCODE -ne 0) { throw 'استخراج فایل npm ناموفق بود.' }
-        if (-not (Test-Path -LiteralPath (Join-Path $npmUnpack 'package/bin/npm-cli.js'))) { throw 'فایل npm-cli.js پس از استخراج پیدا نشد.' }
+        if ($LASTEXITCODE -ne 0) { throw 'Could not extract npm.' }
+        if (-not (Test-Path -LiteralPath (Join-Path $npmUnpack 'package/bin/npm-cli.js'))) { throw 'npm-cli.js was not found after extraction.' }
       }
       New-Item -ItemType Directory -Path $runtimeDir -Force | Out-Null
       if (-not $nodeReady) {
@@ -489,8 +503,8 @@ try {
         New-Item -ItemType Directory -Path $npmRoot -Force | Out-Null
         & robocopy.exe (Join-Path $npmUnpack 'package') $npmRoot /E /R:1 /W:1 /NFL /NDL /NP
         $npmCopyCode = $LASTEXITCODE
-        if ($npmCopyCode -ge 8) { throw "کپی فایل‌های npm ناموفق بود (robocopy $npmCopyCode)." }
-        if (-not (Test-Path -LiteralPath $npmCli -PathType Leaf)) { throw "فایل npm-cli.js پس از کپی پیدا نشد: $npmCli؛ کد robocopy: $npmCopyCode" }
+        if ($npmCopyCode -ge 8) { throw "Could not copy npm files (robocopy $npmCopyCode)." }
+        if (-not (Test-Path -LiteralPath $npmCli -PathType Leaf)) { throw "npm-cli.js was not found after copying. Robocopy exit code: $npmCopyCode." }
       }
     } finally { Remove-Item -LiteralPath $unpackRoot -Recurse -Force -ErrorAction SilentlyContinue }
   }
@@ -500,14 +514,14 @@ try {
   $nodeOutput = @(& $nodePath --version 2>&1)
   $nodeExitCode = $LASTEXITCODE
   $nodeActual = ($nodeOutput | Out-String).Trim()
-  if ($nodeExitCode -ne 0 -or $nodeActual -ne "v$NodeVersion") { throw "Node.js اجرا نشد یا نسخه‌اش درست نیست؛ exit=$nodeExitCode؛ خروجی: $nodeActual؛ مسیر: $nodePath" }
-  if (-not (Test-Path -LiteralPath $npmCli -PathType Leaf)) { throw "npm-cli.js در مسیر نهایی وجود ندارد: $npmCli" }
+  if ($nodeExitCode -ne 0 -or $nodeActual -ne "v$NodeVersion") { throw "Node.js version check failed (exit=$nodeExitCode, output=$nodeActual)." }
+  if (-not (Test-Path -LiteralPath $npmCli -PathType Leaf)) { throw 'npm-cli.js was not found in the runtime folder.' }
   $npmOutput = @(& $nodePath $npmCli --version 2>&1)
   $npmExitCode = $LASTEXITCODE
   $npmActual = ($npmOutput | Out-String).Trim()
-  if ($npmExitCode -ne 0 -or $npmActual -ne $NpmVersion) { throw "npm اجرا نشد یا نسخه‌اش درست نیست؛ exit=$npmExitCode؛ خروجی: $npmActual؛ مسیر CLI: $npmCli" }
+  if ($npmExitCode -ne 0 -or $npmActual -ne $NpmVersion) { throw "npm version check failed (exit=$npmExitCode, output=$npmActual)." }
   $runtimeNotices = Join-Path $PSScriptRoot 'RUNTIME-LICENSES.txt'
-  if (-not (Test-Path -LiteralPath $runtimeNotices)) { throw 'فایل مجوزهای runtime کنار نصب‌کننده پیدا نشد.' }
+  if (-not (Test-Path -LiteralPath $runtimeNotices)) { throw 'RUNTIME-LICENSES.txt was not found beside the installer.' }
   Copy-Item -LiteralPath $runtimeNotices -Destination (Join-Path $runtimeDir 'LICENSES.txt') -Force
 
   $config = [PSCustomObject]@{
@@ -524,63 +538,76 @@ try {
   $stageApp = Join-Path $installRoot 'app.new'
   if (Test-Path -LiteralPath $stageApp) { Remove-Item -LiteralPath $stageApp -Recurse -Force }
   New-Item -ItemType Directory -Path $stageApp -Force | Out-Null
-  Write-Title 'آماده‌سازی نسخهٔ برنامه'
+  Write-Title 'STEP 4/8 - Prepare the application files'
   & robocopy.exe $sourceApp $stageApp /E /R:1 /W:1 /NFL /NDL /NP /XD '.git' 'node_modules' '.next' '.data' 'coverage' /XF '.env' '.env.local' '.env.production' '.env.development' '.env.test' '.env.production.local' '.env.development.local' '.env.test.local' '*.log' '*.local.json'
   $copyCode = $LASTEXITCODE
-  if ($copyCode -ge 8) { throw "کپی فایل‌های برنامه شکست خورد (robocopy $copyCode)." }
+  if ($copyCode -ge 8) { throw "Could not copy application files (robocopy $copyCode)." }
   Get-ChildItem -LiteralPath $stageApp -Force -File -Recurse | Where-Object { $_.Name -like '.env*' -and $_.Name -ne '.env.example' } | Remove-Item -Force
 
   $stagePackage = Get-Content -LiteralPath (Join-Path $stageApp 'package.json') -Raw | ConvertFrom-Json
-  if ($stagePackage.version -ne $appVersion) { throw 'نسخهٔ package در پوشهٔ مبدأ تغییر کرده است؛ نصاب را دوباره اجرا کنید.' }
+  if ($stagePackage.version -ne $appVersion) { throw 'Package version mismatch. Re-extract the complete installer ZIP and retry.' }
   Set-AppEnvironment $config
+  Write-Title 'STEP 5/8 - Install locked dependencies and build the app'
   if ($installMode -eq 'offline') {
     $npmCiArguments = @($npmCli, 'ci', '--offline', '--no-audit', '--no-fund', '--cache', $npmCacheDir)
-    Invoke-Checked -Executable $nodePath -Arguments $npmCiArguments -WorkingDirectory $stageApp -Description 'نصب آفلاین وابستگی‌های قفل‌شده...'
+    Invoke-Checked -Executable $nodePath -Arguments $npmCiArguments -WorkingDirectory $stageApp -Description 'Installing locked dependencies from offline cache...'
   } else {
     $npmCiArguments = @($npmCli, 'ci', '--no-audit', '--no-fund', '--registry', $Registry, '--cache', $npmCacheDir)
     try {
-      Invoke-Checked -Executable $nodePath -Arguments $npmCiArguments -WorkingDirectory $stageApp -Description 'نصب اینترنتی وابستگی‌های قفل‌شده...'
+      Invoke-Checked -Executable $nodePath -Arguments $npmCiArguments -WorkingDirectory $stageApp -Description 'Downloading and installing locked dependencies...'
     } catch {
       if (-not $offlineAvailable) { throw }
-      Write-Host 'دریافت وابستگی‌ها قطع شد؛ npm ci از cache آفلاینِ داخل ZIP دوباره اجرا می‌شود.' -ForegroundColor Yellow
+      Write-Host 'Online dependency install failed; retrying with the verified offline cache.' -ForegroundColor Yellow
       $installMode = 'offline'
       Copy-OfflineNpmCache $offlineNpmCache $npmCacheDir
       $npmCiArguments = @($npmCli, 'ci', '--offline', '--no-audit', '--no-fund', '--cache', $npmCacheDir)
-      Invoke-Checked -Executable $nodePath -Arguments $npmCiArguments -WorkingDirectory $stageApp -Description 'نصب آفلاین وابستگی‌های قفل‌شده...'
+      Invoke-Checked -Executable $nodePath -Arguments $npmCiArguments -WorkingDirectory $stageApp -Description 'Installing locked dependencies from offline cache...'
     }
   }
   $buildArguments = @($npmCli, 'run', 'build')
-  Invoke-Checked -Executable $nodePath -Arguments $buildArguments -WorkingDirectory $stageApp -Description 'ساخت نسخهٔ production...'
+  Invoke-Checked -Executable $nodePath -Arguments $buildArguments -WorkingDirectory $stageApp -Description 'Building the production application...'
+  Write-Title 'STEP 6/8 - Preserve PINs, back up and prepare the database'
   $rosterMarker = Join-Path $configDir 'roster-consumed.flag'
   $databaseHasFiles = $false
   if (Test-Path -LiteralPath $paths.databaseDir) { $databaseHasFiles = @(Get-ChildItem -LiteralPath $paths.databaseDir -Force -ErrorAction SilentlyContinue).Count -gt 0 }
   if ((Test-Path -LiteralPath $rosterMarker) -and -not $databaseHasFiles) {
     Remove-Item -LiteralPath $rosterMarker -Force -ErrorAction SilentlyContinue
-    Write-Host 'پایگاه داده خالی است؛ برای مقداردهی دوباره باید PINهای محلی را بسازید.' -ForegroundColor Yellow
+    Write-Host 'The database is empty; new local operator PINs will be generated.' -ForegroundColor Yellow
   }
-  if (-not (Test-Path -LiteralPath $rosterMarker)) { New-LocalRoster $paths.rosterFile }
-  else { Write-Host 'PINهای هش‌شدهٔ پایگاه داده حفظ می‌شوند؛ فایل PIN متنی دوباره ساخته نمی‌شود.' -ForegroundColor Green }
+  if ($databaseHasFiles -and -not (Test-Path -LiteralPath $rosterMarker) -and -not (Test-Path -LiteralPath $paths.rosterFile)) {
+    Write-Host 'Existing database files were found without an installer marker; saved PINs will not be replaced.' -ForegroundColor Yellow
+  } elseif (-not (Test-Path -LiteralPath $rosterMarker)) { New-LocalRoster $paths.rosterFile }
+  else { Write-Host 'Existing database PINs are preserved; no new PIN file will be created.' -ForegroundColor Green }
 
   $pidPath = Join-Path $configDir 'server.pid'
+  $previousApp = Join-Path $installRoot 'app.previous'
   Stop-PumpstationServer $pidPath $appDir
-  $existingDatabase = Test-Path -LiteralPath $paths.databaseDir -PathType Container
+  $databaseExistedBeforeMigration = Test-Path -LiteralPath $paths.databaseDir -PathType Container
   $existingEntries = @()
-  if ($existingDatabase) { $existingEntries = @(Get-ChildItem -LiteralPath $paths.databaseDir -Force -ErrorAction SilentlyContinue) }
-  if ($existingEntries.Count -gt 0) {
+  if ($databaseExistedBeforeMigration) { $existingEntries = @(Get-ChildItem -LiteralPath $paths.databaseDir -Force -ErrorAction SilentlyContinue) }
+  $databaseHadFilesBeforeMigration = $existingEntries.Count -gt 0
+  if ($databaseHadFilesBeforeMigration) {
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-    $safetyDir = Join-Path $paths.backupDir (Join-Path 'قبل از به‌روزرسانی' $stamp)
+    $safetyDir = Join-Path $paths.backupDir (Join-Path 'pre-update' $stamp)
     New-Item -ItemType Directory -Path $safetyDir -Force | Out-Null
-    Copy-Item -LiteralPath $paths.databaseDir -Destination (Join-Path $safetyDir 'پایگاه داده') -Recurse -Force
-    Write-Host ("یک نسخهٔ ایمنی از پایگاه داده پیش از migration نگه داشته شد: {0}" -f $safetyDir) -ForegroundColor Green
+    $databaseBackupPath = Join-Path $safetyDir 'Database'
+    Copy-Item -LiteralPath $paths.databaseDir -Destination $databaseBackupPath -Recurse -Force
+    if (-not (Test-Path -LiteralPath $databaseBackupPath -PathType Container)) { throw 'Database safety copy could not be verified; migration was not started.' }
+    Write-Host 'Verifying every database backup file by size and SHA-256...' -ForegroundColor Cyan
+    Assert-DirectoryFilesEqual $paths.databaseDir $databaseBackupPath
+    Write-Host ("Verified database safety copy: {0}" -f $safetyDir) -ForegroundColor Green
   }
   $migrationArguments = @((Join-Path $stageApp 'scripts/init-db.mjs'))
-  Invoke-Checked -Executable $nodePath -Arguments $migrationArguments -WorkingDirectory $stageApp -Description 'اعمال migrationهای پایگاه داده...'
+  $migrationStarted = $true
+  Invoke-Checked -Executable $nodePath -Arguments $migrationArguments -WorkingDirectory $stageApp -Description 'Applying database migrations...'
 
   $previousApp = Join-Path $installRoot 'app.previous'
   if (Test-Path -LiteralPath $previousApp) { Remove-Item -LiteralPath $previousApp -Recurse -Force }
   if (Test-Path -LiteralPath $appDir) { Rename-Item -LiteralPath $appDir -NewName 'app.previous' }
-  try { Rename-Item -LiteralPath $stageApp -NewName 'app' }
-  catch {
+  try {
+    Rename-Item -LiteralPath $stageApp -NewName 'app'
+    $appSwapped = $true
+  } catch {
     if ((Test-Path -LiteralPath $previousApp) -and -not (Test-Path -LiteralPath $appDir)) { Rename-Item -LiteralPath $previousApp -NewName 'app' }
     throw
   }
@@ -591,13 +618,14 @@ try {
   Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'launch-pumpstation.bat') -Destination $launcherBatPath -Force
   Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'launch-pumpstation.vbs') -Destination $launcherVbsPath -Force
 
+  Write-Title 'STEP 7/8 - Create desktop and Start Menu shortcuts'
   $shortcutPath = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Pumpstation.lnk'
   $shell = New-Object -ComObject WScript.Shell
   $shortcut = $shell.CreateShortcut($shortcutPath)
   $shortcut.TargetPath = Join-Path $env:SystemRoot 'System32\wscript.exe'
   $shortcut.Arguments = '"' + $launcherVbsPath + '"'
   $shortcut.WorkingDirectory = $installRoot
-  $shortcut.Description = 'اجرای سامانهٔ Pumpstation'
+  $shortcut.Description = 'Pumpstation monitoring system'
   $iconPath = Join-Path $appDir 'public\brand\logo.ico'
   if (Test-Path -LiteralPath $iconPath) { $shortcut.IconLocation = $iconPath + ',0' }
   else { $shortcut.IconLocation = $env:SystemRoot + '\System32\shell32.dll,220' }
@@ -607,32 +635,98 @@ try {
   New-Item -ItemType Directory -Path $startFolder -Force | Out-Null
   Copy-Item -LiteralPath $shortcutPath -Destination $startShortcut -Force
 
-  Write-Title 'نصب کامل شد'
-  Write-Host ("برنامه: {0}" -f $appDir)
-  Write-Host ("داده و گزارش: {0}" -f $dataRoot)
-  Write-Host 'میانبر دسکتاپ ساخته شد. برنامه اکنون باز می‌شود.' -ForegroundColor Green
+  Write-Title 'STEP 8/8 - Start Pumpstation and verify the local server'
+  Write-Host "Application folder: $appDir"
+  Write-Host "Persistent data folder: $dataRoot"
+  Write-Host 'Desktop shortcut created. Opening Pumpstation...' -ForegroundColor Green
+  $env:PUMPSTATION_LAUNCHER_HIDDEN = '0'
+  $env:PUMPSTATION_SKIP_BROWSER = '1'
   & (Join-Path $PSHOME 'powershell.exe') -NoProfile -ExecutionPolicy Bypass -File $launcherPath
-  if ($LASTEXITCODE -ne 0) { throw 'اجرای نخست برنامه کامل نشد؛ گزارش‌های برنامه را در پوشهٔ لاگ‌ها بررسی کنید.' }
+  Remove-Item Env:\PUMPSTATION_SKIP_BROWSER -ErrorAction SilentlyContinue
+  if ($LASTEXITCODE -ne 0) { throw 'The application did not start successfully. Check the server logs.' }
+  $finalConfig = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+  $applicationUrl = "http://127.0.0.1:$([int]$finalConfig.port)"
+  Write-Host 'Verifying first-run database setup and securely hashing the generated PINs...' -ForegroundColor Cyan
+  # The auth route runs ensureSeed before rejecting this intentionally empty login body; HTTP 400 confirms seed completed.
+  $seedStatus = 0
+  try {
+    $seedResponse = Invoke-WebRequest -Uri "$applicationUrl/api/auth" -Method Post -ContentType 'application/json' -Body '{}' -UseBasicParsing -TimeoutSec 120 -ErrorAction Stop
+    $seedStatus = [int]$seedResponse.StatusCode
+  } catch {
+    if ($_.Exception.Response) { $seedStatus = [int]$_.Exception.Response.StatusCode }
+    else { throw }
+  }
+  if ($seedStatus -ne 400) { throw "Initial database setup could not be verified (HTTP $seedStatus). The temporary PIN file was kept for recovery." }
+  [IO.File]::WriteAllText($rosterMarker, "seeded=$(Get-Date -Format o)`r`n", ([System.Text.UTF8Encoding]::new($false)))
   if (Test-Path -LiteralPath $paths.rosterFile) {
     try {
-      [IO.File]::WriteAllText($rosterMarker, "seeded=$(Get-Date -Format o)`r`n", ([System.Text.UTF8Encoding]::new($false)))
       Remove-Item -LiteralPath $paths.rosterFile -Force -ErrorAction Stop
-      Write-Host 'PINهای اولیه در پایگاه داده به‌صورت هش‌شده ذخیره شدند؛ فایل متنی موقت حذف شد.' -ForegroundColor Green
+      Write-Host 'Initial PINs are now stored as hashes; the temporary PIN file was deleted.' -ForegroundColor Green
     } catch {
-      Write-Host ("هشدار: حذف فایل متنی PIN خودکار نشد؛ دسترسی آن را محدود کنید: {0}" -f $paths.rosterFile) -ForegroundColor Yellow
+      Write-Host ("WARNING: Could not delete the temporary PIN file: {0}" -f $paths.rosterFile) -ForegroundColor Yellow
     }
-  } else {
-    [IO.File]::WriteAllText($rosterMarker, "seeded=$(Get-Date -Format o)`r`n", ([System.Text.UTF8Encoding]::new($false)))
   }
+  try {
+    Start-Process $applicationUrl -ErrorAction Stop
+    Write-Host 'Pumpstation opened in your default browser.' -ForegroundColor Green
+  } catch {
+    Write-Host "The server is ready. Open this address in your browser: $applicationUrl" -ForegroundColor Yellow
+  }
+  Write-Title 'INSTALLATION COMPLETE'
+  Write-Host 'Pumpstation is installed. Use the desktop shortcut to open it next time.' -ForegroundColor Green
+  if ($script:InstallerPins.Count -gt 0) {
+    Write-Host 'Save these initial PINs now. They are not written to the installer log:' -ForegroundColor Yellow
+    foreach ($credential in $script:InstallerPins) { Write-Host ("{0}: {1}" -f $credential.Role, $credential.Pin) -ForegroundColor Yellow }
+  }
+  Write-Host 'The app opened in your default browser. Press Enter in this installer window to close it.' -ForegroundColor Green
 } catch {
   $caught = $_
+  $rollbackNotes = @()
+  if ($appSwapped -and $pidPath -and $appDir) {
+    try { Stop-PumpstationServer $pidPath $appDir }
+    catch { $rollbackNotes += "Could not stop the candidate server: $($_.Exception.Message)" }
+  }
+  if ($migrationStarted -and $paths -and $paths.databaseDir) {
+    try {
+      if (Test-Path -LiteralPath $paths.databaseDir) { Remove-Item -LiteralPath $paths.databaseDir -Recurse -Force }
+      if ($databaseBackupPath -and (Test-Path -LiteralPath $databaseBackupPath -PathType Container)) {
+        New-Item -ItemType Directory -Path (Split-Path -Parent $paths.databaseDir) -Force | Out-Null
+        Copy-Item -LiteralPath $databaseBackupPath -Destination $paths.databaseDir -Recurse -Force
+        Assert-DirectoryFilesEqual $databaseBackupPath $paths.databaseDir
+        $rollbackNotes += 'Database restored and verified from the pre-migration safety copy.'
+      } elseif ($databaseExistedBeforeMigration -and $databaseHadFilesBeforeMigration) {
+        throw 'The database backup is missing; the installer did not remove the backup folder.'
+      } elseif ($databaseExistedBeforeMigration) {
+        New-Item -ItemType Directory -Path $paths.databaseDir -Force | Out-Null
+        $rollbackNotes += 'The original empty database directory was restored.'
+      } else {
+        $rollbackNotes += 'The newly created database directory was removed.'
+      }
+    } catch {
+      $rollbackNotes += "DATABASE ROLLBACK FAILED: $($_.Exception.Message)"
+    }
+  }
+  if ($appSwapped -and $previousConfig -and $previousApp -and (Test-Path -LiteralPath $previousApp -PathType Container)) {
+    try {
+      if (Test-Path -LiteralPath $appDir) { Remove-Item -LiteralPath $appDir -Recurse -Force }
+      Rename-Item -LiteralPath $previousApp -NewName 'app'
+      if ($previousConfigRaw) {
+        [IO.File]::WriteAllText($configPath, $previousConfigRaw, ([System.Text.UTF8Encoding]::new($false)))
+      }
+      $appSwapped = $false
+      $rollbackNotes += 'Previous application code and configuration were restored.'
+    } catch {
+      $rollbackNotes += "APPLICATION ROLLBACK FAILED: $($_.Exception.Message)"
+    }
+  }
   $failureDetails = @(
     ("Time: {0}" -f (Get-Date -Format o)),
     ("Message: {0}" -f $caught.Exception.Message),
     ("Category: {0}" -f $caught.CategoryInfo),
     ("Position: {0}" -f $caught.InvocationInfo.PositionMessage),
     ("Script stack: {0}" -f $caught.ScriptStackTrace),
-    ("Working directory: {0}" -f (Get-Location).Path)
+    ("Working directory: {0}" -f (Get-Location).Path),
+    ("Rollback: {0}" -f ($rollbackNotes -join '; '))
   ) -join "`r`n"
   try {
     [IO.File]::WriteAllText($InstallerErrorLog, $failureDetails + "`r`n", ([System.Text.UTF8Encoding]::new($false)))
@@ -641,9 +735,8 @@ try {
     }
   } catch { }
   Write-Host ''
-  Write-Host ('خطای نصب: ' + $caught.Exception.Message) -ForegroundColor Red
-  Write-Host ("گزارش تشخیصی ذخیره شد: {0}" -f $InstallerErrorLog) -ForegroundColor Yellow
-  Write-Host 'هیچ فایل پایگاه داده یا بک‌آپ قبلی حذف نمی‌شود. در صورت شکست به‌روزرسانی، نسخهٔ قبلی برنامه در app.previous باقی می‌ماند.' -ForegroundColor Yellow
-  Read-Host 'برای بستن این پنجره Enter بزنید'
+  Write-Host ('INSTALLATION FAILED: ' + $caught.Exception.Message) -ForegroundColor Red
+  Write-Host ("Diagnostic log saved to: {0}" -f $InstallerErrorLog) -ForegroundColor Yellow
+  Write-Host 'Existing database backups are retained. Previous application code remains in app.previous when rollback is needed.' -ForegroundColor Yellow
   exit 1
 }

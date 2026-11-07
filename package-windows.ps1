@@ -1,33 +1,74 @@
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$appPackagePath = Join-Path $root 'pumpstation-v1.2\package.json'
-if (-not (Test-Path -LiteralPath $appPackagePath)) { throw 'پوشهٔ pumpstation-v1.2 پیدا نشد.' }
-$offlineVendor = Join-Path $root 'offline-vendor'
-if (-not (Test-Path -LiteralPath (Join-Path $offlineVendor 'manifest.json')) -or -not (Test-Path -LiteralPath (Join-Path $offlineVendor 'node-win-x64-22.22.2.tgz')) -or -not (Test-Path -LiteralPath (Join-Path $offlineVendor 'npm-10.9.4.tgz')) -or -not (Test-Path -LiteralPath (Join-Path $offlineVendor 'npm-cache\_cacache\index-v5'))) {
-  throw 'فایل‌های آفلاین همراه بسته نیستند. ابتدا روی رایانهٔ متصل به اینترنت prepare-offline-vendor.ps1 را اجرا کنید.'
-}
-$vendorManifest = Get-Content -LiteralPath (Join-Path $offlineVendor 'manifest.json') -Raw | ConvertFrom-Json
-$lockHash = (Get-FileHash -LiteralPath (Join-Path $root 'pumpstation-v1.2\package-lock.json') -Algorithm SHA256).Hash.ToLowerInvariant()
-if ($vendorManifest.lockSha256 -ne $lockHash -or $vendorManifest.target -ne 'win32-x64') { throw 'cache آفلاین با package-lock.json فعلی سازگار نیست؛ ابتدا آن را دوباره بسازید.' }
+$appSource = Join-Path $root 'pumpstation-v1.2'
+$appPackagePath = Join-Path $appSource 'package.json'
+if (-not (Test-Path -LiteralPath $appPackagePath)) { throw 'pumpstation-v1.2 was not found.' }
+
 $version = (Get-Content -LiteralPath $appPackagePath -Raw | ConvertFrom-Json).version
 $output = Join-Path $root "Pumpstation-Windows-$version.zip"
 $temp = Join-Path $env:TEMP ('pumpstation-package-' + [Guid]::NewGuid().ToString('N'))
 $stage = Join-Path $temp 'Pumpstation'
-New-Item -ItemType Directory -Path $stage -Force | Out-Null
+$stageApp = Join-Path $stage 'pumpstation-v1.2'
+$offlineVendor = Join-Path $root 'offline-vendor'
+$offlineNpmCache = Join-Path $offlineVendor 'npm-cache'
+$lockPath = Join-Path $appSource 'package-lock.json'
+
+$requiredRootFiles = @(
+  'install-windows.bat',
+  'install-windows.ps1',
+  'launch-pumpstation.bat',
+  'launch-pumpstation.ps1',
+  'launch-pumpstation.vbs',
+  'RUNTIME-LICENSES.txt',
+  'INSTALL-WINDOWS-FA.md'
+)
+foreach ($file in $requiredRootFiles) {
+  if (-not (Test-Path -LiteralPath (Join-Path $root $file) -PathType Leaf)) { throw "Required installer file is missing: $file" }
+}
+
+$offlineAvailable = $false
+if (Test-Path -LiteralPath $offlineVendor -PathType Container) {
+  $offlineFilesPresent = (Test-Path -LiteralPath (Join-Path $offlineVendor 'manifest.json')) -and
+    (Test-Path -LiteralPath (Join-Path $offlineVendor 'node-win-x64-22.22.2.tgz')) -and
+    (Test-Path -LiteralPath (Join-Path $offlineVendor 'npm-10.9.4.tgz')) -and
+    (Test-Path -LiteralPath (Join-Path $offlineNpmCache '_cacache\index-v5')) -and
+    (Test-Path -LiteralPath (Join-Path $offlineNpmCache '_cacache\content-v2'))
+  if (-not $offlineFilesPresent) { throw 'offline-vendor exists but is incomplete. Rebuild it or remove it for an online-only installer.' }
+  $vendorManifest = Get-Content -LiteralPath (Join-Path $offlineVendor 'manifest.json') -Raw | ConvertFrom-Json
+  $lockHash = (Get-FileHash -LiteralPath $lockPath -Algorithm SHA256).Hash.ToLowerInvariant()
+  if ($vendorManifest.lockSha256 -ne $lockHash -or $vendorManifest.target -ne 'win32-x64') {
+    throw 'offline-vendor does not match the current package-lock.json or Windows target.'
+  }
+  $offlineAvailable = $true
+}
+
+New-Item -ItemType Directory -Path $stageApp -Force | Out-Null
 try {
-  Write-Host 'در حال آماده‌سازی بستهٔ تمیز (بدون node_modules، پایگاه‌داده یا فایل‌های محلی)...' -ForegroundColor Cyan
-  & robocopy.exe $root $stage /E /R:1 /W:1 /NFL /NDL /NP /XD '.git' 'node_modules' '.next' '.data' 'coverage' '.audit' 'dist' '_review-edition2' 'Pumpstation Full' /XF '.env' '.env.local' '.env.production' '.env.development' '.env.test' '.env.production.local' '.env.development.local' '.env.test.local' '*.log' '*.local.json' 'Pumpstation-Windows-*.zip' 'Pumpstation-Windows-*.zip.sha256'
-  $code = $LASTEXITCODE
-  if ($code -ge 8) { throw "تهیهٔ بسته شکست خورد (robocopy $code)." }
-  Get-ChildItem -LiteralPath $stage -Force -File -Recurse | Where-Object { $_.Name -like '.env*' -and $_.Name -ne '.env.example' } | Remove-Item -Force
+  Write-Host 'Preparing a clean Windows installer package...' -ForegroundColor Cyan
+  foreach ($file in $requiredRootFiles) {
+    Copy-Item -LiteralPath (Join-Path $root $file) -Destination (Join-Path $stage $file) -Force
+  }
+
+  & robocopy.exe $appSource $stageApp /E /R:1 /W:1 /NFL /NDL /NP /XD '.git' 'node_modules' '.next' '.data' 'coverage' '.turbo' 'dist' 'out' /XF '.env' '.env.local' '.env.production' '.env.development' '.env.test' '.env.production.local' '.env.development.local' '.env.test.local' '*.log' '*.local.json' '*.zip'
+  $copyCode = $LASTEXITCODE
+  if ($copyCode -ge 8) { throw "Could not stage application files (robocopy exit $copyCode)." }
+  Get-ChildItem -LiteralPath $stageApp -Force -File -Recurse | Where-Object { $_.Name -like '.env*' -and $_.Name -ne '.env.example' } | Remove-Item -Force
+
+  if ($offlineAvailable) {
+    Write-Host 'Including the verified offline runtime and npm cache.' -ForegroundColor Green
+    Copy-Item -LiteralPath $offlineVendor -Destination (Join-Path $stage 'offline-vendor') -Recurse -Force
+  } else {
+    Write-Host 'Creating an online installer. Windows must have internet access during installation.' -ForegroundColor Yellow
+  }
+
   if (Test-Path -LiteralPath $output) { Remove-Item -LiteralPath $output -Force }
   Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $output -CompressionLevel Optimal
   $hash = (Get-FileHash -LiteralPath $output -Algorithm SHA256).Hash.ToLowerInvariant()
   [IO.File]::WriteAllText(($output + '.sha256'), "$hash  $(Split-Path -Leaf $output)`r`n", ([System.Text.UTF8Encoding]::new($false)))
   Write-Host ''
-  Write-Host ("نصب‌کننده آماده شد: {0}" -f $output) -ForegroundColor Green
-  Write-Host ("SHA-256: {0}" -f $hash) -ForegroundColor Green
-  Write-Host 'ZIP را کامل استخراج کنید و روی install-windows.bat دوبار کلیک کنید.'
+  Write-Host "INSTALLER READY: $output" -ForegroundColor Green
+  Write-Host "SHA-256: $hash" -ForegroundColor Green
+  Write-Host 'Extract the ZIP and double-click install-windows.bat. The installer runs automatically.'
 } finally {
   Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
 }

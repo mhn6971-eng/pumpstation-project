@@ -17,8 +17,7 @@ function Write-Host {
   $shown = @(
     foreach ($item in $Object) {
       if ($null -eq $item) { '' }
-      elseif ([string]$item -match '[\u0600-\u06FF]') { ([string][char]0x202B) + [string]$item + [char]0x202C }
-      else { $item }
+      else { [regex]::Replace([string]$item, '[^\x00-\x7F]', '?') }
     }
   )
   $hostParams = @{ Object = $shown; Separator = $Separator }
@@ -37,7 +36,7 @@ function Read-Host {
     } catch { }
     return ''
   }
-  if ($Prompt -match '[\u0600-\u06FF]') { $Prompt = ([string][char]0x202B) + $Prompt + [char]0x202C }
+  $Prompt = [regex]::Replace($Prompt, '[^\x00-\x7F]', '?')
   if ($AsSecureString) { return Microsoft.PowerShell.Utility\Read-Host -Prompt $Prompt -AsSecureString }
   return Microsoft.PowerShell.Utility\Read-Host -Prompt $Prompt
 }
@@ -50,19 +49,22 @@ trap {
   }
   exit 1
 }
+$skipBrowser = $env:PUMPSTATION_SKIP_BROWSER -eq '1'
+Remove-Item Env:\PUMPSTATION_SKIP_BROWSER -ErrorAction SilentlyContinue
 $installRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $configPath = Join-Path $installRoot 'config\install.json'
 if (-not (Test-Path -LiteralPath $configPath)) {
-  Write-Host 'نصب Pumpstation پیدا نشد. ابتدا install-windows.bat را اجرا کنید.' -ForegroundColor Red
-  Read-Host 'برای بستن Enter بزنید'
+  Write-Host 'Pumpstation is not installed. Run install-windows.bat first.' -ForegroundColor Red
+  Read-Host 'Press Enter to close this window.'
   exit 1
 }
-$config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
+$configJson = [IO.File]::ReadAllText($configPath, [System.Text.Encoding]::UTF8)
+$config = $configJson | ConvertFrom-Json
 $nodePath = Join-Path $config.runtimeDir 'node.exe'
 $serveScript = Join-Path $config.appDir 'scripts\serve.mjs'
 if (-not (Test-Path -LiteralPath $nodePath) -or -not (Test-Path -LiteralPath $serveScript) -or -not (Test-Path -LiteralPath (Join-Path $config.appDir 'node_modules\next\dist\bin\next'))) {
-  Write-Host 'Runtime یا فایل‌های برنامه ناقص است. نصب‌کننده را دوباره اجرا کنید.' -ForegroundColor Red
-  Read-Host 'برای بستن Enter بزنید'
+  Write-Host 'The runtime or application files are incomplete. Run the installer again.' -ForegroundColor Red
+  Read-Host 'Press Enter to close this window.'
   exit 1
 }
 
@@ -153,7 +155,7 @@ if (-not $running) {
     for ($candidate = $preferredPort + 1; $candidate -le [Math]::Min(65535, $preferredPort + 30); $candidate++) {
       if (Test-LocalPortFree $candidate) { $port = $candidate; $found = $true; break }
     }
-    if (-not $found) { throw 'پورت برنامه اشغال است و پورت آزاد دیگری در بازهٔ ۳۰تایی پیدا نشد.' }
+    if (-not $found) { throw 'No free application port was found in the next 30 ports.' }
     Set-ConfigPort $port
     [IO.File]::WriteAllText($configPath, ($config | ConvertTo-Json -Depth 8), ([System.Text.UTF8Encoding]::new($false)))
   }
@@ -168,8 +170,8 @@ if (-not $running) {
   } catch {
     $failure = Join-Path $logsDir 'launch-failure.txt'
     [IO.File]::WriteAllText($failure, "وقت: $(Get-Date -Format o)`r`nخطا: $($_.Exception.Message)`r`nNode: $nodePath`r`nScript: $serveScript`r`nWorking directory: $($config.appDir)`r`n", ([System.Text.UTF8Encoding]::new($false)))
-    Write-Host ("ساخت پردازهٔ سرور ناموفق بود؛ جزئیات در {0}" -f $failure) -ForegroundColor Red
-    Read-Host 'برای بستن Enter بزنید'
+    Write-Host ("Could not start the server process. Details: {0}" -f $failure) -ForegroundColor Red
+    Read-Host 'Press Enter to close this window.'
     exit 1
   }
   [IO.File]::WriteAllText($pidPath, [string]$proc.Id, ([System.Text.UTF8Encoding]::new($false)))
@@ -188,19 +190,23 @@ if (-not $running) {
     Remove-Item -LiteralPath $pidPath -Force -ErrorAction SilentlyContinue
     $failure = Join-Path $logsDir 'launch-failure.txt'
     [IO.File]::WriteAllText($failure, "وقت: $(Get-Date -Format o)`r`nبرنامه: $($config.appDir)`r`nپورت: $port`r`nنسخهٔ مورد انتظار: $($config.appVersion)`r`nخروجی خطا: $stderrLog`r`n", ([System.Text.UTF8Encoding]::new($false)))
-    Write-Host ("برنامه روی پورت {0} آماده نشد. گزارش خطا: {1}" -f $port, $stderrLog) -ForegroundColor Red
-    if (Test-Path -LiteralPath $stderrLog) { Get-Content -LiteralPath $stderrLog -Tail 40 }
-    if (Test-Path -LiteralPath $stdoutLog) { Get-Content -LiteralPath $stdoutLog -Tail 20 }
-    Read-Host 'برای بستن Enter بزنید'
+    Write-Host ("Pumpstation did not become ready on port {0}." -f $port) -ForegroundColor Red
+    Write-Host ("Server error log: {0}" -f $stderrLog) -ForegroundColor Yellow
+    Write-Host ("Server output log: {0}" -f $stdoutLog) -ForegroundColor Yellow
+    Read-Host 'Press Enter to close this window.'
     exit 1
   }
   Set-ConfigPort $port
   [IO.File]::WriteAllText($configPath, ($config | ConvertTo-Json -Depth 8), ([System.Text.UTF8Encoding]::new($false)))
 }
 
-try {
-  Start-Process $baseUrl -ErrorAction Stop
-  Write-Host ("سامانهٔ Pumpstation آماده است: {0}" -f $baseUrl) -ForegroundColor Green
-} catch {
-  Write-Host ("سرور سالم است اما مرورگر خودکار باز نشد؛ این نشانی را دستی باز کنید: {0}" -f $baseUrl) -ForegroundColor Yellow
+if ($skipBrowser) {
+  Write-Host ("Pumpstation server is ready: {0}" -f $baseUrl) -ForegroundColor Green
+} else {
+  try {
+    Start-Process $baseUrl -ErrorAction Stop
+    Write-Host ("Pumpstation is ready: {0}" -f $baseUrl) -ForegroundColor Green
+  } catch {
+    Write-Host ("The server is ready, but the browser did not open. Open this URL: {0}" -f $baseUrl) -ForegroundColor Yellow
+  }
 }
