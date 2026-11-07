@@ -1,12 +1,12 @@
 {
-  "version": "1.4.16",
-  "archiveUrl": "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/Pumpstation-App-Update-1.4.16.zip",
-  "sha256": "143a9b5b8ce785a2f340a56d50bf9be6faf94ddcd7af588f282244399a86e722",
+  "version": "1.4.17",
+  "archiveUrl": "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/Pumpstation-App-Update-1.4.17.zip",
+  "sha256": "4df510a62cf37cbf80d573b7904f40b246948cedae2ba6c9055b1a92480f3409",
   "publishedAt": "2026-11-07",
   "notes": [
-    "نصب تازه برای همهٔ حساب‌های شیفت و مدیر PIN موقت 1234 تنظیم می‌کند؛ بعد از ورود PIN هر حساب را در Admin تغییر دهید.",
-    "ورود و تغییر PIN فقط چهار رقم می‌پذیرد؛ PINهای غیرچهاررقمی رد می‌شوند.",
-    "بستهٔ Windows ابزار reset-pins.bat دارد که پس از بک‌آپ و راستی‌آزمایی SHA-256، PINها را بدون پاک‌کردن داده‌های عملیاتی بازنشانی می‌کند.",
-    "تنظیمات TOTP حفظ می‌شود؛ اگر دومرحله‌ای مدیر فعال است، کد authenticator همچنان لازم است."
+    "ابزار بازنشانی PIN مالک واقعی دیتابیس را از فایل قفل PGlite پیدا می‌کند و سرویس را پیش از بک‌آپ متوقف می‌کند.",
+    "اگر پردازهٔ مالک دیتابیس با اطمینان شناسایی نشود، عملیات پیش از تغییر PIN متوقف می‌شود.",
+    "نصب تازه همچنان برای حساب‌های شیفت و مدیر PIN موقت 1234 تنظیم می‌کند؛ PINها را پس از ورود از Admin تغییر دهید.",
+    "PIN ورود و تغییر آن فقط چهار رقم می‌پذیرد؛ TOTP هنگام بازنشانی حفظ می‌شود."
   ]
 }

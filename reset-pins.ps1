@@ -43,36 +43,67 @@ function Assert-DirectoryFilesEqual([string]$Source, [string]$Destination) {
   }
 }
 
-function Stop-PumpstationServer([string]$InstallRoot, [string]$AppDir) {
+function Stop-PumpstationServer([string]$InstallRoot, [string]$AppDir, [string]$RuntimeDir, [string]$DatabaseDir) {
   $pidPath = Join-Path $InstallRoot 'config\server.pid'
-  $serverPids = @()
+  $lockPath = Join-Path $DatabaseDir '.pumpstation.lock'
+  $savedPid = 0
+  $databaseOwnerPid = 0
   if (Test-Path -LiteralPath $pidPath) {
     $raw = (Get-Content -LiteralPath $pidPath -Raw).Trim()
-    $savedPid = 0
-    if ([int]::TryParse($raw, [ref]$savedPid)) { $serverPids += $savedPid }
+    [void][int]::TryParse($raw, [ref]$savedPid)
+  }
+  if (Test-Path -LiteralPath $lockPath) {
+    try {
+      $lock = [IO.File]::ReadAllText($lockPath, [Text.Encoding]::UTF8) | ConvertFrom-Json
+      $parsedPid = [int]::TryParse([string]$lock.pid, [ref]$databaseOwnerPid)
+      if (-not $parsedPid -or $databaseOwnerPid -le 0) { throw 'Invalid owner PID' }
+    } catch { throw 'The database lock file is unreadable. No process was stopped and PINs were not changed.' }
   }
   try {
-    $managed = @(Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction Stop | Where-Object {
-      $_.CommandLine -and
-      $_.CommandLine.IndexOf($AppDir, [StringComparison]::OrdinalIgnoreCase) -ge 0 -and
-      $_.CommandLine -match '(?i)scripts[\\/]+serve\.mjs\s+start'
-    })
-    $serverPids += @($managed | ForEach-Object { [int]$_.ProcessId })
+    $processes = @(Get-CimInstance Win32_Process -Filter "Name = 'node.exe'" -ErrorAction Stop)
   } catch { throw 'Could not safely inspect Pumpstation processes. No process was stopped.' }
 
-  foreach ($serverPid in @($serverPids | Select-Object -Unique)) {
-    $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $serverPid" -ErrorAction SilentlyContinue
-    $isThisApp = $proc -and $proc.CommandLine -and
-      $proc.CommandLine.IndexOf($AppDir, [StringComparison]::OrdinalIgnoreCase) -ge 0 -and
-      $proc.CommandLine -match '(?i)scripts[\\/]+serve\.mjs\s+start'
-    if (-not $isThisApp) { continue }
+  $nodePath = [IO.Path]::GetFullPath((Join-Path $RuntimeDir 'node.exe'))
+  $killPids = @()
+  foreach ($proc in $processes) {
+    $command = [string]$proc.CommandLine
+    if (-not $command) { continue }
+    $executable = [string]$proc.ExecutablePath
+    $sameRuntime = $false
+    if ($executable) {
+      try { $sameRuntime = [IO.Path]::GetFullPath($executable).Equals($nodePath, [StringComparison]::OrdinalIgnoreCase) } catch { }
+    }
+    $mentionsApp = $command.IndexOf($AppDir, [StringComparison]::OrdinalIgnoreCase) -ge 0
+    $isLauncher = $mentionsApp -and $command -match '(?i)scripts[\\/]+serve\.mjs\s+start'
+    $isNextServer = ($command -match '(?i)node_modules[\\/]+next[\\/]+dist[\\/]') -and ($command -match '(?i)\bstart\b')
+    $isDatabaseOwner = ([int]$proc.ProcessId -eq $databaseOwnerPid) -and $sameRuntime -and $isNextServer
+    $isManagedNext = $isNextServer -and $sameRuntime -and $mentionsApp
+    if ($isLauncher -or $isManagedNext -or $isDatabaseOwner) { $killPids += [int]$proc.ProcessId }
+  }
+
+  $candidatePids = @($databaseOwnerPid, $savedPid) | Where-Object { $_ -gt 0 } | Select-Object -Unique
+  foreach ($candidatePid in $candidatePids) {
+    $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $candidatePid" -ErrorAction SilentlyContinue
+    if (-not $proc) { continue }
+    if ($candidatePid -eq $databaseOwnerPid -and $candidatePid -notin $killPids) {
+      throw 'The process holding the Pumpstation database could not be identified safely. Close Pumpstation and retry; PINs were not changed.'
+    }
+  }
+
+  foreach ($serverPid in @($killPids | Select-Object -Unique)) {
     & taskkill.exe /PID $serverPid /T /F 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) { Stop-Process -Id $serverPid -Force -ErrorAction SilentlyContinue }
-    for ($attempt = 0; $attempt -lt 20; $attempt++) {
-      if (-not (Get-Process -Id $serverPid -ErrorAction SilentlyContinue)) { break }
+    for ($attempt = 0; $attempt -lt 30; $attempt++) {
+      if (-not (Get-CimInstance Win32_Process -Filter "ProcessId = $serverPid" -ErrorAction SilentlyContinue)) { break }
       Start-Sleep -Milliseconds 500
     }
-    if (Get-Process -Id $serverPid -ErrorAction SilentlyContinue) { throw 'Pumpstation server could not be stopped safely; PINs were not changed.' }
+    if (Get-CimInstance Win32_Process -Filter "ProcessId = $serverPid" -ErrorAction SilentlyContinue) {
+      throw 'Pumpstation server could not be stopped safely; PINs were not changed.'
+    }
+  }
+
+  if ($databaseOwnerPid -gt 0 -and (Get-CimInstance Win32_Process -Filter "ProcessId = $databaseOwnerPid" -ErrorAction SilentlyContinue)) {
+    throw 'The Pumpstation database is still open in another process. Close the app and retry; PINs were not changed.'
   }
   Remove-Item -LiteralPath $pidPath -Force -ErrorAction SilentlyContinue
 }
@@ -93,7 +124,7 @@ try {
 
   Write-Host 'This recovery sets every shift PIN to the temporary default 1234.' -ForegroundColor Yellow
   Write-Host 'The database is backed up and verified first. Existing operational data is not reset.'
-  Stop-PumpstationServer $installRoot $appDir
+  Stop-PumpstationServer $installRoot $appDir $config.runtimeDir $databaseDir
 
   $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
   $safetyDir = Join-Path $config.backupDir (Join-Path 'credential-recovery' $stamp)
