@@ -43,7 +43,7 @@
 | Build | [tailwindcss](https://www.npmjs.com/package/tailwindcss/v/4.1.17) | 4.1.17 | CSS utility framework |
 | Build | [typescript](https://www.npmjs.com/package/typescript/v/5.9.3) | 5.9.3 | typecheck/build |
 
-**در حالت پیش‌فرض، PGlite داخل برنامه است و نصب/اجرای PostgreSQL یا Python لازم نیست.** بستهٔ `pg` تنها برای پیکربندی PostgreSQL بیرونی اختیاری است. پیش‌نیازهای Windows: Windows 10 x64 نسخهٔ 1809 یا جدیدتر، PowerShell، `tar.exe` فقط هنگام نصب یا تعویض runtime، مرورگر و ۳ گیگابایت فضای خالی C. مجوزهای runtime در `RUNTIME-LICENSES.txt` هستند؛ برای انتشار سازمانی باید مجوزهای کل dependency graph نیز مستقلاً ممیزی شوند.
+**در حالت پیش‌فرض، PGlite داخل برنامه است و نصب/اجرای PostgreSQL یا Python لازم نیست.** بستهٔ `pg` تنها برای پیکربندی PostgreSQL بیرونی اختیاری است. پیش‌نیازهای Windows: Windows 10 x64 نسخهٔ 1809 (Build 17763) یا جدیدتر، یا Windows 11 x64؛ Windows PowerShell 5.1؛ `tar.exe` فقط هنگام نصب یا تعویض runtime؛ مرورگر؛ و ۳ گیگابایت فضای خالی C. Windows Server و Windows 10 قدیمی‌تر از نسخهٔ 1809 پشتیبانی نمی‌شوند. مجوزهای runtime در `RUNTIME-LICENSES.txt` هستند؛ برای انتشار سازمانی باید مجوزهای کل dependency graph نیز مستقلاً ممیزی شوند.
 
 ## ساختار نگهداری داده روی درایو دیگر
 

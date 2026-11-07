@@ -89,8 +89,10 @@ function Get-VerifiedOfflinePackage([string]$Name, [string]$Version, [string]$In
 }
 
 function Test-RegistryOnline {
+  # The lightweight ping endpoint avoids downloading npm's large package metadata.
+  # Some proxies reject HEAD requests even when normal package downloads are allowed.
   try {
-    Invoke-WebRequest -Uri "$Registry/npm" -Method Head -TimeoutSec 6 -UseBasicParsing | Out-Null
+    Invoke-WebRequest -Uri "$Registry/-/ping" -Method Get -TimeoutSec 8 -UseBasicParsing | Out-Null
     return $true
   } catch { return $false }
 }
@@ -311,9 +313,11 @@ function Invoke-Checked([string]$Executable, [string[]]$Arguments, [string]$Work
 try {
   Write-Title 'نصب‌کنندهٔ Pumpstation برای Windows 10/11 x64'
   Write-Host 'این نصب‌کننده نسخه‌های ثابت Node.js و npm را با SHA-512 بررسی می‌کند و در صورت نیاز بین cache آفلاین و اینترنت انتخاب می‌کند.'
-  if (-not [Environment]::Is64BitOperatingSystem) { throw 'این بسته فقط برای Windows 64-bit است.' }
+  if (-not [Environment]::Is64BitOperatingSystem) { throw 'این بسته فقط برای Windows 10/11 نسخهٔ 64-bit است.' }
+  if ([version]$PSVersionTable.PSVersion -lt [version]'5.1') { throw 'برای نصب، Windows PowerShell 5.1 لازم است؛ PowerShell ویندوز را به‌روزرسانی کنید.' }
   $os = Get-CimInstance Win32_OperatingSystem
-  if ([int]$os.BuildNumber -lt 17763) { throw 'Windows 10 باید نسخهٔ 1809 یا جدیدتر باشد تا Node.js 22 پشتیبانی شود.' }
+  if (-not $os -or [int]$os.ProductType -ne 1) { throw 'این نصاب برای Windows 10/11 دسکتاپ است، نه Windows Server.' }
+  if ([int]$os.BuildNumber -lt 17763) { throw 'حداقل سیستم‌عامل پشتیبانی‌شده Windows 10 نسخهٔ 1809 (Build 17763) است؛ Windows 11 نیز پشتیبانی می‌شود.' }
 
   $installRoot = Get-InstallRoot
   $systemDrive = @([IO.DriveInfo]::GetDrives() | Where-Object { $_.Name.ToUpperInvariant() -eq 'C:\' -and $_.IsReady }) | Select-Object -First 1
