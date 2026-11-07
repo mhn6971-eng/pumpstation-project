@@ -12,6 +12,7 @@ type MirrorState = {
   failRuns: number;
   last24: number;
   files: string[];
+  sameVolume: boolean;
   verdict: "ok" | "stale" | "missing" | "failing";
   message: string;
   last: { at: string; file: string; bytes: number; ok: boolean; error: string } | null;
@@ -90,6 +91,11 @@ export default function MirrorPanel() {
             <span className="chip accent">{data.okRuns} کپی موفق / {data.failRuns} ناموفق</span>
           </div>
 
+          {data.sameVolume && (
+            <div className="note warn-note" style={{ marginBottom: 8 }}>
+              آینه و بک‌آپ روی یک volume هستند و در خرابی همان درایو هر دو از دسترس خارج می‌شوند؛ یک نسخه را روی درایو فیزیکی مستقل نگه دارید.
+            </div>
+          )}
           <div className="grid" style={{ gap: 6, fontSize: 12 }}>
             <div><span className="muted">مسیر آینه: </span><span className="mono tiny">{data.dir}</span></div>
             <div><span className="muted">آخرین فایل JSON: </span>

@@ -56,7 +56,6 @@ export type EquipmentView = {
   description: string;
   descriptionAt: string;
   descriptionBy: string;
-  catalogs: { id: number; name: string; size: number; uploadedAt: string }[];
 };
 
 export type AlertView = {

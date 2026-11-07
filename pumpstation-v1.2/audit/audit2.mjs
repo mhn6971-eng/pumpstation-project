@@ -50,22 +50,11 @@ const state = (cookie, q = "") => fetch(`${BASE}/api/state${q}`, { headers: { co
   const repB = await fetch(`${BASE}/report/${post3.body?.id ?? 1}`, { headers: { cookie: B } });
   log("other shift can read report by id", repB.status === 200, `status=${repB.status} — reports are not scoped per shift (by design?)`);
 
-  // ---- upload validation ----
-  const fd = new FormData();
-  fd.append("tag", "EM-01");
-  fd.append("file", new Blob([Buffer.from("<html><script>alert(1)</script></html>")], { type: "application/pdf" }), "fake.pdf");
-  const up = await fetch(`${BASE}/api/catalogs`, { method: "POST", headers: { cookie: ADM }, body: fd });
-  const upBody = await up.json().catch(() => null);
-  log("fake PDF (HTML content) rejected", up.status === 400, `status=${up.status} ${upBody?.ok ? "ACCEPTED — content not validated (bug)" : "err=" + upBody?.error}`);
-  if (upBody?.ok) {
-    const file = await fetch(`${BASE}/api/catalogs?id=${upBody.id}`, { headers: { cookie: A } });
-    log("stored file served with forced content-type", true, `ct=${file.headers.get("content-type")} disp=${file.headers.get("content-disposition")} nosniff=${file.headers.get("x-content-type-options") ?? "MISSING"}`);
-  }
-  const fd2 = new FormData();
-  fd2.append("tag", "EM-01");
-  fd2.append("file", new Blob([Buffer.alloc(9 * 1024 * 1024)], { type: "application/pdf" }), "big.pdf");
-  const up2 = await fetch(`${BASE}/api/catalogs`, { method: "POST", headers: { cookie: ADM }, body: fd2 });
-  log("oversize upload rejected", [400, 413].includes(up2.status), `status=${up2.status} (413 = توسط سقف حجم بدنه رد شد)`);
+  // ---- removed equipment-catalog feature ----
+  const catalogGet = await fetch(`${BASE}/api/catalogs?id=1`, { headers: { cookie: ADM }, redirect: "manual" });
+  log("equipment catalog read endpoint removed", catalogGet.status === 404, `status=${catalogGet.status}`);
+  const catalogPost = await fetch(`${BASE}/api/catalogs`, { method: "POST", headers: { cookie: ADM, Origin: BASE }, body: JSON.stringify({}) });
+  log("equipment catalog upload endpoint removed", catalogPost.status === 404, `status=${catalogPost.status}`);
 
   // ---- offline queue (simulated: channel unconfigured) ----
   const send = await act(A, "report.send", { kind: "daily" });

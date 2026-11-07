@@ -71,6 +71,7 @@ const bundleKeys = bundleBlock ? [...bundleBlock[1].matchAll(/^\s*([A-Za-z]\w*)\
 t("full recovery bundle includes archived reading tables and run history", ["archiveRuns", "motorReadingsArchive", "processReadingsArchive"].every((name) => bundleKeys.includes(name)));
 const bundleSource = readFileSync("src/lib/backup-bundle.ts", "utf8");
 t("full recovery bundle streams compressed tables and hashes files", bundleSource.includes("createWriteStream") && bundleSource.includes("createGzip") && bundleSource.includes("sha256") && bundleSource.includes("jsonl"));
+t("mirror verifies actual files in an existing same-name bundle", bundleSource.includes("const sourceVerified = await verifyAt(BUNDLE_DIR, latest.name)") && bundleSource.includes("const destinationVerified = await verifyAt(destinationRoot, latest.name)") && bundleSource.includes("destinationVerified.bytes !== sourceVerified.bytes"));
 t("bundle export redacts channel tokens and TOTP material", bundleSource.includes('if (table === "channels") row.token = ""') && bundleSource.includes('if (table === "shifts")') && bundleSource.includes('row.totpSecret = ""') && bundleSource.includes('row.token !== ""'));
 t("alerts use a partial unique index for one open alert per cell", schemaSource.includes('uniqueIndex("alerts_open_cell_uq")') && readFileSync("drizzle/0006_alerts_open_unique.sql", "utf8").includes("CREATE UNIQUE INDEX IF NOT EXISTS alerts_open_cell_uq"));
 t("external JSON backups redact TOTP and require a checksum", backupSource.includes('totpSecret: ""') && backupSource.includes('if (!sha && !opts.force)') && backupSource.includes('checksumPresent && sha === actual'));
@@ -232,79 +233,56 @@ for (const kind of ["process", "pm"]) {
   t(`${kind} report ZIP is compressed, downloaded, and saved`, response.status === 200 && response.headers.get("content-type") === "application/zip" && bytes[0] === 0x50 && bytes[1] === 0x4b && fileName.endsWith(".zip") && existsSync(savedPath), `status=${response.status} file=${fileName}`);
 }
 for (const file of reportZipPaths) unlinkSync(file);
-const catalogDir = process.env.CATALOG_DIR ?? "files/catalogs";
-mkdirSync(catalogDir, { recursive: true });
-const catalogFilesBefore = new Set(readdirSync(catalogDir));
-const boundary = `audit6-${Date.now()}`;
-const largePdf = Buffer.concat([Buffer.from("%PDF-1.4\n"), Buffer.alloc(1024 * 1024, 0x41)]);
-const multipart = Buffer.concat([
-  Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="tag"\r\n\r\nM-01\r\n--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="audit6-1mb.pdf"\r\nContent-Type: application/pdf\r\n\r\n`),
-  largePdf,
-  Buffer.from(`\r\n--${boundary}--\r\n`),
-]);
-const largeUpload = await fetch(`${BASE}/api/catalogs`, { method: "POST", headers: { cookie: adm.cookie, "Content-Type": `multipart/form-data; boundary=${boundary}`, "Content-Length": String(multipart.length) }, body: multipart });
-const largeUploadBody = await largeUpload.json().catch(() => null);
-t("1 MiB PDF passes the proxy catalog limit", largeUpload.status === 200 && largeUploadBody?.ok === true, `status=${largeUpload.status}`);
-const catalogForm = new FormData();
-catalogForm.append("tag", "M-01");
-catalogForm.append("file", new Blob([Buffer.from("%PDF-1.4\n%%EOF")], { type: "application/pdf" }), "audit6-catalog.pdf");
-const catalogUpload = await fetch(`${BASE}/api/catalogs`, { method: "POST", headers: { cookie: adm.cookie }, body: catalogForm });
-const catalogUploadBody = await catalogUpload.json().catch(() => null);
-let missingPdfWarned = false;
+const removedCatalogApi = await fetch(`${BASE}/api/catalogs`, { headers: { cookie: adm.cookie } });
+t("equipment catalog upload/API removed", removedCatalogApi.status === 404, `status=${removedCatalogApi.status}`);
 let backupTokensRedacted = false;
 let localTokenPreserved = false;
 let missingChecksumRejected = false;
 let externalTotpRedacted = false;
-if (catalogUpload.ok && catalogUploadBody?.ok) {
-  const channelSet = await fetch(`${BASE}/api/actions`, {
-    method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
-    body: JSON.stringify({ action: "admin.channel", payload: { key: "backup", provider: "bale", chatId: "audit6-test-channel", token: "AUDIT6-SECRET", enabled: false } }),
-  }).then((r) => r.json().catch(() => null));
-  const cleared = await fetch(`${BASE}/api/actions`, {
-    method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
-    body: JSON.stringify({ action: "admin.channel", payload: { key: "backup", clearToken: true, enabled: true } }),
-  });
-  const clearedState = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());
-  const tokenClearWorks = cleared.status === 200 && !clearedState.channels?.some((channel) => channel.key === "backup" && channel.hasToken && channel.enabled);
+const channelSet = await fetch(`${BASE}/api/actions`, {
+  method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
+  body: JSON.stringify({ action: "admin.channel", payload: { key: "backup", provider: "bale", chatId: "audit6-test-channel", token: "AUDIT6-SECRET", enabled: false } }),
+}).then((r) => r.json().catch(() => null));
+const cleared = await fetch(`${BASE}/api/actions`, {
+  method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
+  body: JSON.stringify({ action: "admin.channel", payload: { key: "backup", clearToken: true, enabled: true } }),
+});
+const clearedState = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());
+const tokenClearWorks = cleared.status === 200 && !clearedState.channels?.some((channel) => channel.key === "backup" && channel.hasToken && channel.enabled);
+await fetch(`${BASE}/api/actions`, {
+  method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
+  body: JSON.stringify({ action: "admin.channel", payload: { key: "backup", provider: "bale", chatId: "audit6-test-channel", token: "AUDIT6-SECRET", enabled: false } }),
+});
+t("channel token can be explicitly cleared and disables channel", tokenClearWorks);
+const backupCreate = await fetch(`${BASE}/api/actions`, {
+  method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
+  body: JSON.stringify({ action: "backup.create", payload: {} }),
+}).then((r) => r.json().catch(() => null));
+if (backupCreate?.file) {
+  const backupPayload = JSON.parse(readFileSync(String(backupCreate.file), "utf8"));
+  backupTokensRedacted = channelSet?.ok === true && backupPayload.channels?.every((channel) => channel.token === "");
+  externalTotpRedacted = backupPayload.shifts?.every((shift) => shift.totpSecret === "" && shift.totpPending === "" && shift.totpEnabled === false && Array.isArray(shift.totpBackupCodes) && shift.totpBackupCodes.length === 0 && shift.totpEnabledAt === "");
+  const checksum = `${String(backupCreate.file)}.sha256`;
+  const movedChecksum = `${checksum}.audit6`;
+  if (existsSync(checksum)) {
+    renameSync(checksum, movedChecksum);
+    const verifyMissing = await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie }, body: JSON.stringify({ action: "backup.verify", payload: { file: backupCreate.file } }) });
+    const verifyMissingBody = await verifyMissing.json().catch(() => null);
+    const restoreMissing = await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie }, body: JSON.stringify({ action: "backup.restore_file", payload: { file: backupCreate.file } }) });
+    missingChecksumRejected = verifyMissing.status === 422 && verifyMissingBody?.checksumOk === false && restoreMissing.status === 400;
+    renameSync(movedChecksum, checksum);
+  }
   await fetch(`${BASE}/api/actions`, {
     method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
-    body: JSON.stringify({ action: "admin.channel", payload: { key: "backup", provider: "bale", chatId: "audit6-test-channel", token: "AUDIT6-SECRET", enabled: false } }),
+    body: JSON.stringify({ action: "backup.restore_file", payload: { file: backupCreate.file } }),
   });
-  t("channel token can be explicitly cleared and disables channel", tokenClearWorks);
-  const backupCreate = await fetch(`${BASE}/api/actions`, {
-    method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
-    body: JSON.stringify({ action: "backup.create", payload: {} }),
-  }).then((r) => r.json().catch(() => null));
-  if (backupCreate?.file) {
-    const backupPayload = JSON.parse(readFileSync(String(backupCreate.file), "utf8"));
-    backupTokensRedacted = channelSet?.ok === true && backupPayload.channels?.every((channel) => channel.token === "");
-    externalTotpRedacted = backupPayload.shifts?.every((shift) => shift.totpSecret === "" && shift.totpPending === "" && shift.totpEnabled === false && Array.isArray(shift.totpBackupCodes) && shift.totpBackupCodes.length === 0 && shift.totpEnabledAt === "");
-    const checksum = `${String(backupCreate.file)}.sha256`;
-    const movedChecksum = `${checksum}.audit6`;
-    if (existsSync(checksum)) {
-      renameSync(checksum, movedChecksum);
-      const verifyMissing = await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie }, body: JSON.stringify({ action: "backup.verify", payload: { file: backupCreate.file } }) });
-      const verifyMissingBody = await verifyMissing.json().catch(() => null);
-      const restoreMissing = await fetch(`${BASE}/api/actions`, { method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie }, body: JSON.stringify({ action: "backup.restore_file", payload: { file: backupCreate.file } }) });
-      missingChecksumRejected = verifyMissing.status === 422 && verifyMissingBody?.checksumOk === false && restoreMissing.status === 400;
-      renameSync(movedChecksum, checksum);
-    }
-    const newCatalogFiles = readdirSync(catalogDir).filter((file) => !catalogFilesBefore.has(file));
-    for (const file of newCatalogFiles) unlinkSync(path.join(catalogDir, file));
-    const restored = await fetch(`${BASE}/api/actions`, {
-      method: "POST", headers: { "Content-Type": "application/json", cookie: adm.cookie },
-      body: JSON.stringify({ action: "backup.restore_file", payload: { file: backupCreate.file } }),
-    }).then((r) => r.json().catch(() => null));
-    missingPdfWarned = (restored?.catalogFiles?.missing ?? []).some((item) => String(item).includes("audit6-catalog.pdf")) && String(restored?.message ?? "").includes("PDF");
-    const restoredState = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());
-    localTokenPreserved = restoredState.channels?.some((channel) => channel.key === "backup" && channel.hasToken);
-  }
+  const restoredState = await fetch(`${BASE}/api/state`, { headers: { cookie: adm.cookie } }).then((r) => r.json());
+  localTokenPreserved = restoredState.channels?.some((channel) => channel.key === "backup" && channel.hasToken);
 }
 t("external backup redacts bot channel tokens", backupTokensRedacted);
 t("external JSON backup redacts TOTP secret/pending/backup codes", externalTotpRedacted);
 t("backup without sidecar checksum fails verify and restore", missingChecksumRejected);
 t("restore preserves matching local channel token", localTokenPreserved);
-t("restore reports missing catalog PDF attachment", missingPdfWarned);
 const criticalEquipment = (state.equipment ?? []).find((row) => row.safetyCritical === true);
 let criticalDeleteBlocked = false;
 if (criticalEquipment) {

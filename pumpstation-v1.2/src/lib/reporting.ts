@@ -12,7 +12,6 @@ import {
   meggerTests,
   oilChanges,
   pmRecords,
-  catalogs,
   motorReadingsAll,
   processReadingsAll,
 } from "@/db/schema";
@@ -104,7 +103,6 @@ export async function createReport(input: { kind: string; day: string; shift: Sh
 
 export async function buildRegistryPayload(tags: string[] | null, category: string | null) {
   const rows = await db.select().from(equipment).where(eq(equipment.deletedAt, ""));
-  const cats = await db.select({ id: catalogs.id, tag: catalogs.tag, name: catalogs.name }).from(catalogs);
   const pm = await db.select().from(pmRecords).orderBy(desc(pmRecords.id)).limit(500);
   const svc = await db.select().from(equipmentReports).orderBy(desc(equipmentReports.id)).limit(500);
   const filtered = rows.filter((e) => (tags ? tags.includes(e.tag) : true)).filter((e) => (category ? e.category === category : true));
@@ -122,7 +120,6 @@ export async function buildRegistryPayload(tags: string[] | null, category: stri
       location: e.location,
       statusFa: STATUS_FA[e.status] ?? e.status,
       description: e.description,
-      catalogs: cats.filter((c) => c.tag === e.tag).map((c) => c.name),
       lastPm: pm.find((p) => p.tag === e.tag)?.day ?? "—",
       lastService: svc.find((s) => s.tag === e.tag)?.at ?? "—",
     })),

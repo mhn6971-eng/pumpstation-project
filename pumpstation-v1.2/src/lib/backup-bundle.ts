@@ -501,19 +501,29 @@ export async function copyLatestBundleTo(targetRoot: string) {
   const latest = bundles[0];
   if (!latest) return null;
   const source = path.resolve(BUNDLE_DIR, latest.name);
-  const destination = path.resolve(targetRoot, "bundles", latest.name);
+  const destinationRoot = path.resolve(targetRoot, "bundles");
+  const destination = path.join(destinationRoot, latest.name);
   if (destination === source) return { name: latest.name, bytes: latest.bytes, complete: latest.complete };
   if (destination.startsWith(`${source}${path.sep}`)) throw new Error("مسیر آینه داخل بستهٔ مبدأ قرار گرفته است؛ MIRROR_DIR را جداگانه تنظیم کنید");
+  // Do not propagate a damaged source, and do not trust a matching manifest as proof
+  // that an existing destination bundle's table files and assets are intact.
+  const sourceVerified = await verifyAt(BUNDLE_DIR, latest.name);
   await mkdir(path.dirname(destination), { recursive: true });
   const existing = await stat(destination).catch(() => null);
   if (!existing) {
     await cp(source, destination, { recursive: true, errorOnExist: true, force: false });
-    const { manifest } = await verifyAt(path.join(targetRoot, "bundles"), latest.name);
-    if (manifest.name !== latest.name) throw new Error("صحت نام بستهٔ آینه‌شده تأیید نشد");
   } else {
     const sourceManifest = await readFile(path.join(source, "manifest.json"), "utf8");
     const mirrorManifest = await readFile(path.join(destination, "manifest.json"), "utf8");
     if (sourceManifest !== mirrorManifest) throw new Error(`بستهٔ هم‌نام روی آینه با مبدأ متفاوت است: ${latest.name}`);
   }
-  return { name: latest.name, bytes: latest.bytes, complete: latest.complete };
+  const destinationVerified = await verifyAt(destinationRoot, latest.name);
+  if (
+    destinationVerified.manifest.name !== sourceVerified.manifest.name ||
+    destinationVerified.bytes !== sourceVerified.bytes ||
+    destinationVerified.manifest.totalBytes !== sourceVerified.manifest.totalBytes
+  ) {
+    throw new Error(`صحت کامل بستهٔ آینه‌شده با مبدأ یکسان نیست: ${latest.name}`);
+  }
+  return { name: latest.name, bytes: destinationVerified.bytes, complete: destinationVerified.manifest.complete };
 }

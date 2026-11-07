@@ -4,7 +4,6 @@ import { lanAllowed, needsNetworkIdentityWarning, trustProxyEnabled, trustedClie
 
 /** سقف حجم بدنه برای همهٔ مسیرهای API — پیش از خواندن بدنه رد می‌شود */
 const MAX_BODY_BYTES = 256 * 1024;
-const CATALOG_MAX_BODY_BYTES = 9 * 1024 * 1024;
 
 /** سقف درخواست هر IP در دقیقه (ضدسیل ساده و ارزان) */
 const IP_LIMIT = 600;
@@ -113,7 +112,7 @@ export default function proxy(request: NextRequest) {
     }
 
     // سقف حجم بدنه
-    const bodyLimit = pathname === "/api/catalogs" ? CATALOG_MAX_BODY_BYTES : MAX_BODY_BYTES;
+    const bodyLimit = MAX_BODY_BYTES;
     const declared = Number(request.headers.get("content-length") ?? 0);
     if (declared > bodyLimit) {
       return NextResponse.json(

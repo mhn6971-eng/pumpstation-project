@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $appPackagePath = Join-Path $root 'pumpstation-v1.2\package.json'
 if (-not (Test-Path -LiteralPath $appPackagePath)) { throw 'پوشهٔ pumpstation-v1.2 پیدا نشد.' }
@@ -16,7 +16,7 @@ $stage = Join-Path $temp 'Pumpstation'
 New-Item -ItemType Directory -Path $stage -Force | Out-Null
 try {
   Write-Host 'در حال آماده‌سازی بستهٔ تمیز (بدون node_modules، پایگاه‌داده یا فایل‌های محلی)...' -ForegroundColor Cyan
-  & robocopy.exe $root $stage /E /R:1 /W:1 /NFL /NDL /NP /XD '.git' 'node_modules' '.next' '.data' 'coverage' '.audit' 'dist' '_review-edition2' 'Pumpstation Full' 'catalogs' /XF '.env' '.env.local' '.env.production' '.env.development' '.env.test' '.env.production.local' '.env.development.local' '.env.test.local' '*.log' '*.local.json' 'Pumpstation-Windows-*.zip' 'Pumpstation-Windows-*.zip.sha256'
+  & robocopy.exe $root $stage /E /R:1 /W:1 /NFL /NDL /NP /XD '.git' 'node_modules' '.next' '.data' 'coverage' '.audit' 'dist' '_review-edition2' 'Pumpstation Full' /XF '.env' '.env.local' '.env.production' '.env.development' '.env.test' '.env.production.local' '.env.development.local' '.env.test.local' '*.log' '*.local.json' 'Pumpstation-Windows-*.zip' 'Pumpstation-Windows-*.zip.sha256'
   $code = $LASTEXITCODE
   if ($code -ge 8) { throw "تهیهٔ بسته شکست خورد (robocopy $code)." }
   Get-ChildItem -LiteralPath $stage -Force -File -Recurse | Where-Object { $_.Name -like '.env*' -and $_.Name -ne '.env.example' } | Remove-Item -Force

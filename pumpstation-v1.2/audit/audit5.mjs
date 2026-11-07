@@ -254,19 +254,12 @@ async function main() {
   const bundleChannel = await act("admin.channel", { key: "backup", provider: "bale", chatId: "bundle-audit-channel", token: "BUNDLE-SECRET-TEST", enabled: true });
   check("کانال آزمایشی برای سنجش redaction آماده است", bundleChannel.res.status === 200, String(bundleChannel.res.status));
 
-  const pdfForm = new FormData();
-  pdfForm.append("tag", "AUDIT-BUNDLE");
-  pdfForm.append("file", new Blob(["%PDF-1.4\\n% bundle integration test\\n"], { type: "application/pdf" }), "audit-bundle.pdf");
-  const uploadedPdf = await fetch(`${BASE}/api/catalogs`, { method: "POST", headers: { Cookie: cookie }, body: pdfForm });
-  const uploadedPdfJson = await safeJson(uploadedPdf);
-  check("PDF آزمایشی در کاتالوگ بارگذاری شد", uploadedPdf.status === 200 && Number(uploadedPdfJson?.id) > 0, String(uploadedPdfJson?.error ?? uploadedPdf.status));
-
   const bundleCreated = await act("backup.bundle.create");
   const bundleName = String(bundleCreated.json?.name ?? "");
   check("بستهٔ بازیابی شامل snapshot همهٔ جدول‌ها ساخته می‌شود", bundleCreated.res.status === 200 && bundleCreated.json?.ok === true && bundleName.startsWith("pumpstation-bundle-"), String(bundleCreated.res.status));
   const bundleVerified = await act("backup.bundle.verify", { name: bundleName });
   check("بستهٔ بازیابی checksum جدول‌ها/فایل‌ها را تأیید می‌کند", bundleVerified.res.status === 200 && bundleVerified.json?.ok === true && bundleVerified.json?.complete === true, String(bundleVerified.json?.error ?? bundleVerified.res.status));
-  check("بسته هم قرائت بایگانی و هم PDF را دارد", Number(bundleVerified.json?.tableCounts?.processReadingsArchive ?? 0) >= 1 && Number(bundleVerified.json?.assets ?? 0) >= 2, JSON.stringify({ archive: bundleVerified.json?.tableCounts?.processReadingsArchive, assets: bundleVerified.json?.assets }));
+  check("بسته شامل قرائت بایگانی و فایل آرشیو سرد است", Number(bundleVerified.json?.tableCounts?.processReadingsArchive ?? 0) >= 1 && Number(bundleVerified.json?.assets ?? 0) >= 1, JSON.stringify({ archive: bundleVerified.json?.tableCounts?.processReadingsArchive, assets: bundleVerified.json?.assets }));
 
   const mirrorNow = await act("mirror.now");
   check("کپی تازه روی آینه انجام شد", mirrorNow.res.status === 200 && mirrorNow.json?.ok === true, String(mirrorNow.res.status));
@@ -324,8 +317,6 @@ async function main() {
   check("توکن کانال مقصد یکسان هنگام restore حفظ می‌شود", !((bundleRestore.json?.channelsNeedSetup ?? [])).includes("backup"), JSON.stringify(bundleRestore.json?.channelsNeedSetup));
   const restoredStats = await act("data.stats");
   check("پس از بازیابی، قرائت بایگانی‌شده در دیتابیس هست", Number(restoredStats.json?.archive?.archive?.process ?? 0) >= 1, JSON.stringify(restoredStats.json?.archive?.archive));
-  const restoredPdf = await fetch(`${BASE}/api/catalogs?id=${Number(uploadedPdfJson?.id)}`, { headers: { Cookie: cookie } });
-  check("پس از بازیابی، PDF پیوست قابل دریافت است", restoredPdf.status === 200 && restoredPdf.headers.get("content-type") === "application/pdf", String(restoredPdf.status));
 
   /* ---------- پایان ---------- */
   await act("admin.unlock", { key: "all" });

@@ -14,7 +14,6 @@ import { execFile, execFileSync, spawn } from "node:child_process";
 import { copyFileSync, cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, mkdirSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { gunzipSync } from "node:zlib";
 import { extractBundle } from "./extract-code-all.mjs";
 
 const appRoot = path.dirname(path.dirname(new URL(import.meta.url).pathname));
@@ -24,8 +23,8 @@ const BASE = `http://127.0.0.1:${PORT}`;
 const tmp = mkdtempSync(path.join(os.tmpdir(), "pumpstation-fresh-"));
 const dataDir = path.join(tmp, ".data", "pglite");
 const backupDir = path.join(tmp, ".data", "backups");
-const catalogDir = path.join(tmp, "files", "catalogs");
 const archiveDir = path.join(backupDir, "archive");
+const catalogDir = path.join(backupDir, "catalogs-legacy");
 const mirrorDir = path.join(tmp, ".data", "mirror");
 const mirrorTokenFile = path.join(tmp, ".data", "mirror-token");
 const processReportDir = path.join(tmp, "گزارشات", "گزارشات فرایند");
@@ -131,7 +130,9 @@ try {
   }
   const passN = (tst.stdout.match(/^PASS /gm) ?? []).length;
   const tickN = (tst.stdout.match(/✓/g) ?? []).length;
-  ok("npm-test", `${passN + tickN} checks (PASS=${passN} tick=${tickN})`);
+  const auditFailures = tst.stdout.split("\n").filter((line) => line.startsWith("FAIL |"));
+  if (auditFailures.length) fail("npm-test-audit", auditFailures.join(" || "));
+  ok("npm-test", `${passN + tickN} checks (PASS=${passN} tick=${tickN}; reported failures=0)`);
   for (const m of tst.stdout.match(/^(total=\d+ pass=\d+ fail=\d+|audit5: \d+\/\d+)$/gm) ?? []) console.log(`FRESH-INSTALL SUITE | ${m}`);
 
   // ۸) تمرین بازیابی واقعیِ بسته روی نصب دوم با دیتابیس و مسیر فایل‌های جدا
@@ -144,23 +145,22 @@ try {
     return { name: entry.name, manifest };
   }).sort((a, b) => a.manifest.createdAt.localeCompare(b.manifest.createdAt));
   const chosen = sourceBundles[sourceBundles.length - 1];
-  if (!chosen || !chosen.manifest.complete || chosen.manifest.tableCounts?.processReadingsArchive < 1 || chosen.manifest.tableCounts?.catalogs < 1) {
-    fail("cross-install-recovery", "منبع باید بستهٔ کامل با قرائت آرشیوی و PDF داشته باشد");
+  if (!chosen || !chosen.manifest.complete || chosen.manifest.tableCounts?.processReadingsArchive < 1) {
+    fail("cross-install-recovery", "منبع باید بستهٔ کامل با قرائت بایگانی‌شده داشته باشد");
   }
   const restoreRoot = path.join(tmp, "restore-target");
   const restoreDataDir = path.join(restoreRoot, ".data", "pglite");
   const restoreBackupDir = path.join(restoreRoot, ".data", "backups");
-  const restoreCatalogDir = path.join(restoreRoot, "files", "catalogs");
   const restoreArchiveDir = path.join(restoreBackupDir, "archive");
   const restoreBundlesDir = path.join(restoreBackupDir, "bundles");
   mkdirSync(restoreBundlesDir, { recursive: true });
   cpSync(path.join(sourceBundleRoot, chosen.name), path.join(restoreBundlesDir, chosen.name), { recursive: true });
-  const targetMig = await run("node", ["scripts/init-db.mjs"], { env: { PGLITE_DATA_DIR: restoreDataDir, BACKUP_DIR: restoreBackupDir, CATALOG_DIR: restoreCatalogDir, ARCHIVE_DIR: restoreArchiveDir } });
+  const targetMig = await run("node", ["scripts/init-db.mjs"], { env: { PGLITE_DATA_DIR: restoreDataDir, BACKUP_DIR: restoreBackupDir, ARCHIVE_DIR: restoreArchiveDir } });
   if (targetMig.code !== 0 || !targetMig.stdout.includes("[migrate] done")) fail("cross-install-migrate", tail(targetMig.stderr || targetMig.stdout));
 
   server = spawn("node", ["scripts/serve.mjs", "start"], {
     cwd: tmp,
-    env: { ...process.env, DATABASE_URL: "", BACKUP_DIR: restoreBackupDir, CATALOG_DIR: restoreCatalogDir, ARCHIVE_DIR: restoreArchiveDir, MIRROR_DIR: path.join(restoreRoot, ".data", "mirror"), MIRROR_TOKEN_FILE: path.join(restoreRoot, ".data", "mirror-token"), ROSTER_FILE: rosterFile, ADMIN_PIN: "9009", NODE_ENV: "production", ALLOW_SAMPLE_ROSTER: "1", PORT: String(PORT), PGLITE_DATA_DIR: restoreDataDir },
+    env: { ...process.env, DATABASE_URL: "", BACKUP_DIR: restoreBackupDir, ARCHIVE_DIR: restoreArchiveDir, MIRROR_DIR: path.join(restoreRoot, ".data", "mirror"), MIRROR_TOKEN_FILE: path.join(restoreRoot, ".data", "mirror-token"), ROSTER_FILE: rosterFile, ADMIN_PIN: "9009", NODE_ENV: "production", ALLOW_SAMPLE_ROSTER: "1", PORT: String(PORT), PGLITE_DATA_DIR: restoreDataDir },
     detached: process.platform !== "win32",
     stdio: "ignore",
   });
@@ -187,13 +187,9 @@ try {
   targetCookie = (postRestoreLogin.headers.get("set-cookie") || "").split(";")[0];
   const targetStats = await targetAction("data.stats");
   if (Number(targetStats.json?.archive?.archive?.process ?? 0) < 1) fail("cross-install-archive", JSON.stringify(targetStats.json));
-  const sourceCatalogRows = gunzipSync(readFileSync(path.join(restoreBundlesDir, chosen.name, "tables", "catalogs.jsonl.gz"))).toString("utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line));
-  const catalogId = Number(sourceCatalogRows.find((row) => row.tag === "AUDIT-BUNDLE")?.id ?? 0);
-  const catalogResponse = await fetch(`${BASE}/api/catalogs?id=${catalogId}`, { headers: { Cookie: targetCookie } });
-  if (!catalogId || catalogResponse.status !== 200) fail("cross-install-catalog", `id=${catalogId} status=${catalogResponse.status}`);
   if (!readdirSync(restoreArchiveDir).some((file) => file.endsWith(".jsonl.gz"))) fail("cross-install-cold-archive", "فایل سرد در مقصد بازیابی نشد");
   if (!((targetRestore.json?.channelsNeedSetup ?? [])).includes("backup")) fail("cross-install-redaction", "توکن کانال باید روی نصب تازه دوباره تنظیم شود");
-  ok("cross-install-recovery", `آرشیو=${targetStats.json.archive.archive.process}، PDF سالم، توکن کانال نیازمند تنظیم مجدد`);
+  ok("cross-install-recovery", `آرشیو=${targetStats.json.archive.archive.process}، توکن کانال نیازمند تنظیم مجدد`);
 
   console.log("FRESH-INSTALL RESULT | OK");
 } catch {

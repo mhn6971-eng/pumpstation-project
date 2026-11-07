@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "./context";
 import { CATEGORIES } from "@/lib/domain";
 import type { EquipmentView } from "@/lib/types";
@@ -95,32 +95,12 @@ export default function RegistryTab() {
   );
 }
 
-/** پروندهٔ تجهیز: شناسنامه + کاتالوگ + تاریخچه + ویرایش/حذف (ادمین) */
+/** پروندهٔ تجهیز: شناسنامه + تاریخچه + ویرایش/حذف (ادمین) */
 export function EquipmentDetail({ tag }: { tag: string }) {
-  const { state, act, busy, isAdmin, openModal, closeModal, refresh, toast, goTab } = useApp();
+  const { state, act, busy, isAdmin, openModal, closeModal, goTab } = useApp();
   const e = state.equipment.find((x) => x.tag === tag);
-  const fileRef = useRef<HTMLInputElement | null>(null);
-  const [uploading, setUploading] = useState(false);
   if (!e) return <div className="empty">تجهیز پیدا نشد.</div>;
   const logs = state.serviceLogs.filter((s) => s.tag === tag);
-
-  async function upload(file: File) {
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("tag", tag);
-      const res = await fetch("/api/catalogs", { method: "POST", body: fd, signal: AbortSignal.timeout(120000) });
-      const data = await res.json();
-      if (!res.ok || !data.ok) throw new Error(data.error ?? "آپلود ناموفق بود");
-      toast("کاتالوگ بارگذاری شد");
-      await refresh();
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "آپلود ناموفق بود", "error");
-    } finally {
-      setUploading(false);
-    }
-  }
 
   return (
     <div className="grid" style={{ gap: 12 }}>
@@ -150,28 +130,7 @@ export function EquipmentDetail({ tag }: { tag: string }) {
         <button type="button" className="btn ghost" disabled={busy} onClick={async () => { const id = await act("report.create", { kind: "registry", tags: [tag] }); if (typeof id === "number") window.open(`/report/${id}`, "_blank"); }}><Icon name="file" size={13} /> گزارش این تجهیز</button>
       </div>
 
-      <div>
-        <div className="panel-title" style={{ fontSize: 14, marginBottom: 6 }}><Icon name="file" size={14} /> کاتالوگ / دیتاشیت</div>
-        {e.catalogs.length === 0 ? <div className="empty">کاتالوگی ضمیمه نشده است.</div> : (
-          <div className="services-list">
-            {e.catalogs.map((c) => (
-              <div key={c.id} className="service-item">
-                <span>{c.name} <span className="small muted">({(c.size / 1024).toFixed(0)} KB — {c.uploadedAt})</span></span>
-                <div className="row" style={{ gap: 4 }}>
-                  <button type="button" className="btn tiny" onClick={() => window.open(`/api/catalogs?id=${c.id}`, "_blank")}>باز کردن</button>
-                  {isAdmin && <button type="button" className="btn tiny danger" onClick={() => act("catalog.delete", { id: c.id })}>حذف</button>}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        {isAdmin && (
-          <div className="row" style={{ marginTop: 8 }}>
-            <input ref={fileRef} type="file" accept="application/pdf" style={{ display: "none" }} onChange={(ev) => { const f = ev.target.files?.[0]; if (f) void upload(f); ev.target.value = ""; }} />
-            <button type="button" className="btn tiny" disabled={uploading} onClick={() => fileRef.current?.click()}><Icon name="plus" size={12} /> {uploading ? "در حال بارگذاری…" : "افزودن کاتالوگ PDF"}</button>
-          </div>
-        )}
-      </div>
+
 
       <div className="spread">
         <div className="small muted">نگهداشت پیشگیرانه (PM) این تجهیز در سربرگ «نگهداشت» مدیریت می‌شود.</div>

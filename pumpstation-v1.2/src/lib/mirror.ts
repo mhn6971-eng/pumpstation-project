@@ -156,6 +156,7 @@ export type MirrorStatus = {
   failRuns: number;
   last24: number;
   files: string[];
+  sameVolume: boolean;
   verdict: "ok" | "stale" | "missing" | "failing";
   message: string;
 };
@@ -197,7 +198,8 @@ export async function mirrorStatus(): Promise<MirrorStatus> {
     }
   }
 
-  return { dir: MIRROR_DIR, available, keep: "نامحدود", last, okRuns, failRuns, last24, files, verdict, message };
+  const sameVolume = process.platform === "win32" && path.parse(MIRROR_DIR).root.toLowerCase() === path.parse(BACKUP_DIR).root.toLowerCase();
+  return { dir: MIRROR_DIR, available, keep: "نامحدود", last, okRuns, failRuns, last24, files, sameVolume, verdict, message };
 }
 
 /** برای اسکریپت زمان‌بند ویندوز: بک‌آپ + آینه در یک قدم، خروجی متنی برای لاگ */

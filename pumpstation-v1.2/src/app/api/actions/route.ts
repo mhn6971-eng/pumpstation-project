@@ -16,7 +16,6 @@ import {
   equipmentReports,
   pmTemplates,
   pmRecords,
-  catalogs,
   alerts,
   activity,
   problems,
@@ -441,28 +440,6 @@ export async function POST(request: Request) {
         await db.update(equipment).set({ deletedAt: jalaliNow(), updatedAt: jalaliNow() }).where(eq(equipment.id, id));
         await logActivity(shiftKey, "حذف (نرم) تجهیز", `${row.tag} — ${str(p.reason, 300)}`);
         return Response.json({ ok: true, message: "تجهیز از فهرست برداشته شد (سابقه حفظ می‌شود)" });
-      }
-
-      case "catalog.delete": {
-        requireAdmin();
-        const id = Number(p.id);
-        const row = (await db.select().from(catalogs).where(eq(catalogs.id, id)).limit(1))[0];
-        if (!row) throw badRequest("کاتالوگ پیدا نشد");
-        // فایل به «سطل بازیافت» منتقل می‌شود، نه پاک (M5 — قاعدهٔ «هیچ حذف فیزیکی»)
-        if (row.path) {
-          try {
-            const { mkdir, rename } = await import("node:fs/promises");
-            const path = await import("node:path");
-            const trash = path.join(process.env.CATALOG_DIR ?? "files/catalogs", "trash");
-            await mkdir(trash, { recursive: true });
-            await rename(path.join(process.env.CATALOG_DIR ?? "files/catalogs", path.basename(row.path)), path.join(trash, path.basename(row.path)));
-          } catch {
-            /* اگر فایل نبود، حذف رکورد ادامه می‌یابد */
-          }
-        }
-        await db.delete(catalogs).where(eq(catalogs.id, id));
-        await logActivity(shiftKey, "حذف کاتالوگ (به سطل بازیافت)", `${row.name} — ${row.tag}`);
-        return Response.json({ ok: true, message: "کاتالوگ از فهرست برداشته و فایل آن به سطل بازیافت منتقل شد" });
       }
 
       case "pm.template": {

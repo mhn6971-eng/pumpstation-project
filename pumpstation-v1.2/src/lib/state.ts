@@ -14,7 +14,6 @@ import {
   equipmentReports,
   pmTemplates,
   pmRecords,
-  catalogs,
   alerts,
   activity,
   problems,
@@ -106,7 +105,7 @@ export async function buildState(input: { who: { key: string; label: string; rol
       db.select().from(oilChanges).orderBy(desc(oilChanges.id)).limit(80),
     ]);
 
-  const [motorStateRows, serviceLogs, auditRows, pmT, pmR, queueRows, channelRows, catalogRows, shiftRows, monthlyTotals] = await Promise.all([
+  const [motorStateRows, serviceLogs, auditRows, pmT, pmR, queueRows, channelRows, shiftRows, monthlyTotals] = await Promise.all([
     db.select().from(motors).orderBy(motors.tag),
     db.select().from(equipmentReports).orderBy(desc(equipmentReports.id)).limit(120),
     db.select().from(valueAudits).orderBy(desc(valueAudits.id)).limit(60),
@@ -114,7 +113,6 @@ export async function buildState(input: { who: { key: string; label: string; rol
     db.select().from(pmRecords).orderBy(desc(pmRecords.id)).limit(120),
     db.select().from(sendQueue).orderBy(desc(sendQueue.id)).limit(60),
     db.select().from(channels),
-    db.select({ id: catalogs.id, tag: catalogs.tag, name: catalogs.name, size: catalogs.size, uploadedAt: catalogs.uploadedAt }).from(catalogs).orderBy(desc(catalogs.id)),
     db.select().from(shifts),
     db.select().from(dailyTotals).where(sql`${dailyTotals.day} like ${`${day.slice(0, 7)}/%`}`).orderBy(dailyTotals.day),
   ]);
@@ -233,7 +231,6 @@ export async function buildState(input: { who: { key: string; label: string; rol
       description: e.description,
       descriptionAt: e.descriptionAt,
       descriptionBy: e.descriptionBy,
-      catalogs: catalogRows.filter((c) => c.tag === e.tag).map((c) => ({ id: c.id, name: c.name, size: c.size, uploadedAt: c.uploadedAt })),
     })),
     alerts: alertRows.map((a) => ({ ...a, severity: (a.severity as Severity) ?? "warning" })),
     serviceLogs,

@@ -49,7 +49,7 @@ const SECTIONS = [
     "src/app/api/auth/route.ts", "src/app/api/actions/route.ts", "src/app/api/state/route.ts",
     "src/app/api/history/route.ts", "src/app/api/totals/route.ts",
     "src/app/api/backups/[id]/route.ts", "src/app/api/mirror/route.ts",
-    "src/app/api/health/route.ts", "src/app/api/catalogs/route.ts", "src/app/api/export/route.ts",
+    "src/app/api/health/route.ts", "src/app/api/export/route.ts",
     "src/app/api/report-archives/route.ts",
   ] },
   { title: "صفحات، چیدمان و قلاب‌های زمان اجرا (src/app و ریشهٔ src)", files: [
@@ -150,10 +150,11 @@ try {
   }
   try {
     const tracked = execSync("git ls-files --full-name", { encoding: "utf8" }).split("\n").filter(Boolean);
+    const deleted = new Set(execSync("git ls-files --deleted --full-name", { encoding: "utf8" }).split("\n").filter(Boolean));
     const excluded = (t) => t.startsWith("pumpstation-v1.2/docs/") || t.startsWith("pumpstation-v1.2/public/") || t.startsWith("pumpstation-v1.2/drizzle/meta/") ||
       ["pumpstation-v1.2/CODE_ALL_FA.txt", "pumpstation-v1.2/README_PREVIEW_FA.md", "pumpstation-v1.2/next-env.d.ts", "pumpstation-v1.2/tsconfig.tsbuildinfo"].includes(t);
     for (const t of tracked) {
-      if (!t.startsWith("pumpstation-v1.2/") || excluded(t)) continue;
+      if (!t.startsWith("pumpstation-v1.2/") || deleted.has(t) || excluded(t)) continue;
       const rel = t.slice("pumpstation-v1.2/".length);
       if (!listed.has(rel)) throw new Error(`self-test: ${rel} رهگیری می‌شود ولی در بسته نیست`);
     }

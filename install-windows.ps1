@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
@@ -7,6 +7,43 @@ $NpmVersion = '10.9.4'
 $NodeIntegrity = 'sha512-w6ir5BjNVuSIC43FWLchnuc/bu9hT0ntMH/FJFouaR2oxADkFhim4YlOp4r92Euyj5b15YdbiL5xYwgmELZuZg=='
 $NpmIntegrity = 'sha512-OnUG836FwboQIbqtefDNlyR0gTHzIfwRfE3DuiNewBvnMnWEpB0VEXwBlFVgqpNzIgYo/MHh3d2Hel/pszapAA=='
 $Registry = 'https://registry.npmjs.org'
+try {
+  $utf8 = [System.Text.UTF8Encoding]::new($false)
+  [Console]::OutputEncoding = $utf8
+  [Console]::InputEncoding = $utf8
+} catch { }
+
+# Windows Console historically handles bidirectional scripts inconsistently.
+# Surround Persian strings with explicit RTL embedding marks instead of changing their text.
+function Write-Host {
+  [CmdletBinding()]
+  param(
+    [Parameter(Position = 0, ValueFromRemainingArguments = $true)] [AllowNull()] [object[]] $Object,
+    [ConsoleColor] $ForegroundColor,
+    [ConsoleColor] $BackgroundColor,
+    [string] $Separator = ' ',
+    [switch] $NoNewline
+  )
+  $shown = @(
+    foreach ($item in $Object) {
+      if ($null -eq $item) { '' }
+      elseif ([string]$item -match '[\u0600-\u06FF]') { ([string][char]0x202B) + [string]$item + [char]0x202C }
+      else { $item }
+    }
+  )
+  $hostParams = @{ Object = $shown; Separator = $Separator }
+  if ($PSBoundParameters.ContainsKey('ForegroundColor')) { $hostParams.ForegroundColor = $ForegroundColor }
+  if ($PSBoundParameters.ContainsKey('BackgroundColor')) { $hostParams.BackgroundColor = $BackgroundColor }
+  if ($NoNewline) { $hostParams.NoNewline = $true }
+  Microsoft.PowerShell.Utility\Write-Host @hostParams
+}
+function Read-Host {
+  [CmdletBinding()]
+  param([Parameter(Position = 0)] [string] $Prompt = '', [switch] $AsSecureString)
+  if ($Prompt -match '[\u0600-\u06FF]') { $Prompt = ([string][char]0x202B) + $Prompt + [char]0x202C }
+  if ($AsSecureString) { return Microsoft.PowerShell.Utility\Read-Host -Prompt $Prompt -AsSecureString }
+  return Microsoft.PowerShell.Utility\Read-Host -Prompt $Prompt
+}
 
 function Write-Title([string]$Text) {
   Write-Host ''
@@ -104,6 +141,67 @@ function Select-DataRoot {
   }
 }
 
+function Get-PhysicalDiskNumber([string]$Path) {
+  try {
+    $root = [IO.Path]::GetPathRoot([IO.Path]::GetFullPath($Path))
+    if ($root -notmatch '^([A-Za-z]):\\$') { return $null }
+    $partition = Get-Partition -DriveLetter $Matches[1] -ErrorAction Stop | Select-Object -First 1
+    if ($partition) { return [int]$partition.DiskNumber }
+  } catch { }
+  return $null
+}
+
+function Select-MirrorRoot([string]$DataRoot) {
+  $dataDrive = [IO.Path]::GetPathRoot([IO.Path]::GetFullPath($DataRoot))
+  $drives = @([IO.DriveInfo]::GetDrives() | Where-Object {
+    $_.IsReady -and $_.DriveType -in @([IO.DriveType]::Fixed, [IO.DriveType]::Removable) -and
+    $_.Name.ToUpperInvariant() -ne 'C:\' -and $_.Name.ToUpperInvariant() -ne $dataDrive.ToUpperInvariant()
+  })
+  $sameDriveMirror = Join-Path $DataRoot 'بک آپ\آینه'
+  if ($drives.Count -eq 0) {
+    Write-Host 'درایو جداگانه‌ای برای آینه پیدا نشد؛ فعلاً آینه روی همان درایو داده می‌ماند و جای نسخهٔ بیرونی را نمی‌گیرد.' -ForegroundColor Yellow
+    return $sameDriveMirror
+  }
+  Write-Host 'برای مقاومت در برابر خرابی دیسک، آینه را ترجیحاً روی یک درایو فیزیکی جدا بگذارید:' -ForegroundColor Yellow
+  for ($i = 0; $i -lt $drives.Count; $i++) {
+    $freeGb = [Math]::Round($drives[$i].AvailableFreeSpace / 1GB, 1)
+    Write-Host ("  {0}) {1}  برچسب: {2}  فضای خالی: {3} GB" -f ($i + 1), $drives[$i].Name, $drives[$i].VolumeLabel, $freeGb)
+  }
+  $choice = Read-Host 'شمارهٔ درایو آینه را انتخاب کنید؛ Enter برای حفظ آینه روی درایو داده'
+  if ([string]::IsNullOrWhiteSpace($choice)) { return $sameDriveMirror }
+  if ($choice -notmatch '^\d+$' -or [int]$choice -lt 1 -or [int]$choice -gt $drives.Count) {
+    Write-Host 'انتخاب نامعتبر است؛ آینه فعلاً روی درایو داده قرار می‌گیرد.' -ForegroundColor Yellow
+    return $sameDriveMirror
+  }
+  $selected = $drives[[int]$choice - 1]
+  $dataDisk = Get-PhysicalDiskNumber $DataRoot
+  $mirrorDisk = Get-PhysicalDiskNumber $selected.Name
+  if ($null -ne $dataDisk -and $null -ne $mirrorDisk -and $dataDisk -eq $mirrorDisk) {
+    Write-Host 'این دو درایو letter متفاوت دارند اما روی یک دیسک فیزیکی‌اند؛ آینه روی درایو داده می‌ماند.' -ForegroundColor Yellow
+    return $sameDriveMirror
+  }
+  if ($null -eq $dataDisk -or $null -eq $mirrorDisk) {
+    Write-Host 'Windows نتوانست دیسک فیزیکی را تأیید کند؛ استقلال فیزیکی آینه تضمین نمی‌شود.' -ForegroundColor Yellow
+  }
+  return Join-Path $selected.Name 'Pumpstation-Mirror'
+}
+
+function Write-MirrorReliabilityWarning([string]$DataRoot, [string]$MirrorRoot) {
+  $dataDrive = [IO.Path]::GetPathRoot([IO.Path]::GetFullPath($DataRoot))
+  $mirrorDrive = [IO.Path]::GetPathRoot([IO.Path]::GetFullPath($MirrorRoot))
+  if ($dataDrive -and $mirrorDrive -and $dataDrive.ToUpperInvariant() -eq $mirrorDrive.ToUpperInvariant()) {
+    Write-Host 'هشدار: بک‌آپ و آینه روی یک volume هستند؛ خرابی همان درایو هر دو را از بین می‌برد. یک نسخه را دوره‌ای به رسانهٔ مستقل کپی کنید.' -ForegroundColor Yellow
+    return
+  }
+  $dataDisk = Get-PhysicalDiskNumber $DataRoot
+  $mirrorDisk = Get-PhysicalDiskNumber $MirrorRoot
+  if ($null -ne $dataDisk -and $null -ne $mirrorDisk -and $dataDisk -eq $mirrorDisk) {
+    Write-Host 'هشدار: مسیرهای جدا روی یک دیسک فیزیکی هستند؛ این آینه در برابر خرابی دیسک مستقل نیست.' -ForegroundColor Yellow
+  } elseif ($null -eq $dataDisk -or $null -eq $mirrorDisk) {
+    Write-Host 'نصاب نتوانست استقلال دیسک فیزیکی آینه را بررسی کند؛ آن را با رسانهٔ بیرونی مستقل تأیید کنید.' -ForegroundColor Yellow
+  }
+}
+
 function New-RandomPin([string[]]$Used) {
   $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
   try {
@@ -140,7 +238,7 @@ function New-LocalRoster([string]$RosterPath) {
     return
   }
   Write-Title 'ساخت PINهای اختصاصی سامانه'
-  Write-Host 'PINها در فایل محلیِ محدودشده به حساب ویندوز شما ذخیره می‌شوند. PINهای واقعی را با اپراتورها امن به‌اشتراک بگذارید.' -ForegroundColor Yellow
+  Write-Host 'PINها موقتاً در فایل محلیِ محدودشده به حساب ویندوز نگه داشته می‌شوند و پس از seed موفق حذف می‌شوند. PINهای واقعی را با اپراتورها امن به‌اشتراک بگذارید.' -ForegroundColor Yellow
   $used = @()
   $roster = @()
   $definitions = @(
@@ -223,6 +321,7 @@ try {
   $configDir = Join-Path $installRoot 'config'
   $configPath = Join-Path $configDir 'install.json'
   $launcherPath = Join-Path $installRoot 'launch-pumpstation.ps1'
+  $launcherBatPath = Join-Path $installRoot 'launch-pumpstation.bat'
   $previousConfig = $null
   if (Test-Path -LiteralPath $configPath) {
     $previousConfig = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
@@ -234,6 +333,14 @@ try {
   } else {
     $dataRoot = Select-DataRoot
   }
+  if ($previousConfig) {
+    $mirrorDir = [string]$previousConfig.mirrorDir
+    if ([string]::IsNullOrWhiteSpace($mirrorDir)) { $mirrorDir = Join-Path $dataRoot 'بک آپ\آینه' }
+    Write-Host ("مسیر آینهٔ قبلی حفظ می‌شود: {0}" -f $mirrorDir) -ForegroundColor Green
+  } else {
+    $mirrorDir = Select-MirrorRoot $dataRoot
+  }
+  Write-MirrorReliabilityWarning $dataRoot $mirrorDir
 
   $paths = @{
     databaseDir = Join-Path $dataRoot 'پایگاه داده'
@@ -242,7 +349,7 @@ try {
     backupDir = Join-Path $dataRoot 'بک آپ'
     catalogDir = Join-Path $dataRoot 'بک آپ\پیوست‌ها و کاتالوگ'
     archiveDir = Join-Path $dataRoot 'بک آپ\آرشیو سرد'
-    mirrorDir = Join-Path $dataRoot 'بک آپ\آینه'
+    mirrorDir = $mirrorDir
     pgdumpDir = Join-Path $dataRoot 'بک آپ\دامپ PostgreSQL'
     logDir = Join-Path $dataRoot 'لاگ‌ها'
     rosterFile = Join-Path $configDir 'roster.local.json'
@@ -268,42 +375,63 @@ try {
       $offlineAvailable = ($vendorManifest.target -eq 'win32-x64' -and $vendorManifest.lockSha256 -eq $currentLockHash)
     } catch { $offlineAvailable = $false }
   }
+
+  $nodePath = Join-Path $runtimeDir 'node.exe'
+  $npmCli = Join-Path $runtimeDir 'npm\package\bin\npm-cli.js'
+  $runtimeReady = $false
+  if ((Test-Path -LiteralPath $nodePath) -and (Test-Path -LiteralPath $npmCli)) {
+    try {
+      $installedNode = (& $nodePath --version 2>$null).Trim()
+      $installedNpm = (& $nodePath $npmCli --version 2>$null).Trim()
+      $runtimeReady = ($installedNode -eq "v$NodeVersion" -and $installedNpm -eq $NpmVersion)
+    } catch { $runtimeReady = $false }
+  }
+  if ($runtimeReady) {
+    Write-Host ("نسخهٔ دقیق Node.js {0} و npm {1} از قبل نصب است؛ دوباره دانلود نمی‌شود." -f $NodeVersion, $NpmVersion) -ForegroundColor Green
+  }
+
   $onlineAvailable = Test-RegistryOnline
-  if (-not $onlineAvailable -and -not $offlineAvailable) { throw 'اینترنت در دسترس نیست و cache آفلاین معتبر/سازگار کنار نصاب پیدا نشد. ZIP کامل را از نو استخراج کنید یا اینترنت را وصل کنید.' }
+  if (-not $onlineAvailable -and -not $offlineAvailable -and -not $runtimeReady) { throw 'اینترنت در دسترس نیست و cache آفلاین معتبر/سازگار کنار نصاب پیدا نشد. ZIP کامل را از نو استخراج کنید یا اینترنت را وصل کنید.' }
   if ($offlineAvailable -and $onlineAvailable) {
     $choice = Read-Host 'روش نصب: 1 اینترنتی (پیش‌فرض)، 2 آفلاین از فایل‌های همین ZIP'
     $installMode = if ($choice -eq '2') { 'offline' } else { 'online' }
   } elseif ($offlineAvailable) {
     $installMode = 'offline'
     Write-Host 'اتصال اینترنت پیدا نشد؛ نصب آفلاین از بسته‌های همراه ZIP انتخاب شد.' -ForegroundColor Yellow
-  } else {
+  } elseif ($onlineAvailable) {
     $installMode = 'online'
-    Write-Host 'بستهٔ آفلاین موجود نیست؛ نصب از اینترنت انجام می‌شود.' -ForegroundColor Yellow
+    Write-Host 'بستهٔ آفلاین کامل موجود نیست؛ نصب وابستگی‌ها از اینترنت انجام می‌شود.' -ForegroundColor Yellow
+  } else {
+    $installMode = 'offline'
+    Write-Host 'runtime دقیق از قبل نصب است؛ وابستگی‌های برنامه با cache npm محلی نصب می‌شوند.' -ForegroundColor Yellow
   }
-  $tar = Get-Command tar.exe -ErrorAction SilentlyContinue
-  if (-not $tar) { throw 'ابزار tar.exe ویندوز پیدا نشد؛ Windows 10 را به‌روز کنید.' }
+  $tar = $null
+  if (-not $runtimeReady) {
+    $tar = Get-Command tar.exe -ErrorAction SilentlyContinue
+    if (-not $tar) { throw 'برای نصب runtime، ابزار tar.exe ویندوز لازم است؛ Windows 10 را به‌روز کنید.' }
+  }
 
   $npmCacheDir = Join-Path $installRoot 'cache\npm'
-  if ($installMode -eq 'offline') {
-    $nodeArchive = Get-VerifiedOfflinePackage 'node-win-x64' $NodeVersion $NodeIntegrity $vendorDir
-    $npmArchive = Get-VerifiedOfflinePackage 'npm' $NpmVersion $NpmIntegrity $vendorDir
-    Copy-OfflineNpmCache $offlineNpmCache $npmCacheDir
-  } else {
-    try {
-      $nodeArchive = Get-PinnedPackage 'node-win-x64' $NodeVersion $NodeIntegrity $cacheDir
-      $npmArchive = Get-PinnedPackage 'npm' $NpmVersion $NpmIntegrity $cacheDir
-    } catch {
-      if (-not $offlineAvailable) { throw }
-      Write-Host 'دریافت آنلاین runtime شکست خورد؛ به بستهٔ آفلاین تأییدشده برمی‌گردیم.' -ForegroundColor Yellow
-      $installMode = 'offline'
+  $nodeArchive = $null
+  $npmArchive = $null
+  if (-not $runtimeReady) {
+    if ($installMode -eq 'offline') {
       $nodeArchive = Get-VerifiedOfflinePackage 'node-win-x64' $NodeVersion $NodeIntegrity $vendorDir
       $npmArchive = Get-VerifiedOfflinePackage 'npm' $NpmVersion $NpmIntegrity $vendorDir
       Copy-OfflineNpmCache $offlineNpmCache $npmCacheDir
+    } else {
+      try {
+        $nodeArchive = Get-PinnedPackage 'node-win-x64' $NodeVersion $NodeIntegrity $cacheDir
+        $npmArchive = Get-PinnedPackage 'npm' $NpmVersion $NpmIntegrity $cacheDir
+      } catch {
+        if (-not $offlineAvailable) { throw }
+        Write-Host 'دریافت آنلاین runtime شکست خورد؛ به بستهٔ آفلاین تأییدشده برمی‌گردیم.' -ForegroundColor Yellow
+        $installMode = 'offline'
+        $nodeArchive = Get-VerifiedOfflinePackage 'node-win-x64' $NodeVersion $NodeIntegrity $vendorDir
+        $npmArchive = Get-VerifiedOfflinePackage 'npm' $NpmVersion $NpmIntegrity $vendorDir
+        Copy-OfflineNpmCache $offlineNpmCache $npmCacheDir
+      }
     }
-  }
-  $nodePath = Join-Path $runtimeDir 'node.exe'
-  $npmCli = Join-Path $runtimeDir 'npm\package\bin\npm-cli.js'
-  if (-not (Test-Path -LiteralPath $nodePath) -or -not (Test-Path -LiteralPath $npmCli)) {
     $unpackRoot = Join-Path $env:TEMP ('pumpstation-runtime-' + [Guid]::NewGuid().ToString('N'))
     $nodeUnpack = Join-Path $unpackRoot 'node'
     $npmUnpack = Join-Path $unpackRoot 'npm'
@@ -321,8 +449,12 @@ try {
       Copy-Item -LiteralPath (Join-Path $npmUnpack 'package') -Destination $npmDestination -Recurse -Force
     } finally { Remove-Item -LiteralPath $unpackRoot -Recurse -Force -ErrorAction SilentlyContinue }
   }
+  if ($runtimeReady -and $installMode -eq 'offline' -and $offlineAvailable) {
+    Copy-OfflineNpmCache $offlineNpmCache $npmCacheDir
+  }
   $nodeActual = (& $nodePath --version).Trim()
-  if ($nodeActual -ne "v$NodeVersion") { throw "نسخهٔ runtime نادرست است: $nodeActual" }
+  $npmActual = (& $nodePath $npmCli --version).Trim()
+  if ($nodeActual -ne "v$NodeVersion" -or $npmActual -ne $NpmVersion) { throw "نسخهٔ runtime نادرست است: Node=$nodeActual npm=$npmActual" }
   $runtimeNotices = Join-Path $PSScriptRoot 'RUNTIME-LICENSES.txt'
   if (-not (Test-Path -LiteralPath $runtimeNotices)) { throw 'فایل مجوزهای runtime کنار نصب‌کننده پیدا نشد.' }
   Copy-Item -LiteralPath $runtimeNotices -Destination (Join-Path $runtimeDir 'LICENSES.txt') -Force
@@ -333,7 +465,7 @@ try {
     backupDir = $paths.backupDir; catalogDir = $paths.catalogDir; archiveDir = $paths.archiveDir
     mirrorDir = $paths.mirrorDir; pgdumpDir = $paths.pgdumpDir; logDir = $paths.logDir
     rosterFile = $paths.rosterFile; sessionSecretDir = $paths.sessionSecretDir; mirrorTokenFile = $paths.mirrorTokenFile
-    appVersion = $appVersion; nodeVersion = $NodeVersion; npmVersion = $NpmVersion
+    appVersion = $appVersion; nodeVersion = $NodeVersion; npmVersion = $NpmVersion; port = 3000
   }
   Set-AppEnvironment $config
 
@@ -342,7 +474,7 @@ try {
   if (Test-Path -LiteralPath $stageApp) { Remove-Item -LiteralPath $stageApp -Recurse -Force }
   New-Item -ItemType Directory -Path $stageApp -Force | Out-Null
   Write-Title 'آماده‌سازی نسخهٔ برنامه'
-  & robocopy.exe $sourceApp $stageApp /E /R:1 /W:1 /NFL /NDL /NP /XD '.git' 'node_modules' '.next' '.data' 'coverage' 'catalogs' /XF '.env' '.env.local' '.env.production' '.env.development' '.env.test' '.env.production.local' '.env.development.local' '.env.test.local' '*.log' '*.local.json'
+  & robocopy.exe $sourceApp $stageApp /E /R:1 /W:1 /NFL /NDL /NP /XD '.git' 'node_modules' '.next' '.data' 'coverage' /XF '.env' '.env.local' '.env.production' '.env.development' '.env.test' '.env.production.local' '.env.development.local' '.env.test.local' '*.log' '*.local.json'
   $copyCode = $LASTEXITCODE
   if ($copyCode -ge 8) { throw "کپی فایل‌های برنامه شکست خورد (robocopy $copyCode)." }
   Get-ChildItem -LiteralPath $stageApp -Force -File -Recurse | Where-Object { $_.Name -like '.env*' -and $_.Name -ne '.env.example' } | Remove-Item -Force
@@ -368,7 +500,15 @@ try {
   }
   $buildArguments = @($npmCli, 'run', 'build')
   Invoke-Checked -Executable $nodePath -Arguments $buildArguments -WorkingDirectory $stageApp -Description 'ساخت نسخهٔ production...'
-  New-LocalRoster $paths.rosterFile
+  $rosterMarker = Join-Path $configDir 'roster-consumed.flag'
+  $databaseHasFiles = $false
+  if (Test-Path -LiteralPath $paths.databaseDir) { $databaseHasFiles = @(Get-ChildItem -LiteralPath $paths.databaseDir -Force -ErrorAction SilentlyContinue).Count -gt 0 }
+  if ((Test-Path -LiteralPath $rosterMarker) -and -not $databaseHasFiles) {
+    Remove-Item -LiteralPath $rosterMarker -Force -ErrorAction SilentlyContinue
+    Write-Host 'پایگاه داده خالی است؛ برای مقداردهی دوباره باید PINهای محلی را بسازید.' -ForegroundColor Yellow
+  }
+  if (-not (Test-Path -LiteralPath $rosterMarker)) { New-LocalRoster $paths.rosterFile }
+  else { Write-Host 'PINهای هش‌شدهٔ پایگاه داده حفظ می‌شوند؛ فایل PIN متنی دوباره ساخته نمی‌شود.' -ForegroundColor Green }
 
   $pidPath = Join-Path $configDir 'server.pid'
   Stop-PumpstationServer $pidPath $appDir
@@ -397,12 +537,13 @@ try {
   $configJson = $config | ConvertTo-Json -Depth 8
   [IO.File]::WriteAllText($configPath, $configJson, ([System.Text.UTF8Encoding]::new($false)))
   Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'launch-pumpstation.ps1') -Destination $launcherPath -Force
+  Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'launch-pumpstation.bat') -Destination $launcherBatPath -Force
 
   $shortcutPath = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Pumpstation.lnk'
   $shell = New-Object -ComObject WScript.Shell
   $shortcut = $shell.CreateShortcut($shortcutPath)
-  $shortcut.TargetPath = Join-Path $PSHOME 'powershell.exe'
-  $shortcut.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $launcherPath + '"'
+  $shortcut.TargetPath = $launcherBatPath
+  $shortcut.Arguments = ''
   $shortcut.WorkingDirectory = $installRoot
   $shortcut.Description = 'اجرای سامانهٔ Pumpstation'
   $shortcut.IconLocation = $env:SystemRoot + '\System32\shell32.dll,220'
@@ -418,6 +559,17 @@ try {
   Write-Host 'میانبر دسکتاپ ساخته شد. برنامه اکنون باز می‌شود.' -ForegroundColor Green
   & (Join-Path $PSHOME 'powershell.exe') -NoProfile -ExecutionPolicy Bypass -File $launcherPath
   if ($LASTEXITCODE -ne 0) { throw 'اجرای نخست برنامه کامل نشد؛ گزارش‌های برنامه را در پوشهٔ لاگ‌ها بررسی کنید.' }
+  if (Test-Path -LiteralPath $paths.rosterFile) {
+    try {
+      [IO.File]::WriteAllText($rosterMarker, "seeded=$(Get-Date -Format o)`r`n", ([System.Text.UTF8Encoding]::new($false)))
+      Remove-Item -LiteralPath $paths.rosterFile -Force -ErrorAction Stop
+      Write-Host 'PINهای اولیه در پایگاه داده به‌صورت هش‌شده ذخیره شدند؛ فایل متنی موقت حذف شد.' -ForegroundColor Green
+    } catch {
+      Write-Host ("هشدار: حذف فایل متنی PIN خودکار نشد؛ دسترسی آن را محدود کنید: {0}" -f $paths.rosterFile) -ForegroundColor Yellow
+    }
+  } else {
+    [IO.File]::WriteAllText($rosterMarker, "seeded=$(Get-Date -Format o)`r`n", ([System.Text.UTF8Encoding]::new($false)))
+  }
 } catch {
   Write-Host ''
   Write-Host ('خطای نصب: ' + $_.Exception.Message) -ForegroundColor Red

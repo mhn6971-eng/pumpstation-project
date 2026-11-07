@@ -87,13 +87,15 @@ const H = (cookie) => ({ cookie });
   // ---------- C: unauthenticated access ----------
   const targets = [
     ["/api/state", "GET"], ["/api/totals", "GET"], ["/api/history?param=PIT-001", "GET"],
-    ["/api/catalogs?id=1", "GET"], ["/api/backups/1", "GET"], ["/report/1", "GET"], ["/totals", "GET"],
+    ["/api/backups/1", "GET"], ["/report/1", "GET"], ["/totals", "GET"],
   ];
   for (const [path, method] of targets) {
     const r = await fetch(BASE + path, { method, redirect: "manual" });
     const blocked = [401, 403, 307, 302].includes(r.status);
     log(`anon ${path}`, blocked, `status=${r.status}`);
   }
+  const removedCatalogRoute = await fetch(`${BASE}/api/catalogs?id=1`, { redirect: "manual" });
+  log("equipment catalog API removed", removedCatalogRoute.status === 404, `status=${removedCatalogRoute.status}`);
   const anonAct = await fetch(`${BASE}/api/actions`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "total.set", payload: { value: 1 } }),
   });
