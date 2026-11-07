@@ -48,6 +48,7 @@ function Stop-PumpstationServer([string]$InstallRoot, [string]$AppDir, [string]$
   $lockPath = Join-Path $DatabaseDir '.pumpstation.lock'
   $savedPid = 0
   $databaseOwnerPid = 0
+  $lockStartedAt = 0L
   if (Test-Path -LiteralPath $pidPath) {
     $raw = (Get-Content -LiteralPath $pidPath -Raw).Trim()
     [void][int]::TryParse($raw, [ref]$savedPid)
@@ -56,7 +57,8 @@ function Stop-PumpstationServer([string]$InstallRoot, [string]$AppDir, [string]$
     try {
       $lock = [IO.File]::ReadAllText($lockPath, [Text.Encoding]::UTF8) | ConvertFrom-Json
       $parsedPid = [int]::TryParse([string]$lock.pid, [ref]$databaseOwnerPid)
-      if (-not $parsedPid -or $databaseOwnerPid -le 0 -or -not $lock.dir) { throw 'Invalid database lock owner' }
+      $parsedStart = [long]::TryParse([string]$lock.startedAt, [ref]$lockStartedAt)
+      if (-not $parsedPid -or $databaseOwnerPid -le 0 -or -not $parsedStart -or $lockStartedAt -le 0 -or -not $lock.dir) { throw 'Invalid database lock owner' }
       $expectedDataDir = [IO.Path]::GetFullPath($DatabaseDir).TrimEnd([char[]]@([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar))
       $lockedDataDir = [IO.Path]::GetFullPath([string]$lock.dir).TrimEnd([char[]]@([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar))
       if (-not $expectedDataDir.Equals($lockedDataDir, [StringComparison]::OrdinalIgnoreCase)) { throw 'Database lock path does not match installation config' }
@@ -70,20 +72,34 @@ function Stop-PumpstationServer([string]$InstallRoot, [string]$AppDir, [string]$
   $killPids = @()
   foreach ($proc in $processes) {
     $command = [string]$proc.CommandLine
-    if (-not $command) { continue }
     $executable = [string]$proc.ExecutablePath
     $sameRuntime = $false
     if ($executable) {
       try { $sameRuntime = [IO.Path]::GetFullPath($executable).Equals($nodePath, [StringComparison]::OrdinalIgnoreCase) } catch { }
     }
-    $mentionsApp = $command.IndexOf($AppDir, [StringComparison]::OrdinalIgnoreCase) -ge 0
+    $mentionsApp = $command -and $command.IndexOf($AppDir, [StringComparison]::OrdinalIgnoreCase) -ge 0
     $isLauncher = $mentionsApp -and $command -match '(?i)scripts[\\/]+serve\.mjs\s+start'
-    $isNextServer = ($command -match '(?i)node_modules[\\/]+next[\\/]+dist[\\/]') -and ($command -match '(?i)\bstart\b')
-    # The lock file is inside the configured database and its dir is validated above.
-    # The per-install Node binary is private to Pumpstation, so the lock PID plus that
-    # executable is a stronger owner signal than a version-dependent Next command line.
-    $isDatabaseOwner = ([int]$proc.ProcessId -eq $databaseOwnerPid) -and $sameRuntime
-    $isManagedNext = $isNextServer -and $sameRuntime -and $mentionsApp
+    $isNextServer = $command -and ($command -match '(?i)node_modules[\\/]+next[\\/]+dist[\\/]') -and ($command -match '(?i)\bstart\b')
+    $isDatabaseOwner = $false
+    if ([int]$proc.ProcessId -eq $databaseOwnerPid) {
+      # CIM may hide CommandLine/ExecutablePath even for our own process. The validated
+      # database lock also records the owner's start time; require a close match before
+      # treating a reused PID as the database owner.
+      $processStart = $proc.CreationDate
+      if ($processStart -is [string]) {
+        try { $processStart = [System.Management.ManagementDateTimeConverter]::ToDateTime($processStart) } catch { $processStart = $null }
+      }
+      $lockIdentityVerified = $false
+      if ($processStart -is [datetime]) {
+        try {
+          $lockStartUtc = [DateTimeOffset]::FromUnixTimeMilliseconds($lockStartedAt).UtcDateTime
+          $processStartUtc = ([datetime]$processStart).ToUniversalTime()
+          $lockIdentityVerified = [Math]::Abs(($processStartUtc - $lockStartUtc).TotalSeconds) -le 60
+        } catch { }
+      }
+      $isDatabaseOwner = $sameRuntime -or $lockIdentityVerified
+    }
+    $isManagedNext = $isNextServer -and ($sameRuntime -or $mentionsApp)
     if ($isLauncher -or $isManagedNext -or $isDatabaseOwner) { $killPids += [int]$proc.ProcessId }
   }
 

@@ -1,12 +1,12 @@
 {
-  "version": "1.4.18",
-  "archiveUrl": "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/Pumpstation-App-Update-1.4.18.zip",
-  "sha256": "8f262c090eec81067ab50e7bed0a6f50f562c0d2ee5faa3d39fb4f0db7c9b20b",
+  "version": "1.4.19",
+  "archiveUrl": "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/Pumpstation-App-Update-1.4.19.zip",
+  "sha256": "43b45dcc8a2f2a7be34d7ebddeb5b828540d113626b88db81fcf5a5afc0fecac",
   "publishedAt": "2026-11-07",
   "notes": [
-    "ابزار بازنشانی PID مالک دیتابیس را از قفل معتبر PGlite می‌خواند و آن را با مسیر دادهٔ نصب تطبیق می‌دهد.",
-    "پردازه فقط وقتی متوقف می‌شود که PID قفل معتبر و runtime خصوصی همان نصب تأیید شوند؛ در غیر این صورت PIN تغییر نمی‌کند.",
-    "نصب تازه برای حساب‌های شیفت و مدیر PIN موقت 1234 تنظیم می‌کند؛ PIN را پس از ورود از Admin تغییر دهید.",
-    "ورود و تغییر PIN فقط چهار رقم می‌پذیرد؛ تنظیمات TOTP هنگام بازنشانی حفظ می‌شود."
+    "ابزار بازنشانی مالک دیتابیس را با مسیر قفل معتبر، PID، runtime خصوصی و زمان شروع پردازه شناسایی می‌کند؛ به اطلاعات CommandLine/ExecutablePath قابل‌مشاهده در CIM وابسته نیست.",
+    "اگر هویت پردازه به‌طور امن تأیید نشود، عملیات پیش از بک‌آپ و تغییر PIN متوقف می‌شود.",
+    "نصب تازه برای همهٔ حساب‌ها PIN موقت 1234 تنظیم می‌کند؛ پس از ورود، PINها را از Admin تغییر دهید.",
+    "ورود و تغییر PIN فقط چهار رقم می‌پذیرد و تنظیمات TOTP در بازنشانی حفظ می‌شود."
   ]
 }
