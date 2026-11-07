@@ -6,6 +6,7 @@ if (-not (Test-Path -LiteralPath $appPackagePath)) { throw 'pumpstation-v1.2 was
 
 $version = (Get-Content -LiteralPath $appPackagePath -Raw | ConvertFrom-Json).version
 $output = Join-Path $root "Pumpstation-Windows-$version.zip"
+$downloadDir = Join-Path $root 'downloads'
 $temp = Join-Path $env:TEMP ('pumpstation-package-' + [Guid]::NewGuid().ToString('N'))
 $stage = Join-Path $temp 'Pumpstation'
 $stageApp = Join-Path $stage 'pumpstation-v1.2'
@@ -65,6 +66,9 @@ try {
   Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $output -CompressionLevel Optimal
   $hash = (Get-FileHash -LiteralPath $output -Algorithm SHA256).Hash.ToLowerInvariant()
   [IO.File]::WriteAllText(($output + '.sha256'), "$hash  $(Split-Path -Leaf $output)`r`n", ([System.Text.UTF8Encoding]::new($false)))
+  New-Item -ItemType Directory -Path $downloadDir -Force | Out-Null
+  Copy-Item -LiteralPath $output -Destination (Join-Path $downloadDir (Split-Path -Leaf $output)) -Force
+  Copy-Item -LiteralPath ($output + '.sha256') -Destination (Join-Path $downloadDir ((Split-Path -Leaf $output) + '.sha256')) -Force
   Write-Host ''
   Write-Host "INSTALLER READY: $output" -ForegroundColor Green
   Write-Host "SHA-256: $hash" -ForegroundColor Green

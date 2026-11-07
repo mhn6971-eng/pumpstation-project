@@ -45,6 +45,8 @@ assert.match(batch, /set \/p "PUMPSTATION_WAIT="/);
 assert.match(batch, /Diagnostic log:/);
 assert.match(packager, /Creating an online installer/);
 assert.match(packager, /Pumpstation-Windows-\$version\.zip/);
+assert.match(packager, /\$downloadDir = Join-Path \$root 'downloads'/);
+assert.match(packager, /Join-Path \$downloadDir/);
 assert.match(packager, /'\.data'/);
 assert.match(packager, /'\*\.local\.json'/);
 
