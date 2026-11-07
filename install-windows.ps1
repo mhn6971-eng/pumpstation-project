@@ -549,10 +549,10 @@ try {
   Set-AppEnvironment $config
   Write-Title 'STEP 5/8 - Install locked dependencies and build the app'
   if ($installMode -eq 'offline') {
-    $npmCiArguments = @($npmCli, 'ci', '--offline', '--no-audit', '--no-fund', '--cache', $npmCacheDir)
+    $npmCiArguments = @($npmCli, 'ci', '--include=dev', '--offline', '--no-audit', '--no-fund', '--cache', $npmCacheDir)
     Invoke-Checked -Executable $nodePath -Arguments $npmCiArguments -WorkingDirectory $stageApp -Description 'Installing locked dependencies from offline cache...'
   } else {
-    $npmCiArguments = @($npmCli, 'ci', '--no-audit', '--no-fund', '--registry', $Registry, '--cache', $npmCacheDir)
+    $npmCiArguments = @($npmCli, 'ci', '--include=dev', '--no-audit', '--no-fund', '--registry', $Registry, '--cache', $npmCacheDir)
     try {
       Invoke-Checked -Executable $nodePath -Arguments $npmCiArguments -WorkingDirectory $stageApp -Description 'Downloading and installing locked dependencies...'
     } catch {
@@ -560,7 +560,7 @@ try {
       Write-Host 'Online dependency install failed; retrying with the verified offline cache.' -ForegroundColor Yellow
       $installMode = 'offline'
       Copy-OfflineNpmCache $offlineNpmCache $npmCacheDir
-      $npmCiArguments = @($npmCli, 'ci', '--offline', '--no-audit', '--no-fund', '--cache', $npmCacheDir)
+      $npmCiArguments = @($npmCli, 'ci', '--include=dev', '--offline', '--no-audit', '--no-fund', '--cache', $npmCacheDir)
       Invoke-Checked -Executable $nodePath -Arguments $npmCiArguments -WorkingDirectory $stageApp -Description 'Installing locked dependencies from offline cache...'
     }
   }

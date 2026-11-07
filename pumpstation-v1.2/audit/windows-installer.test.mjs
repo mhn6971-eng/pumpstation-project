@@ -28,6 +28,9 @@ assert.match(installer, /Previous application code and configuration were restor
 assert.match(installer, /Data drive selected automatically/);
 assert.match(installer, /New-RandomPin/);
 assert.match(installer, /PUMPSTATION_SKIP_BROWSER = '1'/);
+const npmCiCommands = installer.split(/\r?\n/).filter((line) => line.includes("$npmCiArguments = @($npmCli, 'ci'"));
+assert.equal(npmCiCommands.length, 3, "online, offline, and fallback dependency installs should all be tested");
+assert.ok(npmCiCommands.every((line) => line.includes("'--include=dev'")), "Next build tooling is in devDependencies and must be installed even when NODE_ENV=production");
 assert.match(installer, /Verifying first-run database setup/);
 assert.match(installer, /api\/auth/);
 const seedCheck = installer.indexOf("Verifying first-run database setup");
