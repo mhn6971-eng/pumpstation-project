@@ -191,7 +191,7 @@ function New-RandomPin([string[]]$Used) {
     do {
       $bytes = New-Object byte[] 4
       $rng.GetBytes($bytes)
-      $pin = [string](100000 + ([BitConverter]::ToUInt32($bytes, 0) % 900000))
+      $pin = [string](1000 + ([BitConverter]::ToUInt32($bytes, 0) % 9000))
     } while ($Used -contains $pin -or $pin -in @('1011', '2022', '3033', '9009'))
   } finally { $rng.Dispose() }
   return $pin

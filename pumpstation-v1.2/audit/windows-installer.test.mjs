@@ -29,6 +29,7 @@ assert.match(installer, /DATABASE ROLLBACK FAILED/);
 assert.match(installer, /Previous application code and configuration were restored/);
 assert.match(installer, /Data drive selected automatically/);
 assert.match(installer, /New-RandomPin/);
+assert.match(installer, /1000 \+ \(\[BitConverter\]::ToUInt32\(\$bytes, 0\) % 9000\)/, "generated login PINs must match the four-digit login UI");
 assert.match(installer, /PUMPSTATION_SKIP_BROWSER = '1'/);
 const npmCiCommands = installer.split(/\r?\n/).filter((line) => line.includes("$npmCiArguments = @($npmCli, 'ci'"));
 assert.equal(npmCiCommands.length, 3, "online, offline, and fallback dependency installs should all be tested");
