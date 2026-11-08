@@ -1,12 +1,13 @@
 {
   "version": "1.4.25",
   "archiveUrl": "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/Pumpstation-App-Update-1.4.25.zip",
-  "sha256": "f9bc02e5570e1a8a172d0fe92dd3e505710b777c728a6edfccbf5fe3b9122959",
+  "sha256": "c19db0ee8407418fdebb8d67c33cb6a2e056b9cf2be7856e3ec1e472abd7781f",
   "publishedAt": "2026-11-04",
   "notes": [
     "نصاب نسخهٔ دقیق Node.js/npm را بررسی می‌کند و اگر آماده باشد دانلود مجدد را رد می‌کند؛ dependencyهای منطبق با lockfile قبلی نیز بازیافت می‌شوند تا npm ci تکراری اجرا نشود.",
-    "منابع نصب آفلاین در ZIP مستقل Pumpstation-Offline-Resources-1.4.25.zip ارائه شده‌اند؛ آن را کنار فایل نصاب استخراج کنید تا پوشهٔ offline-vendor به‌صورت خودکار شناسایی شود.",
+    "منابع نصب آفلاین در دو ZIP مستقل Part1 و Part2 ارائه شده‌اند؛ هر دو را کنار install-windows.bat استخراج کنید تا پوشهٔ offline-vendor کامل شود. لینک دانلود در صفحهٔ Release نسخهٔ 1.4.25 است.",
     "راهنمای کامل فارسی نصب هم کنار نصاب و هم در docs/INSTALL-WINDOWS-FA.md داخل بستهٔ برنامه قرار دارد.",
-    "نسخهٔ 1.4.24 همچنین اجرای PGlite در build را حافظه‌ای کرده بود تا build دیتابیس واقعی را پیش از migration لمس نکند؛ مسیر و دادهٔ قبلی حذف یا بازنشانی نمی‌شود."
+    "نصب عادی مسیر، دیتابیس و PINهای موجود را حفظ می‌کند و چیزی را پاک یا reset نمی‌کند.",
+    "نسخهٔ 1.4.24 همچنین اجرای PGlite در build را حافظه‌ای کرده بود تا build دیتابیس واقعی را پیش از migration لمس نکند."
   ]
 }

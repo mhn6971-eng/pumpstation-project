@@ -1,7 +1,7 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.25   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: a58bebb
-تاریخ تولید: 2026-11-08   |   133 فایل   |   26,855 خط
+نسخهٔ برنامه: 1.4.25   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 44f3919
+تاریخ تولید: 2026-11-08   |   133 فایل   |   26,856 خط
 ==============================================================================
 
 این فایل، «نسخهٔ خوانا»ی کل کد برنامه است؛ هر فایل کامل و بدون حذف درج شده و
@@ -155,7 +155,7 @@
      audit/jalali.test.mjs                                42 خط
      audit/updater.test.mjs                               15 خط
      audit/update-zip.test.mjs                            68 خط
-     audit/windows-installer.test.mjs                     130 خط
+     audit/windows-installer.test.mjs                     131 خط
      audit/probe.mjs                                      10 خط
      audit/sess.mjs                                       34 خط
      audit/writeperf.mjs                                  14 خط
@@ -26786,7 +26786,7 @@ await assert.rejects(
 );
 console.log("PASS | update zip | rejects prerelease or malformed versions");
 
-── FILE: audit/windows-installer.test.mjs  (130 خط) ──
+── FILE: audit/windows-installer.test.mjs  (131 خط) ──
 
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
@@ -26827,8 +26827,8 @@ assert.match(dbIndex, /new PGlite\(buildPhase \? undefined : dataDir/,
 assert.match(installer, /function Get-DependencyFingerprint/);
 assert.match(installer, /function Test-InstalledDependencies/);
 assert.match(installer, /Matching dependencies are already present; npm install\/download skipped/);
-assert.match(installer, /Pumpstation-Offline-Resources-\$appVersion\.zip/);
-assert.match(packager, /Pumpstation-Offline-Resources-\$version\.zip/);
+assert.match(installer, /Pumpstation-Offline-Resources-\$appVersion-Part1\.zip/);
+assert.match(installer, /Pumpstation-Offline-Resources-\$appVersion-Part2\.zip/);
 assert.equal(appInstallGuide, installGuide, "the complete Persian installation guide must be present in the app package and beside the Windows installer");
 assert.ok(installGuide.includes("node-win-x64-22.22.2.tgz") && installGuide.includes("npm-cache/"), "the offline companion contents must be listed in the installation guide");
 assert.equal(/\bRead-Host\b/i.test(installer), false, "the installation flow must not ask for interactive input");
@@ -26894,8 +26894,9 @@ assert.match(batch, /set \/p "PUMPSTATION_WAIT="/);
 assert.match(batch, /Diagnostic log:/);
 assert.match(packager, /Creating an online installer/);
 assert.match(packager, /Pumpstation-Windows-\$version\.zip/);
-assert.match(packager, /Pumpstation-Offline-Resources-\$version\.zip/);
-assert.match(packager, /OFFLINE RESOURCES READY/);
+assert.match(packager, /Pumpstation-Offline-Resources-\$version-Part1\.zip/);
+assert.match(packager, /Pumpstation-Offline-Resources-\$version-Part2\.zip/);
+assert.match(packager, /OFFLINE RESOURCE PART READY/);
 assert.match(packager, /offline-vendor/);
 assert.match(packager, /'install-windows-fresh\.bat'/);
 assert.match(packager, /\$downloadDir = Join-Path \$root 'downloads'/);

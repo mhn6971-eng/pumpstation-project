@@ -535,7 +535,7 @@ try {
   } else {
     $onlineAvailable = Test-RegistryOnline
     if (-not $onlineAvailable -and -not $offlineAvailable -and (-not $nodeReady -or -not $npmReady)) {
-      throw "Internet is unavailable. Extract Pumpstation-Offline-Resources-$appVersion.zip beside install-windows.bat so offline-vendor is available, then retry."
+      throw "Internet is unavailable. Extract both Pumpstation-Offline-Resources-$appVersion-Part1.zip and Pumpstation-Offline-Resources-$appVersion-Part2.zip beside install-windows.bat so offline-vendor is available, then retry."
     }
     if ($onlineAvailable) {
       $installMode = 'online'
@@ -547,7 +547,7 @@ try {
       $installMode = 'offline'
       Write-Host 'Internet is unavailable. The installer will try the local npm cache.' -ForegroundColor Yellow
     } else {
-      throw "Internet is unavailable. Download and extract Pumpstation-Offline-Resources-$appVersion.zip beside install-windows.bat, then retry."
+      throw "Internet is unavailable. Download and extract both Pumpstation-Offline-Resources-$appVersion-Part1.zip and Pumpstation-Offline-Resources-$appVersion-Part2.zip beside install-windows.bat, then retry."
     }
   }
   $tar = $null
