@@ -6,6 +6,7 @@ if (-not (Test-Path -LiteralPath $appPackagePath)) { throw 'pumpstation-v1.2 was
 
 $version = (Get-Content -LiteralPath $appPackagePath -Raw | ConvertFrom-Json).version
 $output = Join-Path $root "Pumpstation-Windows-$version.zip"
+$offlineOutput = Join-Path $root "Pumpstation-Offline-Resources-$version.zip"
 $downloadDir = Join-Path $root 'downloads'
 $temp = Join-Path $env:TEMP ('pumpstation-package-' + [Guid]::NewGuid().ToString('N'))
 $stage = Join-Path $temp 'Pumpstation'
@@ -57,10 +58,9 @@ try {
   Get-ChildItem -LiteralPath $stageApp -Force -File -Recurse | Where-Object { $_.Name -like '.env*' -and $_.Name -ne '.env.example' } | Remove-Item -Force
 
   if ($offlineAvailable) {
-    Write-Host 'Including the verified offline runtime and npm cache.' -ForegroundColor Green
-    Copy-Item -LiteralPath $offlineVendor -Destination (Join-Path $stage 'offline-vendor') -Recurse -Force
+    Write-Host 'Preparing a separate verified offline-resources ZIP; the main installer stays small.' -ForegroundColor Green
   } else {
-    Write-Host 'Creating an online installer. Windows must have internet access during installation.' -ForegroundColor Yellow
+    Write-Host 'No matching offline-vendor cache found. Creating an online installer only.' -ForegroundColor Yellow
   }
 
   if (Test-Path -LiteralPath $output) { Remove-Item -LiteralPath $output -Force }
@@ -70,6 +70,26 @@ try {
   New-Item -ItemType Directory -Path $downloadDir -Force | Out-Null
   Copy-Item -LiteralPath $output -Destination (Join-Path $downloadDir (Split-Path -Leaf $output)) -Force
   Copy-Item -LiteralPath ($output + '.sha256') -Destination (Join-Path $downloadDir ((Split-Path -Leaf $output) + '.sha256')) -Force
+
+  if ($offlineAvailable) {
+    $offlineStage = Join-Path $temp 'Offline-Pumpstation'
+    $offlineStageVendor = Join-Path $offlineStage 'offline-vendor'
+    New-Item -ItemType Directory -Path $offlineStageVendor -Force | Out-Null
+    & robocopy.exe $offlineVendor $offlineStageVendor /E /R:1 /W:1 /NFL /NDL /NP
+    if ($LASTEXITCODE -ge 8) { throw 'Could not stage the offline resources ZIP.' }
+    Remove-Item -LiteralPath (Join-Path $offlineStageVendor 'npm-cache\_logs') -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath (Join-Path $offlineStageVendor 'npm-cache\_update-notifier-last-checked') -Force -ErrorAction SilentlyContinue
+    if (Test-Path -LiteralPath $offlineOutput) { Remove-Item -LiteralPath $offlineOutput -Force }
+    Compress-Archive -Path (Join-Path $offlineStage '*') -DestinationPath $offlineOutput -CompressionLevel Optimal
+    $offlineHash = (Get-FileHash -LiteralPath $offlineOutput -Algorithm SHA256).Hash.ToLowerInvariant()
+    [IO.File]::WriteAllText(($offlineOutput + '.sha256'), "$offlineHash  $(Split-Path -Leaf $offlineOutput)`r`n", ([System.Text.UTF8Encoding]::new($false)))
+    Copy-Item -LiteralPath $offlineOutput -Destination (Join-Path $downloadDir (Split-Path -Leaf $offlineOutput)) -Force
+    Copy-Item -LiteralPath ($offlineOutput + '.sha256') -Destination (Join-Path $downloadDir ((Split-Path -Leaf $offlineOutput) + '.sha256')) -Force
+    Write-Host "OFFLINE RESOURCES READY: $offlineOutput" -ForegroundColor Green
+    Write-Host "OFFLINE SHA-256: $offlineHash" -ForegroundColor Green
+    Write-Host 'Extract this ZIP beside install-windows.bat. It creates offline-vendor automatically.'
+  }
+
   Write-Host ''
   Write-Host "INSTALLER READY: $output" -ForegroundColor Green
   Write-Host "SHA-256: $hash" -ForegroundColor Green

@@ -1,7 +1,7 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.23   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 07265b0
-تاریخ تولید: 2026-11-08   |   133 فایل   |   26,826 خط
+نسخهٔ برنامه: 1.4.25   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: a58bebb
+تاریخ تولید: 2026-11-08   |   133 فایل   |   26,855 خط
 ==============================================================================
 
 این فایل، «نسخهٔ خوانا»ی کل کد برنامه است؛ هر فایل کامل و بدون حذف درج شده و
@@ -18,7 +18,7 @@
   ۱) پیکربندی و نقشهٔ پروژه
      package.json                                         55 خط
      package-lock.json                                    7100 خط
-     CODE-MAP_FA.md                                       46 خط
+     CODE-MAP_FA.md                                       53 خط
      next.config.ts                                       43 خط
      tsconfig.json                                        43 خط
      eslint.config.mjs                                    23 خط
@@ -28,7 +28,7 @@
      .gitignore                                           13 خط
 
   ۲) دیتابیس و مهاجرت‌ها
-     src/db/index.ts                                      101 خط
+     src/db/index.ts                                      108 خط
      src/db/schema.ts                                     464 خط
      src/db/seed.ts                                       290 خط
      src/lib/seed-helpers.ts                              12 خط
@@ -155,7 +155,7 @@
      audit/jalali.test.mjs                                42 خط
      audit/updater.test.mjs                               15 خط
      audit/update-zip.test.mjs                            68 خط
-     audit/windows-installer.test.mjs                     115 خط
+     audit/windows-installer.test.mjs                     130 خط
      audit/probe.mjs                                      10 خط
      audit/sess.mjs                                       34 خط
      audit/writeperf.mjs                                  14 خط
@@ -217,7 +217,7 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   },
-  "version": "1.4.23",
+  "version": "1.4.25",
   "overrides": {
     "@typescript-eslint/typescript-estree": {
       "minimatch": "11.0.5"
@@ -229,13 +229,13 @@
 
 {
   "name": "pumpstation-monitoring",
-  "version": "1.4.23",
+  "version": "1.4.25",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "pumpstation-monitoring",
-      "version": "1.4.23",
+      "version": "1.4.25",
       "dependencies": {
         "@electric-sql/pglite": "^0.5.15",
         "dotenv": "17.3.1",
@@ -7327,7 +7327,7 @@
   }
 }
 
-── FILE: CODE-MAP_FA.md  (46 خط) ──
+── FILE: CODE-MAP_FA.md  (53 خط) ──
 
 # نقشهٔ سریع کد Pumpstation
 
@@ -7347,6 +7347,13 @@
 | مقدارهای اولیهٔ دیتابیس خالی | `src/db/seed.ts` | دادهٔ آغازین؛ تغییر این فایل دیتابیس‌های از قبل مقداردهی‌شده را بازنویسی نمی‌کند. |
 | جدول‌ها و ساختار ذخیره‌سازی | `src/db/schema.ts` و پوشهٔ `drizzle/` | تغییر ساختار ذخیره‌سازی نیازمند migration است؛ برای تغییر متن داشبورد این بخش را دست نزنید. |
 | ثبت مقدارها و تغییر وضعیت از API | `src/app/api/actions/route.ts` | شناسهٔ داخلی موتور در درخواست‌ها و دیتابیس همچنان `M-xx` است. |
+
+## دیتابیس و نصب Windows
+
+- `src/db/index.ts` در زمان `next build` از PGlite حافظه‌ای استفاده می‌کند و به مسیر واقعی `PGLITE_DATA_DIR` دست نمی‌زند؛ نصاب migration را بعد از build در پردازهٔ جدا روی مسیر واقعی اجرا می‌کند.
+- `install-windows.ps1` نسخهٔ Node/npm را پیش از دانلود بررسی می‌کند و dependencyهای منطبق با نصب قبلی را با fingerprint lockfile بازیافت می‌کند؛ `offline-vendor` کنار نصاب برای نصب بدون اینترنت است.
+- راهنمای کامل نصب در `docs/INSTALL-WINDOWS-FA.md` داخل برنامه و در `INSTALL-WINDOWS-FA.md` کنار نصاب قرار دارد؛ اسکریپت ساخت بسته در `package-windows.ps1` است.
+- اسکریپت migration در `scripts/init-db.mjs` است؛ برای عیب‌یابی نصب، ابتدا گزارش نصاب و مسیر دیتابیس را بررسی کنید و روی کپی آزمایشی کار کنید.
 
 ## قاعدهٔ شناسه‌ها
 
@@ -7585,7 +7592,7 @@ files/catalogs/
 # فایل‌های محلی دستگاه (نام واقعی اپراتورها و PIN واقعی فقط این‌جاست؛ هرگز کامیت نشود)
 *.local.json
 
-── FILE: src/db/index.ts  (101 خط) ──
+── FILE: src/db/index.ts  (108 خط) ──
 
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle as drizzlePglite, type PgliteDatabase } from "drizzle-orm/pglite";
@@ -7636,11 +7643,18 @@ const globalForDb = globalThis as typeof globalThis & {
 const pglite: PGlite | null = usingPostgres
   ? null
   : globalForDb.__pumpstationPglite ??
-    new PGlite(dataDir, {
+    new PGlite(buildPhase ? undefined : dataDir, {
       /**
-       * durability واقعی: هر تراکنش با fsync روی دیسک می‌نشیند تا قطع برق داده را از بین نبرد
-       * (C3 در گزارش بازبینی). اگر سرعت روی سخت‌افزار ضعیف مشکل شد، با
-       * PGLITE_RELAXED=1 می‌توان موقتاً خاموشش کرد.
+       * During `next build`, use PGlite's in-memory filesystem. Route modules can be
+       * evaluated by Next while collecting build metadata; opening the real data
+       * directory here leaves an un-migrated cluster behind when the build process
+       * exits. The installer then starts a separate migration process against that
+       * directory. Avoiding this cross-process handoff prevents the Windows PGlite
+       * filesystem failure (ENOTDIR / errno 20) seen when reopening that directory.
+       *
+       * In the running application, durability واقعی: هر تراکنش با fsync روی دیسک
+       * می‌نشیند تا قطع برق داده را از بین نبرد (C3 در گزارش بازبینی). اگر سرعت
+       * روی سخت‌افزار ضعیف مشکل شد، با PGLITE_RELAXED=1 می‌توان موقتاً خاموشش کرد.
        */
       relaxedDurability: process.env.PGLITE_RELAXED === "1",
     });
@@ -26772,7 +26786,7 @@ await assert.rejects(
 );
 console.log("PASS | update zip | rejects prerelease or malformed versions");
 
-── FILE: audit/windows-installer.test.mjs  (115 خط) ──
+── FILE: audit/windows-installer.test.mjs  (130 خط) ──
 
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
@@ -26788,7 +26802,10 @@ const freshBatch = await readFile(path.join(root, "install-windows-fresh.bat"), 
 const launcher = await readFile(path.join(root, "launch-pumpstation.ps1"), "utf8");
 const appLauncher = await readFile(path.join(root, "pumpstation-v1.2/launch-pumpstation.ps1"), "utf8");
 const packager = await readFile(path.join(root, "package-windows.ps1"), "utf8");
+const installGuide = await readFile(path.join(root, "INSTALL-WINDOWS-FA.md"), "utf8");
+const appInstallGuide = await readFile(path.join(root, "pumpstation-v1.2/docs/INSTALL-WINDOWS-FA.md"), "utf8");
 const appPackage = JSON.parse(await readFile(path.join(root, "pumpstation-v1.2/package.json"), "utf8"));
+const dbIndex = await readFile(path.join(root, "pumpstation-v1.2/src/db/index.ts"), "utf8");
 const adminTab = await readFile(path.join(root, "pumpstation-v1.2/src/components/AdminTab.tsx"), "utf8");
 const loginPage = await readFile(path.join(root, "pumpstation-v1.2/src/components/Login.tsx"), "utf8");
 const styles = await readFile(path.join(root, "pumpstation-v1.2/src/app/globals.css"), "utf8");
@@ -26805,6 +26822,15 @@ const domain = await readFile(path.join(root, "pumpstation-v1.2/src/lib/domain.t
 const codeMap = await readFile(path.join(root, "pumpstation-v1.2/CODE-MAP_FA.md"), "utf8");
 
 assert.equal(appPackage.scripts.build, "next build --webpack", "production Windows builds must avoid the broken Turbopack external-PGlite resolution");
+assert.match(dbIndex, /new PGlite\(buildPhase \? undefined : dataDir/,
+  "Next build must use an in-memory PGlite instance and leave the real data directory for the migration process");
+assert.match(installer, /function Get-DependencyFingerprint/);
+assert.match(installer, /function Test-InstalledDependencies/);
+assert.match(installer, /Matching dependencies are already present; npm install\/download skipped/);
+assert.match(installer, /Pumpstation-Offline-Resources-\$appVersion\.zip/);
+assert.match(packager, /Pumpstation-Offline-Resources-\$version\.zip/);
+assert.equal(appInstallGuide, installGuide, "the complete Persian installation guide must be present in the app package and beside the Windows installer");
+assert.ok(installGuide.includes("node-win-x64-22.22.2.tgz") && installGuide.includes("npm-cache/"), "the offline companion contents must be listed in the installation guide");
 assert.equal(/\bRead-Host\b/i.test(installer), false, "the installation flow must not ask for interactive input");
 for (let step = 1; step <= 8; step += 1) {
   assert.ok(installer.includes(`STEP ${step}/8`), `installer should report step ${step}/8`);
@@ -26868,6 +26894,9 @@ assert.match(batch, /set \/p "PUMPSTATION_WAIT="/);
 assert.match(batch, /Diagnostic log:/);
 assert.match(packager, /Creating an online installer/);
 assert.match(packager, /Pumpstation-Windows-\$version\.zip/);
+assert.match(packager, /Pumpstation-Offline-Resources-\$version\.zip/);
+assert.match(packager, /OFFLINE RESOURCES READY/);
+assert.match(packager, /offline-vendor/);
 assert.match(packager, /'install-windows-fresh\.bat'/);
 assert.match(packager, /\$downloadDir = Join-Path \$root 'downloads'/);
 assert.match(packager, /Join-Path \$downloadDir/);

@@ -12,7 +12,10 @@ const freshBatch = await readFile(path.join(root, "install-windows-fresh.bat"), 
 const launcher = await readFile(path.join(root, "launch-pumpstation.ps1"), "utf8");
 const appLauncher = await readFile(path.join(root, "pumpstation-v1.2/launch-pumpstation.ps1"), "utf8");
 const packager = await readFile(path.join(root, "package-windows.ps1"), "utf8");
+const installGuide = await readFile(path.join(root, "INSTALL-WINDOWS-FA.md"), "utf8");
+const appInstallGuide = await readFile(path.join(root, "pumpstation-v1.2/docs/INSTALL-WINDOWS-FA.md"), "utf8");
 const appPackage = JSON.parse(await readFile(path.join(root, "pumpstation-v1.2/package.json"), "utf8"));
+const dbIndex = await readFile(path.join(root, "pumpstation-v1.2/src/db/index.ts"), "utf8");
 const adminTab = await readFile(path.join(root, "pumpstation-v1.2/src/components/AdminTab.tsx"), "utf8");
 const loginPage = await readFile(path.join(root, "pumpstation-v1.2/src/components/Login.tsx"), "utf8");
 const styles = await readFile(path.join(root, "pumpstation-v1.2/src/app/globals.css"), "utf8");
@@ -29,6 +32,15 @@ const domain = await readFile(path.join(root, "pumpstation-v1.2/src/lib/domain.t
 const codeMap = await readFile(path.join(root, "pumpstation-v1.2/CODE-MAP_FA.md"), "utf8");
 
 assert.equal(appPackage.scripts.build, "next build --webpack", "production Windows builds must avoid the broken Turbopack external-PGlite resolution");
+assert.match(dbIndex, /new PGlite\(buildPhase \? undefined : dataDir/,
+  "Next build must use an in-memory PGlite instance and leave the real data directory for the migration process");
+assert.match(installer, /function Get-DependencyFingerprint/);
+assert.match(installer, /function Test-InstalledDependencies/);
+assert.match(installer, /Matching dependencies are already present; npm install\/download skipped/);
+assert.match(installer, /Pumpstation-Offline-Resources-\$appVersion\.zip/);
+assert.match(packager, /Pumpstation-Offline-Resources-\$version\.zip/);
+assert.equal(appInstallGuide, installGuide, "the complete Persian installation guide must be present in the app package and beside the Windows installer");
+assert.ok(installGuide.includes("node-win-x64-22.22.2.tgz") && installGuide.includes("npm-cache/"), "the offline companion contents must be listed in the installation guide");
 assert.equal(/\bRead-Host\b/i.test(installer), false, "the installation flow must not ask for interactive input");
 for (let step = 1; step <= 8; step += 1) {
   assert.ok(installer.includes(`STEP ${step}/8`), `installer should report step ${step}/8`);
@@ -92,6 +104,9 @@ assert.match(batch, /set \/p "PUMPSTATION_WAIT="/);
 assert.match(batch, /Diagnostic log:/);
 assert.match(packager, /Creating an online installer/);
 assert.match(packager, /Pumpstation-Windows-\$version\.zip/);
+assert.match(packager, /Pumpstation-Offline-Resources-\$version\.zip/);
+assert.match(packager, /OFFLINE RESOURCES READY/);
+assert.match(packager, /offline-vendor/);
 assert.match(packager, /'install-windows-fresh\.bat'/);
 assert.match(packager, /\$downloadDir = Join-Path \$root 'downloads'/);
 assert.match(packager, /Join-Path \$downloadDir/);

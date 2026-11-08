@@ -97,6 +97,39 @@ function Copy-OfflineNpmCache([string]$Source, [string]$Destination) {
   if ($LASTEXITCODE -ge 8) { throw 'Could not copy the offline npm cache.' }
 }
 
+function Get-DependencyFingerprint([string]$LockFile) {
+  $lock = Get-Content -LiteralPath $LockFile -Raw | ConvertFrom-Json
+  if ($lock.PSObject.Properties['version']) { $lock.version = '' }
+  $packagesProperty = $lock.PSObject.Properties['packages']
+  if ($packagesProperty -and $packagesProperty.Value) {
+    $rootPackage = $packagesProperty.Value.PSObject.Properties['']
+    if ($rootPackage -and $rootPackage.Value.PSObject.Properties['version']) { $rootPackage.Value.version = '' }
+  }
+  $canonical = ConvertTo-Json -InputObject $lock -Depth 100 -Compress
+  $sha = [Security.Cryptography.SHA256]::Create()
+  try {
+    $digest = $sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($canonical))
+    return ([BitConverter]::ToString($digest)).Replace('-', '').ToLowerInvariant()
+  } finally { $sha.Dispose() }
+}
+
+function Test-InstalledDependencies([string]$AppDir, [string]$Fingerprint) {
+  if (-not (Test-Path -LiteralPath $AppDir -PathType Container)) { return $false }
+  $stamp = Join-Path $AppDir '.pumpstation-dependencies.sha256'
+  if (-not (Test-Path -LiteralPath $stamp -PathType Leaf)) { return $false }
+  if ((Get-Content -LiteralPath $stamp -Raw).Trim() -ne $Fingerprint) { return $false }
+  foreach ($relative in @(
+    'node_modules/.package-lock.json',
+    'node_modules/next/package.json',
+    'node_modules/drizzle-orm/package.json',
+    'node_modules/@electric-sql/pglite/package.json',
+    'node_modules/typescript/package.json'
+  )) {
+    if (-not (Test-Path -LiteralPath (Join-Path $AppDir $relative) -PathType Leaf)) { return $false }
+  }
+  return $true
+}
+
 function Assert-DirectoryFilesEqual([string]$Source, [string]$Destination) {
   $sourceFiles = @(Get-ChildItem -LiteralPath $Source -File -Recurse -Force | Sort-Object -Property FullName)
   $destinationFiles = @(Get-ChildItem -LiteralPath $Destination -File -Recurse -Force | Sort-Object -Property FullName)
@@ -492,20 +525,30 @@ try {
     Write-Host ("Node.js {0} is valid; npm {1} will be installed or repaired." -f $NodeVersion, $NpmVersion) -ForegroundColor Yellow
   }
 
-  $onlineAvailable = Test-RegistryOnline
-  if (-not $onlineAvailable -and -not $offlineAvailable -and (-not $nodeReady -or -not $npmReady)) { throw 'Internet is unavailable and no verified offline cache is present. Connect to the internet and retry.' }
+  $dependencyFingerprint = Get-DependencyFingerprint (Join-Path $PSScriptRoot 'pumpstation-v1.2\package-lock.json')
+  $reuseExistingDependencies = Test-InstalledDependencies $appDir $dependencyFingerprint
   Write-Title 'STEP 3/8 - Verify or download Node.js and npm'
-  if ($onlineAvailable) {
-    $installMode = 'online'
-    Write-Host 'Internet connection detected. Runtime and application dependencies will be installed automatically.' -ForegroundColor Green
-  } elseif ($offlineAvailable) {
-    $installMode = 'offline'
-    Write-Host 'Internet is unavailable. Using the verified offline bundle automatically.' -ForegroundColor Yellow
-  } elseif ($nodeReady -and $npmReady) {
-    $installMode = 'offline'
-    Write-Host 'Internet is unavailable. The installer will try the local npm cache.' -ForegroundColor Yellow
+  $onlineAvailable = $false
+  if ($runtimeReady -and $reuseExistingDependencies) {
+    $installMode = 'reuse'
+    Write-Host 'Verified Node.js, npm, and matching application dependencies are already installed; downloads and npm install will be skipped.' -ForegroundColor Green
   } else {
-    throw 'Internet is unavailable and no verified offline bundle is present. Connect to the internet and retry.'
+    $onlineAvailable = Test-RegistryOnline
+    if (-not $onlineAvailable -and -not $offlineAvailable -and (-not $nodeReady -or -not $npmReady)) {
+      throw "Internet is unavailable. Extract Pumpstation-Offline-Resources-$appVersion.zip beside install-windows.bat so offline-vendor is available, then retry."
+    }
+    if ($onlineAvailable) {
+      $installMode = 'online'
+      Write-Host 'Internet connection detected. Missing runtime files and locked dependencies will be installed automatically.' -ForegroundColor Green
+    } elseif ($offlineAvailable) {
+      $installMode = 'offline'
+      Write-Host 'Internet is unavailable. Using the verified offline-vendor folder beside the installer.' -ForegroundColor Yellow
+    } elseif ($nodeReady -and $npmReady) {
+      $installMode = 'offline'
+      Write-Host 'Internet is unavailable. The installer will try the local npm cache.' -ForegroundColor Yellow
+    } else {
+      throw "Internet is unavailable. Download and extract Pumpstation-Offline-Resources-$appVersion.zip beside install-windows.bat, then retry."
+    }
   }
   $tar = $null
   if (-not $runtimeReady) {
@@ -603,25 +646,51 @@ try {
   if ($copyCode -ge 8) { throw "Could not copy application files (robocopy $copyCode)." }
   Get-ChildItem -LiteralPath $stageApp -Force -File -Recurse | Where-Object { $_.Name -like '.env*' -and $_.Name -ne '.env.example' } | Remove-Item -Force
 
+  $dependenciesReady = $false
+  if ($reuseExistingDependencies) {
+    Write-Host 'Reusing verified application dependencies from the previous installation...' -ForegroundColor Cyan
+    $existingModules = Join-Path $appDir 'node_modules'
+    $stageModules = Join-Path $stageApp 'node_modules'
+    & robocopy.exe $existingModules $stageModules /E /R:1 /W:1 /MT:8 /NFL /NDL /NP
+    $dependencyCopyCode = $LASTEXITCODE
+    if ($dependencyCopyCode -lt 8) {
+      Copy-Item -LiteralPath (Join-Path $appDir '.pumpstation-dependencies.sha256') -Destination (Join-Path $stageApp '.pumpstation-dependencies.sha256') -Force
+      $dependenciesReady = Test-InstalledDependencies $stageApp $dependencyFingerprint
+    }
+    if (-not $dependenciesReady) {
+      Write-Host 'Cached dependencies could not be reused safely; falling back to npm ci.' -ForegroundColor Yellow
+      if (Test-Path -LiteralPath $stageModules) { Remove-Item -LiteralPath $stageModules -Recurse -Force }
+      if ($installMode -eq 'reuse') {
+        if (Test-RegistryOnline) { $installMode = 'online' }
+        else { $installMode = 'offline' }
+      }
+    }
+  }
+
   $stagePackage = Get-Content -LiteralPath (Join-Path $stageApp 'package.json') -Raw | ConvertFrom-Json
   if ($stagePackage.version -ne $appVersion) { throw 'Package version mismatch. Re-extract the complete installer ZIP and retry.' }
   Set-AppEnvironment $config
   Write-Title 'STEP 5/8 - Install locked dependencies and build the app'
-  if ($installMode -eq 'offline') {
-    $npmCiArguments = @($npmCli, 'ci', '--include=dev', '--offline', '--no-audit', '--no-fund', '--cache', $npmCacheDir)
-    Invoke-Checked -Executable $nodePath -Arguments $npmCiArguments -WorkingDirectory $stageApp -Description 'Installing locked dependencies from offline cache...'
+  if ($dependenciesReady) {
+    Write-Host 'Matching dependencies are already present; npm install/download skipped.' -ForegroundColor Green
   } else {
-    $npmCiArguments = @($npmCli, 'ci', '--include=dev', '--no-audit', '--no-fund', '--registry', $Registry, '--cache', $npmCacheDir)
-    try {
-      Invoke-Checked -Executable $nodePath -Arguments $npmCiArguments -WorkingDirectory $stageApp -Description 'Downloading and installing locked dependencies...'
-    } catch {
-      if (-not $offlineAvailable) { throw }
-      Write-Host 'Online dependency install failed; retrying with the verified offline cache.' -ForegroundColor Yellow
-      $installMode = 'offline'
-      Copy-OfflineNpmCache $offlineNpmCache $npmCacheDir
+    if ($installMode -eq 'offline') {
       $npmCiArguments = @($npmCli, 'ci', '--include=dev', '--offline', '--no-audit', '--no-fund', '--cache', $npmCacheDir)
       Invoke-Checked -Executable $nodePath -Arguments $npmCiArguments -WorkingDirectory $stageApp -Description 'Installing locked dependencies from offline cache...'
+    } else {
+      $npmCiArguments = @($npmCli, 'ci', '--include=dev', '--no-audit', '--no-fund', '--registry', $Registry, '--cache', $npmCacheDir)
+      try {
+        Invoke-Checked -Executable $nodePath -Arguments $npmCiArguments -WorkingDirectory $stageApp -Description 'Downloading and installing locked dependencies...'
+      } catch {
+        if (-not $offlineAvailable) { throw }
+        Write-Host 'Online dependency install failed; retrying with the verified offline cache.' -ForegroundColor Yellow
+        $installMode = 'offline'
+        Copy-OfflineNpmCache $offlineNpmCache $npmCacheDir
+        $npmCiArguments = @($npmCli, 'ci', '--include=dev', '--offline', '--no-audit', '--no-fund', '--cache', $npmCacheDir)
+        Invoke-Checked -Executable $nodePath -Arguments $npmCiArguments -WorkingDirectory $stageApp -Description 'Installing locked dependencies from offline cache...'
+      }
     }
+    [IO.File]::WriteAllText((Join-Path $stageApp '.pumpstation-dependencies.sha256'), $dependencyFingerprint, ([System.Text.UTF8Encoding]::new($false)))
   }
   $buildArguments = @($npmCli, 'run', 'build')
   Invoke-Checked -Executable $nodePath -Arguments $buildArguments -WorkingDirectory $stageApp -Description 'Building the production application...'

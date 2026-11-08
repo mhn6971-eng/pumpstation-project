@@ -47,11 +47,18 @@ const globalForDb = globalThis as typeof globalThis & {
 const pglite: PGlite | null = usingPostgres
   ? null
   : globalForDb.__pumpstationPglite ??
-    new PGlite(dataDir, {
+    new PGlite(buildPhase ? undefined : dataDir, {
       /**
-       * durability واقعی: هر تراکنش با fsync روی دیسک می‌نشیند تا قطع برق داده را از بین نبرد
-       * (C3 در گزارش بازبینی). اگر سرعت روی سخت‌افزار ضعیف مشکل شد، با
-       * PGLITE_RELAXED=1 می‌توان موقتاً خاموشش کرد.
+       * During `next build`, use PGlite's in-memory filesystem. Route modules can be
+       * evaluated by Next while collecting build metadata; opening the real data
+       * directory here leaves an un-migrated cluster behind when the build process
+       * exits. The installer then starts a separate migration process against that
+       * directory. Avoiding this cross-process handoff prevents the Windows PGlite
+       * filesystem failure (ENOTDIR / errno 20) seen when reopening that directory.
+       *
+       * In the running application, durability واقعی: هر تراکنش با fsync روی دیسک
+       * می‌نشیند تا قطع برق داده را از بین نبرد (C3 در گزارش بازبینی). اگر سرعت
+       * روی سخت‌افزار ضعیف مشکل شد، با PGLITE_RELAXED=1 می‌توان موقتاً خاموشش کرد.
        */
       relaxedDurability: process.env.PGLITE_RELAXED === "1",
     });

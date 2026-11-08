@@ -1,12 +1,12 @@
 {
-  "version": "1.4.23",
-  "archiveUrl": "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/Pumpstation-App-Update-1.4.23.zip",
-  "sha256": "249b5b7e34035bf8452e47aa094da0005d987ccee86b71fd9dd91979985c7e36",
+  "version": "1.4.25",
+  "archiveUrl": "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/Pumpstation-App-Update-1.4.25.zip",
+  "sha256": "f9bc02e5570e1a8a172d0fe92dd3e505710b777c728a6edfccbf5fe3b9122959",
   "publishedAt": "2026-11-04",
   "notes": [
-    "در داشبورد، کارت‌ها، خلاصهٔ وضعیت و انتخاب نمودار از شناسهٔ نمایشی پمپ P-01 تا P-08 استفاده می‌شود؛ شناسه‌های داخلی M-01 تا M-08 در API و دیتابیس دست‌نخورده‌اند.",
-    "پلاک شماتیک موتور شناسهٔ موتور، توان 1800KW و سازندهٔ Siemens را نمایش می‌دهد؛ نام سازنده و توان از src/lib/domain.ts قابل تغییر است.",
-    "فایل CODE-MAP_FA.md مسیر فایل‌های اصلی را بر اساس نوع تغییر توضیح می‌دهد تا اصلاحات بعدی سریع‌تر پیدا شوند.",
-    "نصب تازهٔ نسخهٔ 1.4.22 و اصلاح بازیابی نصب نیمه‌کاره حفظ شده است؛ داده و PIN نصب عملیاتی حذف یا بازنشانی نمی‌شوند."
+    "نصاب نسخهٔ دقیق Node.js/npm را بررسی می‌کند و اگر آماده باشد دانلود مجدد را رد می‌کند؛ dependencyهای منطبق با lockfile قبلی نیز بازیافت می‌شوند تا npm ci تکراری اجرا نشود.",
+    "منابع نصب آفلاین در ZIP مستقل Pumpstation-Offline-Resources-1.4.25.zip ارائه شده‌اند؛ آن را کنار فایل نصاب استخراج کنید تا پوشهٔ offline-vendor به‌صورت خودکار شناسایی شود.",
+    "راهنمای کامل فارسی نصب هم کنار نصاب و هم در docs/INSTALL-WINDOWS-FA.md داخل بستهٔ برنامه قرار دارد.",
+    "نسخهٔ 1.4.24 همچنین اجرای PGlite در build را حافظه‌ای کرده بود تا build دیتابیس واقعی را پیش از migration لمس نکند؛ مسیر و دادهٔ قبلی حذف یا بازنشانی نمی‌شود."
   ]
 }
