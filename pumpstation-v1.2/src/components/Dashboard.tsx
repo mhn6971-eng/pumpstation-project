@@ -104,12 +104,12 @@ export default function Dashboard() {
         </div>
       </Panel>
 
-      {/* موتورها: ابتدا خلاصه وضعیت، سپس کارت‌ها */}
-      <Panel title="موتورهای اصلی M-01 تا M-08" icon="bolt" hint={`بازه سرویس ${state.settings.serviceInterval} ساعت`}>
+      {/* پمپ‌های اصلی: شناسهٔ نمایشی P است؛ داده و API همچنان از تگ داخلی موتور M استفاده می‌کنند. */}
+      <Panel title="پمپ‌های اصلی P-01 تا P-08" icon="bolt" hint={`بازه سرویس ${state.settings.serviceInterval} ساعت`}>
         <div className="motor-summary">
-          <div className="box on"><b style={{ color: "#166534" }}>● موتورهای روشن ({on.length})</b><div className="tags">{on.length ? on.map((m) => <span key={m.tag}>{m.tag}</span>) : <span className="muted">—</span>}</div></div>
-          <div className="box off"><b style={{ color: "#334155" }}>● خاموش / آماده به کار ({off.length})</b><div className="tags">{off.length ? off.map((m) => <span key={m.tag}>{m.tag}</span>) : <span className="muted">—</span>}</div></div>
-          <div className="box svc"><b style={{ color: "#92400e" }}>● در حال سرویس ({svc.length})</b><div className="tags">{svc.length ? svc.map((m) => <span key={m.tag}>{m.tag}</span>) : <span className="muted">—</span>}</div></div>
+          <div className="box on"><b style={{ color: "#166534" }}>● پمپ‌های روشن ({on.length})</b><div className="tags">{on.length ? on.map((m) => <span key={m.tag}>{m.pumpTag}</span>) : <span className="muted">—</span>}</div></div>
+          <div className="box off"><b style={{ color: "#334155" }}>● پمپ‌های خاموش / آماده به کار ({off.length})</b><div className="tags">{off.length ? off.map((m) => <span key={m.tag}>{m.pumpTag}</span>) : <span className="muted">—</span>}</div></div>
+          <div className="box svc"><b style={{ color: "#92400e" }}>● پمپ‌های در حال سرویس ({svc.length})</b><div className="tags">{svc.length ? svc.map((m) => <span key={m.tag}>{m.pumpTag}</span>) : <span className="muted">—</span>}</div></div>
         </div>
         <div className="motors-grid">
           {state.motors.map((m) => (
@@ -118,13 +118,13 @@ export default function Dashboard() {
               m={m}
               settings={state.settings}
               busy={busy}
-              onOpen={() => openModal(`${m.tag} — ثبت داده و جزئیات`, <MotorDetail tag={m.tag} />, { wide: true, sub: `${m.tag} / ${m.pumpTag} — ${day} — بازه ${state.now.intervalLabel}` })}
+              onOpen={() => openModal(`پمپ ${m.pumpTag} — ثبت داده و جزئیات`, <MotorDetail tag={m.tag} />, { wide: true, sub: `${m.pumpTag} — ${day} — بازه ${state.now.intervalLabel}` })}
               onState={(next) => {
-                if (next === "service") openModal(`علامت‌گذاری ${m.tag} در حال سرویس`, <MotorServiceStartForm tag={m.tag} />);
+                if (next === "service") openModal(`علامت‌گذاری پمپ ${m.pumpTag} در حال سرویس`, <MotorServiceStartForm tag={m.tag} />);
                 else void act("motor.state", { tag: m.tag, state: next });
               }}
-              onService={() => openModal(`سرویس ماهانه موتور ${m.tag}`, <MotorServiceForm tag={m.tag} />, { wide: true, sub: "ذغال‌ها، ساعت HMI، مگر و روغن" })}
-              onChart={() => openModal(`نمودار ${m.tag}`, <ChartModal scope="motor" tag={m.tag} param="T10" />, { wide: true })}
+              onService={() => openModal(`سرویس ماهانهٔ پمپ ${m.pumpTag}`, <MotorServiceForm tag={m.tag} />, { wide: true, sub: "ذغال‌ها، ساعت HMI، مگر و روغن" })}
+              onChart={() => openModal(`نمودار پمپ ${m.pumpTag}`, <ChartModal scope="motor" tag={m.tag} param="T10" />, { wide: true })}
             />
           ))}
         </div>

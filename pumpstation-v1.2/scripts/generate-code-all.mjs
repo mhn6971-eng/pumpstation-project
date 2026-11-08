@@ -25,8 +25,8 @@ import { extractBundle } from "./extract-code-all.mjs";
 const FA_NUM = ["۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
 
 const SECTIONS = [
-  { title: "پیکربندی پروژه", files: [
-    "package.json", "package-lock.json", "next.config.ts", "tsconfig.json", "eslint.config.mjs",
+  { title: "پیکربندی و نقشهٔ پروژه", files: [
+    "package.json", "package-lock.json", "CODE-MAP_FA.md", "next.config.ts", "tsconfig.json", "eslint.config.mjs",
     "postcss.config.mjs", "drizzle.config.json", ".env.example", ".gitignore",
   ] },
   { title: "دیتابیس و مهاجرت‌ها", files: [
@@ -144,7 +144,7 @@ try {
     const b = readFileSync(path.join(selfDir, f), "utf8");
     if (a !== b) throw new Error(`self-test: ${f} پس از استخراج با منبع فرق دارد`);
   }
-  for (const must of ["package.json", "package-lock.json", "src/components/PmTab.tsx", "drizzle/0005_megger_pi.sql", "drizzle/0006_alerts_open_unique.sql", "scripts/extract-code-all.mjs", "scripts/generate-code-all.mjs"]) {
+  for (const must of ["package.json", "package-lock.json", "CODE-MAP_FA.md", "src/components/PmTab.tsx", "drizzle/0005_megger_pi.sql", "drizzle/0006_alerts_open_unique.sql", "scripts/extract-code-all.mjs", "scripts/generate-code-all.mjs"]) {
     if (!listed.has(must)) throw new Error(`self-test: ${must} در بسته نیست`);
   }
   for (const f of ["audit/audit5.mjs", "scripts/mirror-backup.mjs", "scripts/pg-init.mjs", "scripts/pg-dump.mjs", "scripts/pg-import-json.mjs"]) {

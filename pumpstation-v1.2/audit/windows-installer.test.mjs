@@ -21,6 +21,12 @@ const loginPhoto = await readFile(path.join(root, "pumpstation-v1.2/public/image
 const authRoute = await readFile(path.join(root, "pumpstation-v1.2/src/app/api/auth/route.ts"), "utf8");
 const actionsRoute = await readFile(path.join(root, "pumpstation-v1.2/src/app/api/actions/route.ts"), "utf8");
 const roster = await readFile(path.join(root, "pumpstation-v1.2/src/lib/roster.ts"), "utf8");
+const dashboard = await readFile(path.join(root, "pumpstation-v1.2/src/components/Dashboard.tsx"), "utf8");
+const motorCard = await readFile(path.join(root, "pumpstation-v1.2/src/components/MotorCard.tsx"), "utf8");
+const motorVisual = await readFile(path.join(root, "pumpstation-v1.2/src/components/MotorVisual.tsx"), "utf8");
+const chartModal = await readFile(path.join(root, "pumpstation-v1.2/src/components/ChartModal.tsx"), "utf8");
+const domain = await readFile(path.join(root, "pumpstation-v1.2/src/lib/domain.ts"), "utf8");
+const codeMap = await readFile(path.join(root, "pumpstation-v1.2/CODE-MAP_FA.md"), "utf8");
 
 assert.equal(appPackage.scripts.build, "next build --webpack", "production Windows builds must avoid the broken Turbopack external-PGlite resolution");
 assert.equal(/\bRead-Host\b/i.test(installer), false, "the installation flow must not ask for interactive input");
@@ -96,5 +102,13 @@ assert.equal(existsSync(path.join(root, "reset-pins.bat")), false);
 assert.equal(existsSync(path.join(root, "reset-pins.ps1")), false);
 assert.equal(existsSync(path.join(root, "pumpstation-v1.2/scripts/reset-admin-pin.mjs")), false);
 assert.ok(styles.includes('url("/images/pump-hall.jpg")'));
+assert.ok(dashboard.includes('title="پمپ‌های اصلی P-01 تا P-08"'), "dashboard equipment group must use pump identifiers");
+assert.ok(dashboard.includes("{m.pumpTag}"), "dashboard status summaries must display P-xx identifiers");
+assert.ok(motorCard.includes("{m.pumpTag}"), "pump card heading must display the P-xx identifier");
+assert.ok(chartModal.includes("{m.pumpTag}</option>"), "dashboard chart selector must display P-xx while keeping the internal M-xx value");
+assert.ok(domain.includes('export const MOTOR_BRAND = "Siemens"'));
+assert.ok(motorVisual.includes("{MOTOR_POWER_KW}KW") && motorVisual.includes("{MOTOR_BRAND}"), "motor nameplate must show power and Siemens branding");
+assert.ok(codeMap.includes("src/components/Dashboard.tsx") && codeMap.includes("src/components/MotorVisual.tsx"), "the source map must point to the dashboard and equipment drawing");
+assert.ok(codeMap.includes("داخل برنامه، API، دیتابیس و سابقهٔ گزارش‌ها شناسهٔ موتور"), "the code map must document preserved internal M tags");
 
-console.log("PASS | Windows/login | four distinct fresh-install PINs, editable Admin PINs, supplied login artwork and no reset utility");
+console.log("PASS | Windows/login/equipment | fresh PINs, Siemens 1800KW nameplate, pump IDs on dashboard and source map");

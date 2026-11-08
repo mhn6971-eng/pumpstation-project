@@ -43,8 +43,8 @@ export default function MotorCard({
   return (
     <article className={classes}>
       <div className="motor-head">
-        <div className="motor-tags">
-          {m.tag} <span>/ {m.pumpTag}</span>
+        <div className="motor-tags" dir="ltr">
+          {m.pumpTag}
         </div>
         <div className="led-wrap">
           <span className={`led ${m.state === "on" ? "green" : m.state === "service" ? "amber" : ""}`} title={m.stateFa} />
@@ -80,7 +80,7 @@ export default function MotorCard({
 
       {/* نوار اول: روشن / خاموش / سرویس */}
       <div className="motor-actions">
-        <div className="state-toggle" role="group" aria-label="تغییر وضعیت موتور">
+        <div className="state-toggle" role="group" aria-label={`تغییر وضعیت پمپ ${m.pumpTag}`}>
           <button type="button" className={`on ${m.state === "on" ? "active" : ""}`} disabled={busy} onClick={() => onState("on")}>روشن</button>
           <button type="button" className={`off ${m.state === "off" ? "active" : ""}`} disabled={busy} onClick={() => onState("off")}>خاموش</button>
           <button type="button" className={`svc ${m.state === "service" ? "active" : ""}`} disabled={busy} onClick={() => onState("service")}>سرویس</button>

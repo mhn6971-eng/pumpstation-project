@@ -2,6 +2,7 @@ export type EquipmentStatus = "ready" | "in_service";
 export type MotorState = "on" | "off" | "service" | "unknown";
 export type Severity = "ok" | "warning" | "critical";
 
+/** نگاشت شناسهٔ داخلی موتور به شناسهٔ پمپِ نمایشی؛ برای افزودن/اصلاح تجهیز همین فهرست را ببینید (نقشه: CODE-MAP_FA.md). */
 export const MOTORS = [
   { tag: "M-01", pumpTag: "P-01" },
   { tag: "M-02", pumpTag: "P-02" },
@@ -13,8 +14,9 @@ export const MOTORS = [
   { tag: "M-08", pumpTag: "P-08" },
 ];
 
-/** توان نامی موتورهای اصلی ایستگاه (کیلووات) — روی پلاک شماتیک و گزارش‌ها. */
+/** توان نامی و سازندهٔ موتورهای اصلی؛ برای تغییر مشخصات روی پلاک شماتیک همین‌جا را ویرایش کنید. */
 export const MOTOR_POWER_KW = 1800;
+export const MOTOR_BRAND = "Siemens";
 
 /** تگ پمپ متناظر یک موتور (مثلاً M-01 ←→ P-01)؛ برای تگ نامعتبر همان ورودی برمی‌گردد. */
 export function pumpTagOf(motorTag: string): string {

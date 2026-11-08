@@ -31,6 +31,7 @@ function TrendChart({ scope, tag, param }: { scope: "process" | "motor"; tag: st
   const { state, act, openModal } = useApp();
   const isMotor = scope === "motor";
   const [selectedTag, setSelectedTag] = useState(tag || (isMotor ? "M-01" : PROCESS_PARAMS[0].tag));
+  const selectedPumpTag = state.motors.find((motor) => motor.tag === selectedTag)?.pumpTag ?? selectedTag;
   const [selectedParam, setSelectedParam] = useState(param || (isMotor ? "T10" : ""));
   const [compare, setCompare] = useState(false);
   const [from, setFrom] = useState(addDaysToDay(state.now.day, -13));
@@ -77,12 +78,12 @@ function TrendChart({ scope, tag, param }: { scope: "process" | "motor"; tag: st
         {isMotor ? (
           <>
             <select className="input" style={{ width: 170 }} value={selectedTag} onChange={(e) => setSelectedTag(e.target.value)} disabled={compare}>
-              {state.motors.map((m) => <option key={m.tag} value={m.tag}>{m.tag} / {m.pumpTag}</option>)}
+              {state.motors.map((m) => <option key={m.tag} value={m.tag}>{m.pumpTag}</option>)}
             </select>
             <select className="input" style={{ width: 210 }} value={selectedParam} onChange={(e) => setSelectedParam(e.target.value)}>
               {MOTOR_PARAMS.map((p) => <option key={p.key} value={p.key}>{p.label} ({p.key})</option>)}
             </select>
-            <label className="row small" style={{ gap: 5 }}><input type="checkbox" checked={compare} onChange={(e) => setCompare(e.target.checked)} /> مقایسهٔ همهٔ موتورها</label>
+            <label className="row small" style={{ gap: 5 }}><input type="checkbox" checked={compare} onChange={(e) => setCompare(e.target.checked)} /> مقایسهٔ همهٔ پمپ‌ها</label>
           </>
         ) : (
           <select className="input" style={{ width: 250 }} value={selectedTag} onChange={(e) => setSelectedTag(e.target.value)}>
@@ -116,7 +117,7 @@ function TrendChart({ scope, tag, param }: { scope: "process" | "motor"; tag: st
           <option value="line">خطی</option><option value="bar">میله‌ای</option><option value="scatter">پراکنده</option>
         </select>
         {isMotor && !compare && (
-          <button type="button" className="btn tiny ghost" onClick={() => openModal(`ترند چندکاناله ${selectedTag}`, <MultiParamChart tag={selectedTag} from={applied.from} to={applied.to} />, { wide: true })}>ترند چندکاناله</button>
+          <button type="button" className="btn tiny ghost" onClick={() => openModal(`ترند چندکاناله ${selectedPumpTag}`, <MultiParamChart tag={selectedTag} from={applied.from} to={applied.to} />, { wide: true })}>ترند چندکاناله</button>
         )}
         <button type="button" className="btn tiny primary" onClick={makePrintable}><Icon name="file" size={12} /> گزارش چاپی / PDF این روند</button>
       </div>
@@ -129,7 +130,7 @@ function TrendChart({ scope, tag, param }: { scope: "process" | "motor"; tag: st
           {view !== "chart" && (
             <div className="table-wrap" style={{ maxHeight: 340, marginTop: view === "both" ? 10 : 0 }}>
               <table className="data">
-                <thead><tr><th>تاریخ</th><th>{compare ? "موتور" : grouped ? "نوع" : "بازه"}</th><th>مقدار ({data.unit})</th><th>شیفت / ثبت</th></tr></thead>
+                <thead><tr><th>تاریخ</th><th>{compare ? "پمپ" : grouped ? "نوع" : "بازه"}</th><th>مقدار ({data.unit})</th><th>شیفت / ثبت</th></tr></thead>
                 <tbody>
                   {shown.map((p, i) => (
                     <tr key={i}>

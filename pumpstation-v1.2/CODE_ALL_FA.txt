@@ -1,7 +1,7 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.22   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 4e71b20
-تاریخ تولید: 2026-11-07   |   132 فایل   |   26,763 خط
+نسخهٔ برنامه: 1.4.23   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: 07265b0
+تاریخ تولید: 2026-11-08   |   133 فایل   |   26,826 خط
 ==============================================================================
 
 این فایل، «نسخهٔ خوانا»ی کل کد برنامه است؛ هر فایل کامل و بدون حذف درج شده و
@@ -15,9 +15,10 @@
 
 فهرست فایل‌ها:
 
-  ۱) پیکربندی پروژه
+  ۱) پیکربندی و نقشهٔ پروژه
      package.json                                         55 خط
      package-lock.json                                    7100 خط
+     CODE-MAP_FA.md                                       46 خط
      next.config.ts                                       43 خط
      tsconfig.json                                        43 خط
      eslint.config.mjs                                    23 خط
@@ -54,7 +55,7 @@
      src/lib/security.ts                                  173 خط
      src/lib/audit.ts                                     79 خط
      src/lib/jalali.ts                                    221 خط
-     src/lib/domain.ts                                    330 خط
+     src/lib/domain.ts                                    332 خط
      src/lib/state.ts                                     261 خط
      src/lib/motor-history.ts                             15 خط
      src/lib/reporting.ts                                 214 خط
@@ -113,7 +114,7 @@
      src/components/ServiceForm.tsx                       196 خط
      src/components/ReportsTab.tsx                        220 خط
      src/components/ReportsHub.tsx                        102 خط
-     src/components/ChartModal.tsx                        269 خط
+     src/components/ChartModal.tsx                        270 خط
      src/components/PrintBar.tsx                          20 خط
      src/components/AlertsTab.tsx                         49 خط
      src/components/ProblemsTab.tsx                       27 خط
@@ -154,7 +155,7 @@
      audit/jalali.test.mjs                                42 خط
      audit/updater.test.mjs                               15 خط
      audit/update-zip.test.mjs                            68 خط
-     audit/windows-installer.test.mjs                     101 خط
+     audit/windows-installer.test.mjs                     115 خط
      audit/probe.mjs                                      10 خط
      audit/sess.mjs                                       34 خط
      audit/writeperf.mjs                                  14 خط
@@ -216,7 +217,7 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   },
-  "version": "1.4.22",
+  "version": "1.4.23",
   "overrides": {
     "@typescript-eslint/typescript-estree": {
       "minimatch": "11.0.5"
@@ -228,13 +229,13 @@
 
 {
   "name": "pumpstation-monitoring",
-  "version": "1.4.22",
+  "version": "1.4.23",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "pumpstation-monitoring",
-      "version": "1.4.22",
+      "version": "1.4.23",
       "dependencies": {
         "@electric-sql/pglite": "^0.5.15",
         "dotenv": "17.3.1",
@@ -7326,6 +7327,54 @@
   }
 }
 
+── FILE: CODE-MAP_FA.md  (46 خط) ──
+
+# نقشهٔ سریع کد Pumpstation
+
+این فایل برای پیدا کردن محل تغییر هر تجهیز است؛ برای اصلاح یک مورد، لازم نیست کل پروژه را بخوانید. مسیرها نسبت به پوشهٔ `pumpstation-v1.2` هستند.
+
+## موتور و پمپ‌های اصلی
+
+| چه چیزی را می‌خواهید تغییر دهید؟ | فایل اصلی | محل/راهنما |
+|---|---|---|
+| اتصال موتور به پمپ و شناسه‌های `M-01` / `P-01` | `src/lib/domain.ts` | آرایهٔ `MOTORS`؛ ردیف هر تجهیز همین‌جاست. |
+| توان و سازندهٔ درج‌شده روی پلاک شماتیک | `src/lib/domain.ts` و `src/components/MotorVisual.tsx` | `MOTOR_POWER_KW` و `MOTOR_BRAND` را در domain عوض کنید؛ جای متن و ظاهر پلاک در `MotorVisual` است. |
+| عنوان و خلاصهٔ وضعیت پمپ‌ها در داشبورد | `src/components/Dashboard.tsx` | عنوان پنل، روشن/خاموش/سرویس و شناسه‌هایی که در خلاصه نشان داده می‌شوند. |
+| سربرگ هر کارت پمپ و دکمه‌های همان کارت | `src/components/MotorCard.tsx` | نمایش شناسهٔ `P-xx` و ظاهر کارت. |
+| شکل SVG موتور و پمپ | `src/components/MotorVisual.tsx` | اجزای تصویر، رنگ‌ها و پلاک؛ این فایل فقط مسئول شماتیک است. |
+| فرم جزئیات، دما، جریان و مقادیر موتور | `src/components/MotorDetail.tsx` | رابط ورود و مشاهدهٔ اندازه‌گیری‌ها. |
+| پارامترها و گروه‌بندی آن‌ها | `src/lib/domain.ts` | `MOTOR_PARAMS` و `MOTOR_PARAM_GROUPS`. |
+| مقدارهای اولیهٔ دیتابیس خالی | `src/db/seed.ts` | دادهٔ آغازین؛ تغییر این فایل دیتابیس‌های از قبل مقداردهی‌شده را بازنویسی نمی‌کند. |
+| جدول‌ها و ساختار ذخیره‌سازی | `src/db/schema.ts` و پوشهٔ `drizzle/` | تغییر ساختار ذخیره‌سازی نیازمند migration است؛ برای تغییر متن داشبورد این بخش را دست نزنید. |
+| ثبت مقدارها و تغییر وضعیت از API | `src/app/api/actions/route.ts` | شناسهٔ داخلی موتور در درخواست‌ها و دیتابیس همچنان `M-xx` است. |
+
+## قاعدهٔ شناسه‌ها
+
+- در **داشبورد**، موتورهای کوپل‌شده به‌صورت پمپ با شناسهٔ `P-01` تا `P-08` نمایش داده می‌شوند.
+- داخل برنامه، API، دیتابیس و سابقهٔ گزارش‌ها شناسهٔ موتور `M-01` تا `M-08` حفظ می‌شود؛ نگاشت هر موتور به پمپ در آرایهٔ `MOTORS` و تابع `pumpTagOf` در `src/lib/domain.ts` است.
+- در شماتیک، پلاک بدنه شناسهٔ خود موتور را نشان می‌دهد؛ پلاک پمپ شناسهٔ `P-xx` را. توان و سازنده از ثابت‌های مرکزی `MOTOR_POWER_KW` و `MOTOR_BRAND` می‌آیند.
+- بنابراین برای عوض‌کردن شناسهٔ نمایشی داشبورد، از تغییر دیتابیس یا migration شروع نکنید؛ ابتدا `Dashboard.tsx` و `MotorCard.tsx` را بررسی کنید.
+
+## جست‌وجوی سریع در ترمینال
+
+از پوشهٔ `pumpstation-v1.2` اجرا کنید:
+
+```sh
+rg -n "MOTORS|MOTOR_POWER_KW|MOTOR_BRAND|MOTOR_PARAMS|MOTOR_PARAM_GROUPS" src/lib/domain.ts
+rg -n "پمپ‌های اصلی|pumpTag|onOpen|onService|onChart" src/components/Dashboard.tsx src/components/MotorCard.tsx
+rg -n "پلاک موتور|MOTOR_BRAND|1800" src/components/MotorVisual.tsx src/lib/domain.ts
+```
+
+## سایر بخش‌های رابط
+
+- ورود و صفحهٔ اصلی: `src/components/Login.tsx` و `src/components/AppShell.tsx`
+- تجهیزات جانبی و فهرست تجهیزات: `src/components/AuxTab.tsx` و `src/components/RegistryTab.tsx`
+- آلارم‌ها و مشکلات: `src/components/AlertsTab.tsx` و `src/components/ProblemsTab.tsx`
+- گزارش‌ها: `src/components/ReportsHub.tsx`, `src/components/ReportsTab.tsx` و `src/app/report/[id]/page.tsx`
+- پنل مدیریت: `src/components/AdminTab.tsx`
+- رنگ‌ها و چیدمان سراسری: `src/app/globals.css`
+- آزمون‌های خودکار: `audit/`؛ دستور کامل پروژه `npm test` است.
+
 ── FILE: next.config.ts  (43 خط) ──
 
 import type { NextConfig } from "next";
@@ -10419,12 +10468,13 @@ export function monthDaysOf(jy: number, jm: number) {
   return jalaaliMonthLength(jy, jm);
 }
 
-── FILE: src/lib/domain.ts  (330 خط) ──
+── FILE: src/lib/domain.ts  (332 خط) ──
 
 export type EquipmentStatus = "ready" | "in_service";
 export type MotorState = "on" | "off" | "service" | "unknown";
 export type Severity = "ok" | "warning" | "critical";
 
+/** نگاشت شناسهٔ داخلی موتور به شناسهٔ پمپِ نمایشی؛ برای افزودن/اصلاح تجهیز همین فهرست را ببینید (نقشه: CODE-MAP_FA.md). */
 export const MOTORS = [
   { tag: "M-01", pumpTag: "P-01" },
   { tag: "M-02", pumpTag: "P-02" },
@@ -10436,8 +10486,9 @@ export const MOTORS = [
   { tag: "M-08", pumpTag: "P-08" },
 ];
 
-/** توان نامی موتورهای اصلی ایستگاه (کیلووات) — روی پلاک شماتیک و گزارش‌ها. */
+/** توان نامی و سازندهٔ موتورهای اصلی؛ برای تغییر مشخصات روی پلاک شماتیک همین‌جا را ویرایش کنید. */
 export const MOTOR_POWER_KW = 1800;
+export const MOTOR_BRAND = "Siemens";
 
 /** تگ پمپ متناظر یک موتور (مثلاً M-01 ←→ P-01)؛ برای تگ نامعتبر همان ورودی برمی‌گردد. */
 export function pumpTagOf(motorTag: string): string {
@@ -19161,12 +19212,12 @@ export default function Dashboard() {
         </div>
       </Panel>
 
-      {/* موتورها: ابتدا خلاصه وضعیت، سپس کارت‌ها */}
-      <Panel title="موتورهای اصلی M-01 تا M-08" icon="bolt" hint={`بازه سرویس ${state.settings.serviceInterval} ساعت`}>
+      {/* پمپ‌های اصلی: شناسهٔ نمایشی P است؛ داده و API همچنان از تگ داخلی موتور M استفاده می‌کنند. */}
+      <Panel title="پمپ‌های اصلی P-01 تا P-08" icon="bolt" hint={`بازه سرویس ${state.settings.serviceInterval} ساعت`}>
         <div className="motor-summary">
-          <div className="box on"><b style={{ color: "#166534" }}>● موتورهای روشن ({on.length})</b><div className="tags">{on.length ? on.map((m) => <span key={m.tag}>{m.tag}</span>) : <span className="muted">—</span>}</div></div>
-          <div className="box off"><b style={{ color: "#334155" }}>● خاموش / آماده به کار ({off.length})</b><div className="tags">{off.length ? off.map((m) => <span key={m.tag}>{m.tag}</span>) : <span className="muted">—</span>}</div></div>
-          <div className="box svc"><b style={{ color: "#92400e" }}>● در حال سرویس ({svc.length})</b><div className="tags">{svc.length ? svc.map((m) => <span key={m.tag}>{m.tag}</span>) : <span className="muted">—</span>}</div></div>
+          <div className="box on"><b style={{ color: "#166534" }}>● پمپ‌های روشن ({on.length})</b><div className="tags">{on.length ? on.map((m) => <span key={m.tag}>{m.pumpTag}</span>) : <span className="muted">—</span>}</div></div>
+          <div className="box off"><b style={{ color: "#334155" }}>● پمپ‌های خاموش / آماده به کار ({off.length})</b><div className="tags">{off.length ? off.map((m) => <span key={m.tag}>{m.pumpTag}</span>) : <span className="muted">—</span>}</div></div>
+          <div className="box svc"><b style={{ color: "#92400e" }}>● پمپ‌های در حال سرویس ({svc.length})</b><div className="tags">{svc.length ? svc.map((m) => <span key={m.tag}>{m.pumpTag}</span>) : <span className="muted">—</span>}</div></div>
         </div>
         <div className="motors-grid">
           {state.motors.map((m) => (
@@ -19175,13 +19226,13 @@ export default function Dashboard() {
               m={m}
               settings={state.settings}
               busy={busy}
-              onOpen={() => openModal(`${m.tag} — ثبت داده و جزئیات`, <MotorDetail tag={m.tag} />, { wide: true, sub: `${m.tag} / ${m.pumpTag} — ${day} — بازه ${state.now.intervalLabel}` })}
+              onOpen={() => openModal(`پمپ ${m.pumpTag} — ثبت داده و جزئیات`, <MotorDetail tag={m.tag} />, { wide: true, sub: `${m.pumpTag} — ${day} — بازه ${state.now.intervalLabel}` })}
               onState={(next) => {
-                if (next === "service") openModal(`علامت‌گذاری ${m.tag} در حال سرویس`, <MotorServiceStartForm tag={m.tag} />);
+                if (next === "service") openModal(`علامت‌گذاری پمپ ${m.pumpTag} در حال سرویس`, <MotorServiceStartForm tag={m.tag} />);
                 else void act("motor.state", { tag: m.tag, state: next });
               }}
-              onService={() => openModal(`سرویس ماهانه موتور ${m.tag}`, <MotorServiceForm tag={m.tag} />, { wide: true, sub: "ذغال‌ها، ساعت HMI، مگر و روغن" })}
-              onChart={() => openModal(`نمودار ${m.tag}`, <ChartModal scope="motor" tag={m.tag} param="T10" />, { wide: true })}
+              onService={() => openModal(`سرویس ماهانهٔ پمپ ${m.pumpTag}`, <MotorServiceForm tag={m.tag} />, { wide: true, sub: "ذغال‌ها، ساعت HMI، مگر و روغن" })}
+              onChart={() => openModal(`نمودار پمپ ${m.pumpTag}`, <ChartModal scope="motor" tag={m.tag} param="T10" />, { wide: true })}
             />
           ))}
         </div>
@@ -19267,8 +19318,8 @@ export default function MotorCard({
   return (
     <article className={classes}>
       <div className="motor-head">
-        <div className="motor-tags">
-          {m.tag} <span>/ {m.pumpTag}</span>
+        <div className="motor-tags" dir="ltr">
+          {m.pumpTag}
         </div>
         <div className="led-wrap">
           <span className={`led ${m.state === "on" ? "green" : m.state === "service" ? "amber" : ""}`} title={m.stateFa} />
@@ -19304,7 +19355,7 @@ export default function MotorCard({
 
       {/* نوار اول: روشن / خاموش / سرویس */}
       <div className="motor-actions">
-        <div className="state-toggle" role="group" aria-label="تغییر وضعیت موتور">
+        <div className="state-toggle" role="group" aria-label={`تغییر وضعیت پمپ ${m.pumpTag}`}>
           <button type="button" className={`on ${m.state === "on" ? "active" : ""}`} disabled={busy} onClick={() => onState("on")}>روشن</button>
           <button type="button" className={`off ${m.state === "off" ? "active" : ""}`} disabled={busy} onClick={() => onState("off")}>خاموش</button>
           <button type="button" className={`svc ${m.state === "service" ? "active" : ""}`} disabled={busy} onClick={() => onState("service")}>سرویس</button>
@@ -19333,7 +19384,7 @@ export default function MotorCard({
 
 "use client";
 
-import { MOTOR_POWER_KW } from "@/lib/domain";
+import { MOTOR_BRAND, MOTOR_POWER_KW } from "@/lib/domain";
 
 /**
  * شماتیک فلت ست کوپل‌شده (مطابق تصویر مرجع کارفرما):
@@ -19344,7 +19395,7 @@ import { MOTOR_POWER_KW } from "@/lib/domain";
 export default function MotorVisual({ tag, pumpTag, on, hot, smoke }: { tag: string; pumpTag: string; on: boolean; hot: boolean; smoke: boolean }) {
   const id = tag.replace(/[^a-z0-9]/gi, "");
   return (
-    <svg viewBox="0 0 360 200" role="img" aria-label={`شماتیک موتور ${tag} و پمپ ${pumpTag} — ${MOTOR_POWER_KW} کیلووات`}>
+    <svg viewBox="0 0 360 200" role="img" aria-label={`شماتیک موتور ${tag} و پمپ ${pumpTag} — ${MOTOR_POWER_KW}KW ${MOTOR_BRAND}`}>
       <defs>
         <linearGradient id={`mb-${id}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="var(--m-light)" />
@@ -19384,16 +19435,16 @@ export default function MotorVisual({ tag, pumpTag, on, hot, smoke }: { tag: str
           {/* جعبه ترمینال */}
           <rect x="92" y="68" width="42" height="20" rx="3" fill="var(--m-top)" stroke="var(--m-line)" strokeWidth="1" />
           <rect x="100" y="60" width="26" height="9" rx="2.5" fill="var(--m-top)" stroke="var(--m-line)" strokeWidth="1" />
-          {/* پلاک تگ */}
-          <rect x="102" y="132" width="62" height="0" fill="none" />
-          <rect x="60" y="132" width="0" height="0" fill="none" />
-          <rect x="98" y="96" width="0" height="0" fill="none" />
-          <rect x="93" y="117" width="80" height="31" rx="3" fill="#0f172a" stroke="#020617" strokeWidth="0.8" />
-          <text x="133" y="130" textAnchor="middle" fontFamily="monospace" fontSize="10.5" fontWeight="700" fill="#7dd3fc" letterSpacing="0.5">
+          {/* پلاک موتور: تگ، توان و سازنده؛ مشخصات ثابت از src/lib/domain.ts می‌آیند. */}
+          <rect x="93" y="111" width="80" height="38" rx="3" fill="#0f172a" stroke="#020617" strokeWidth="0.8" />
+          <text x="133" y="123" textAnchor="middle" fontFamily="monospace" fontSize="9.2" fontWeight="700" fill="#7dd3fc" letterSpacing="0.5">
             {tag}
           </text>
-          <text x="133" y="143" textAnchor="middle" fontSize="9" fontWeight="700" fill="#bae6fd">
-            {MOTOR_POWER_KW} کیلووات
+          <text x="133" y="135" textAnchor="middle" fontFamily="monospace" fontSize="8.2" fontWeight="700" fill="#bae6fd">
+            {MOTOR_POWER_KW}KW
+          </text>
+          <text x="133" y="145" textAnchor="middle" fontFamily="sans-serif" fontSize="7.2" fontWeight="700" fill="#e0f2fe">
+            {MOTOR_BRAND}
           </text>
           {/* محور خروجی */}
           <rect x="174" y="112" width="10" height="12" rx="1.5" fill="#9aa5b1" />
@@ -20623,7 +20674,7 @@ export default function ReportsHub() {
   );
 }
 
-── FILE: src/components/ChartModal.tsx  (269 خط) ──
+── FILE: src/components/ChartModal.tsx  (270 خط) ──
 
 "use client";
 
@@ -20658,6 +20709,7 @@ function TrendChart({ scope, tag, param }: { scope: "process" | "motor"; tag: st
   const { state, act, openModal } = useApp();
   const isMotor = scope === "motor";
   const [selectedTag, setSelectedTag] = useState(tag || (isMotor ? "M-01" : PROCESS_PARAMS[0].tag));
+  const selectedPumpTag = state.motors.find((motor) => motor.tag === selectedTag)?.pumpTag ?? selectedTag;
   const [selectedParam, setSelectedParam] = useState(param || (isMotor ? "T10" : ""));
   const [compare, setCompare] = useState(false);
   const [from, setFrom] = useState(addDaysToDay(state.now.day, -13));
@@ -20704,12 +20756,12 @@ function TrendChart({ scope, tag, param }: { scope: "process" | "motor"; tag: st
         {isMotor ? (
           <>
             <select className="input" style={{ width: 170 }} value={selectedTag} onChange={(e) => setSelectedTag(e.target.value)} disabled={compare}>
-              {state.motors.map((m) => <option key={m.tag} value={m.tag}>{m.tag} / {m.pumpTag}</option>)}
+              {state.motors.map((m) => <option key={m.tag} value={m.tag}>{m.pumpTag}</option>)}
             </select>
             <select className="input" style={{ width: 210 }} value={selectedParam} onChange={(e) => setSelectedParam(e.target.value)}>
               {MOTOR_PARAMS.map((p) => <option key={p.key} value={p.key}>{p.label} ({p.key})</option>)}
             </select>
-            <label className="row small" style={{ gap: 5 }}><input type="checkbox" checked={compare} onChange={(e) => setCompare(e.target.checked)} /> مقایسهٔ همهٔ موتورها</label>
+            <label className="row small" style={{ gap: 5 }}><input type="checkbox" checked={compare} onChange={(e) => setCompare(e.target.checked)} /> مقایسهٔ همهٔ پمپ‌ها</label>
           </>
         ) : (
           <select className="input" style={{ width: 250 }} value={selectedTag} onChange={(e) => setSelectedTag(e.target.value)}>
@@ -20743,7 +20795,7 @@ function TrendChart({ scope, tag, param }: { scope: "process" | "motor"; tag: st
           <option value="line">خطی</option><option value="bar">میله‌ای</option><option value="scatter">پراکنده</option>
         </select>
         {isMotor && !compare && (
-          <button type="button" className="btn tiny ghost" onClick={() => openModal(`ترند چندکاناله ${selectedTag}`, <MultiParamChart tag={selectedTag} from={applied.from} to={applied.to} />, { wide: true })}>ترند چندکاناله</button>
+          <button type="button" className="btn tiny ghost" onClick={() => openModal(`ترند چندکاناله ${selectedPumpTag}`, <MultiParamChart tag={selectedTag} from={applied.from} to={applied.to} />, { wide: true })}>ترند چندکاناله</button>
         )}
         <button type="button" className="btn tiny primary" onClick={makePrintable}><Icon name="file" size={12} /> گزارش چاپی / PDF این روند</button>
       </div>
@@ -20756,7 +20808,7 @@ function TrendChart({ scope, tag, param }: { scope: "process" | "motor"; tag: st
           {view !== "chart" && (
             <div className="table-wrap" style={{ maxHeight: 340, marginTop: view === "both" ? 10 : 0 }}>
               <table className="data">
-                <thead><tr><th>تاریخ</th><th>{compare ? "موتور" : grouped ? "نوع" : "بازه"}</th><th>مقدار ({data.unit})</th><th>شیفت / ثبت</th></tr></thead>
+                <thead><tr><th>تاریخ</th><th>{compare ? "پمپ" : grouped ? "نوع" : "بازه"}</th><th>مقدار ({data.unit})</th><th>شیفت / ثبت</th></tr></thead>
                 <tbody>
                   {shown.map((p, i) => (
                     <tr key={i}>
@@ -24506,8 +24558,8 @@ import { extractBundle } from "./extract-code-all.mjs";
 const FA_NUM = ["۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"];
 
 const SECTIONS = [
-  { title: "پیکربندی پروژه", files: [
-    "package.json", "package-lock.json", "next.config.ts", "tsconfig.json", "eslint.config.mjs",
+  { title: "پیکربندی و نقشهٔ پروژه", files: [
+    "package.json", "package-lock.json", "CODE-MAP_FA.md", "next.config.ts", "tsconfig.json", "eslint.config.mjs",
     "postcss.config.mjs", "drizzle.config.json", ".env.example", ".gitignore",
   ] },
   { title: "دیتابیس و مهاجرت‌ها", files: [
@@ -24625,7 +24677,7 @@ try {
     const b = readFileSync(path.join(selfDir, f), "utf8");
     if (a !== b) throw new Error(`self-test: ${f} پس از استخراج با منبع فرق دارد`);
   }
-  for (const must of ["package.json", "package-lock.json", "src/components/PmTab.tsx", "drizzle/0005_megger_pi.sql", "drizzle/0006_alerts_open_unique.sql", "scripts/extract-code-all.mjs", "scripts/generate-code-all.mjs"]) {
+  for (const must of ["package.json", "package-lock.json", "CODE-MAP_FA.md", "src/components/PmTab.tsx", "drizzle/0005_megger_pi.sql", "drizzle/0006_alerts_open_unique.sql", "scripts/extract-code-all.mjs", "scripts/generate-code-all.mjs"]) {
     if (!listed.has(must)) throw new Error(`self-test: ${must} در بسته نیست`);
   }
   for (const f of ["audit/audit5.mjs", "scripts/mirror-backup.mjs", "scripts/pg-init.mjs", "scripts/pg-dump.mjs", "scripts/pg-import-json.mjs"]) {
@@ -26720,7 +26772,7 @@ await assert.rejects(
 );
 console.log("PASS | update zip | rejects prerelease or malformed versions");
 
-── FILE: audit/windows-installer.test.mjs  (101 خط) ──
+── FILE: audit/windows-installer.test.mjs  (115 خط) ──
 
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
@@ -26745,6 +26797,12 @@ const loginPhoto = await readFile(path.join(root, "pumpstation-v1.2/public/image
 const authRoute = await readFile(path.join(root, "pumpstation-v1.2/src/app/api/auth/route.ts"), "utf8");
 const actionsRoute = await readFile(path.join(root, "pumpstation-v1.2/src/app/api/actions/route.ts"), "utf8");
 const roster = await readFile(path.join(root, "pumpstation-v1.2/src/lib/roster.ts"), "utf8");
+const dashboard = await readFile(path.join(root, "pumpstation-v1.2/src/components/Dashboard.tsx"), "utf8");
+const motorCard = await readFile(path.join(root, "pumpstation-v1.2/src/components/MotorCard.tsx"), "utf8");
+const motorVisual = await readFile(path.join(root, "pumpstation-v1.2/src/components/MotorVisual.tsx"), "utf8");
+const chartModal = await readFile(path.join(root, "pumpstation-v1.2/src/components/ChartModal.tsx"), "utf8");
+const domain = await readFile(path.join(root, "pumpstation-v1.2/src/lib/domain.ts"), "utf8");
+const codeMap = await readFile(path.join(root, "pumpstation-v1.2/CODE-MAP_FA.md"), "utf8");
 
 assert.equal(appPackage.scripts.build, "next build --webpack", "production Windows builds must avoid the broken Turbopack external-PGlite resolution");
 assert.equal(/\bRead-Host\b/i.test(installer), false, "the installation flow must not ask for interactive input");
@@ -26820,8 +26878,16 @@ assert.equal(existsSync(path.join(root, "reset-pins.bat")), false);
 assert.equal(existsSync(path.join(root, "reset-pins.ps1")), false);
 assert.equal(existsSync(path.join(root, "pumpstation-v1.2/scripts/reset-admin-pin.mjs")), false);
 assert.ok(styles.includes('url("/images/pump-hall.jpg")'));
+assert.ok(dashboard.includes('title="پمپ‌های اصلی P-01 تا P-08"'), "dashboard equipment group must use pump identifiers");
+assert.ok(dashboard.includes("{m.pumpTag}"), "dashboard status summaries must display P-xx identifiers");
+assert.ok(motorCard.includes("{m.pumpTag}"), "pump card heading must display the P-xx identifier");
+assert.ok(chartModal.includes("{m.pumpTag}</option>"), "dashboard chart selector must display P-xx while keeping the internal M-xx value");
+assert.ok(domain.includes('export const MOTOR_BRAND = "Siemens"'));
+assert.ok(motorVisual.includes("{MOTOR_POWER_KW}KW") && motorVisual.includes("{MOTOR_BRAND}"), "motor nameplate must show power and Siemens branding");
+assert.ok(codeMap.includes("src/components/Dashboard.tsx") && codeMap.includes("src/components/MotorVisual.tsx"), "the source map must point to the dashboard and equipment drawing");
+assert.ok(codeMap.includes("داخل برنامه، API، دیتابیس و سابقهٔ گزارش‌ها شناسهٔ موتور"), "the code map must document preserved internal M tags");
 
-console.log("PASS | Windows/login | four distinct fresh-install PINs, editable Admin PINs, supplied login artwork and no reset utility");
+console.log("PASS | Windows/login/equipment | fresh PINs, Siemens 1800KW nameplate, pump IDs on dashboard and source map");
 
 ── FILE: audit/probe.mjs  (10 خط) ──
 
