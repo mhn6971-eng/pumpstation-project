@@ -91,6 +91,7 @@ export type MotorServiceView = {
   at: string;
   shiftKey: string;
   shiftLabel: string;
+  serviceKind: string;
 };
 export type MeggerView = {
   id: number;
@@ -118,7 +119,7 @@ export type MeggerView = {
 };
 export type OilView = { id: number; tag: string; day: string; hours: number; note: string; at: string; shiftKey: string };
 export type PmTemplateView = { id: number; category: string; name: string; items: string[] };
-export type PmRecordView = { id: number; tag: string; templateName: string; results: Record<string, string>; workers: string; note: string; day: string; at: string; shiftKey: string };
+export type PmRecordView = { id: number; tag: string; templateName: string; stage: string; results: Record<string, string>; workers: string; note: string; day: string; at: string; shiftKey: string };
 export type QueueView = { id: number; reportId: number; channelKey: string; status: string; attempts: number; lastError: string; createdAt: string; sentAt: string };
 export type ChannelView = { key: string; provider: string; chatId: string; hasToken: boolean; enabled: boolean };
 

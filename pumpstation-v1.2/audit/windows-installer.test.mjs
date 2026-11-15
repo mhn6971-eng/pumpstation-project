@@ -6,6 +6,10 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
+if (!existsSync(path.join(root, "install-windows.ps1"))) {
+  console.log("SKIP | Windows installer integration | root installer files are not present in the app-only update bundle");
+  process.exit(0);
+}
 const installer = await readFile(path.join(root, "install-windows.ps1"), "utf8");
 const batch = await readFile(path.join(root, "install-windows.bat"), "utf8");
 const freshBatch = await readFile(path.join(root, "install-windows-fresh.bat"), "utf8");
@@ -15,6 +19,8 @@ const packager = await readFile(path.join(root, "package-windows.ps1"), "utf8");
 const installGuide = await readFile(path.join(root, "INSTALL-WINDOWS-FA.md"), "utf8");
 const appInstallGuide = await readFile(path.join(root, "pumpstation-v1.2/docs/INSTALL-WINDOWS-FA.md"), "utf8");
 const appPackage = JSON.parse(await readFile(path.join(root, "pumpstation-v1.2/package.json"), "utf8"));
+const appLockText = await readFile(path.join(root, "pumpstation-v1.2/package-lock.json"), "utf8");
+const appLock = JSON.parse(appLockText);
 const dbIndex = await readFile(path.join(root, "pumpstation-v1.2/src/db/index.ts"), "utf8");
 const adminTab = await readFile(path.join(root, "pumpstation-v1.2/src/components/AdminTab.tsx"), "utf8");
 const loginPage = await readFile(path.join(root, "pumpstation-v1.2/src/components/Login.tsx"), "utf8");
@@ -35,6 +41,42 @@ assert.equal(appPackage.scripts.build, "next build --webpack", "production Windo
 assert.match(dbIndex, /new PGlite\(buildPhase \? undefined : dataDir/,
   "Next build must use an in-memory PGlite instance and leave the real data directory for the migration process");
 assert.match(installer, /function Get-DependencyFingerprint/);
+assert.ok(appLock.packages?.[""]?.version, "the npm lockfile root package is stored at packages[\"\"]");
+const fingerprintStart = installer.indexOf("function Get-DependencyFingerprint");
+const fingerprintEnd = installer.indexOf("\nfunction Test-InstalledDependencies", fingerprintStart);
+const fingerprintFunction = installer.slice(fingerprintStart, fingerprintEnd);
+const executableFingerprintFunction = fingerprintFunction.replace(/^\s*#.*$/gm, "");
+assert.doesNotMatch(executableFingerprintFunction, /PSObject|ConvertFrom-Json|ConvertTo-Json/,
+  "dependency fingerprinting must not deserialize the empty packages[\"\"] key in Windows PowerShell 5.1");
+assert.match(fingerprintFunction, /topVersionRegex = \[regex\]::new/);
+assert.match(fingerprintFunction, /rootVersionRegex = \[regex\]::new/);
+const packageMarker = appLockText.indexOf('"packages"');
+assert.ok(packageMarker > 0, "package-lock.json must contain its packages section");
+function normalizeLockVersions(text) {
+  const marker = text.indexOf('"packages"');
+  let header = text.slice(0, marker);
+  let packages = text.slice(marker);
+  header = header.replace(/^(\s*"version"\s*:\s*")[^"]*(")/m, (_match, prefix, suffix) => `${prefix}${suffix}`);
+  packages = packages.replace(/("packages"\s*:\s*\{\s*""\s*:\s*\{.*?"version"\s*:\s*")[^"]*(")/s,
+    (_match, prefix, suffix) => `${prefix}${suffix}`);
+  return header + packages;
+}
+const changedAppVersionLock = appLockText
+  .replace(/^(\s*"version"\s*:\s*")[^"]*(")/m, (_match, prefix, suffix) => `${prefix}9.9.9${suffix}`)
+  .replace(/("packages"\s*:\s*\{\s*""\s*:\s*\{.*?"version"\s*:\s*")[^"]*(")/s,
+    (_match, prefix, suffix) => `${prefix}9.9.9${suffix}`);
+assert.equal(normalizeLockVersions(appLockText), normalizeLockVersions(changedAppVersionLock),
+  "changing only the app version must not invalidate the dependency fingerprint");
+assert.match(installer, /function Ensure-InstallerDirectory/);
+assert.match(installer, /Could not prepare installer directory/);
+assert.match(installer, /function Test-SameInstallerPath/);
+assert.match(installer, /Fresh-data mode resolved to the existing operational data folder/);
+assert.match(installer, /Fresh-data mode did not resolve to a separate application folder/);
+assert.match(installer, /function Test-DirectoryWritable/);
+assert.match(installer, /FileMode\]::CreateNew/);
+assert.match(installer, /Skipping data drive/);
+assert.match(installer, /less than 1 GB is free/);
+assert.match(installer, /No writable local data folder was found/);
 assert.match(installer, /function Test-InstalledDependencies/);
 assert.match(installer, /Matching dependencies are already present; npm install\/download skipped/);
 assert.match(installer, /Pumpstation-Offline-Resources-\$appVersion-Part1\.zip/);
@@ -55,6 +97,15 @@ assert.match(installer, /stateDir = \$paths\.stateDir/);
 assert.match(freshBatch, /install-windows\.ps1" -FreshData/);
 assert.match(freshBatch, /Existing operational data will not be deleted or changed/);
 assert.match(freshBatch, /FRESH INSTALLATION COMPLETE/);
+assert.match(freshBatch, /Previous uncollected PowerShell error output/);
+assert.match(batch, /Previous uncollected PowerShell error output/);
+assert.doesNotMatch(batch, /del \/q "%PUMPSTATION_ERROR_LOG%"/i,
+  "rerunning the installer must not delete the previous diagnostic report");
+assert.doesNotMatch(freshBatch, /del \/q "%PUMPSTATION_ERROR_LOG%"/i,
+  "rerunning fresh-data setup must not delete the previous diagnostic report");
+assert.match(installer, /\("Stage: \{0\}" -f \$script:InstallerStage\)/);
+assert.match(installer, /Failed during: \{0\}/);
+assert.match(installer, /AppendAllText\(\$InstallerErrorLog/);
 assert.match(installer, /Verifying every database backup file by size and SHA-256/);
 assert.match(installer, /Assert-DirectoryFilesEqual/);
 assert.match(installer, /Get-CimInstance Win32_Process/);

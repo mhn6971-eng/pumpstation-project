@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 
 type Any = Record<string, unknown>;
 const v = (x: unknown) => (x === null || x === undefined || x === "" ? "—" : String(x));
-const kindOf = (k: string) => (k === "service" ? "در حال سرویس" : k === "ready" ? "آماده به کار" : k === "motor_service" ? "سرویس موتور" : k === "pm" ? "PM" : "گزارش سرویس");
+const kindOf = (k: string) => (k === "service" ? "در حال سرویس" : k === "ready" ? "آماده به کار" : k === "motor_service" ? "سرویس موتور" : k === "motor_overhaul" ? "سرویس اورهال" : k === "pm" ? "PM" : "گزارش سرویس");
 
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
   await ensureSeed();
@@ -27,7 +27,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
   return (
     <main className="report-page">
       <PrintBar title={`${row.title} — نسخه ${row.id}`} />
-      <article className="print-sheet">
+      <article className={`print-sheet${row.kind === "pm" ? " pm-landscape" : ""}`}>
         <header className="print-head">
           <div>
             <div className="org">{ORG_NAME}</div>
@@ -49,6 +49,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         {row.kind === "daily" && <Daily d={d} />}
         {row.kind === "aux" && <Aux d={d} />}
         {row.kind === "motor_service" && <MotorService d={d} />}
+        {row.kind === "motor_overhaul" && <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(d.pumpTag ?? pumpTagOf(String(d.tag ?? "")))}`], ["تاریخ اورهال", v(d.day)], ["کارکرد هنگام اورهال (ساعت HMI)", v(d.hours)], ["انجام‌دهندگان", v(d.workers)], ["شیفت ثبت‌کننده", v(d.shiftLabel)], ["شرح عملیات و قطعات", v(d.note)]]} />}
         {row.kind === "megger" && <Megger d={d} />}
         {row.kind === "oil" && <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(pumpTagOf(String(d.tag ?? "")))}`], ["تاریخ", v(d.day)], ["ساعت کارکرد", v(d.hours)], ["یادداشت", v(d.note)]]} />}
         {row.kind === "pm" && <Pm d={d} />}
@@ -164,13 +165,33 @@ function Megger({ d }: { d: Any }) {
 
 function Pm({ d }: { d: Any }) {
   const results = (d.results as Record<string, string>) ?? {};
+  const keys = Array.isArray(d.items) ? (d.items as string[]) : Object.keys(results);
+  const entries = keys.map((key) => [key, results[key] ?? ""] as [string, string]);
+  const monthly = String(d.templateName ?? "").includes("ماهیانه") || entries.length >= 16;
+  const monthlyData = (d.monthlyData as Any[]) ?? [];
+  const motorTags = Array.from({ length: 8 }, (_, i) => `P-${String(i + 1).padStart(2, "0")}`);
+  const cell = (stage: string, pumpTag: string, item: string) => {
+    const records = monthlyData.filter((r) => String(r.stage) === stage && pumpTagOf(String(r.tag ?? "")) === pumpTag);
+    const rec = records[records.length - 1];
+    if (!rec) return "";
+    const raw = String(((rec.results as Record<string, string>) ?? {})[item] ?? "");
+    const [result, note] = raw.split(" | ");
+    return <span title={[result, note, rec.day].filter(Boolean).join(" — ")}>{result || ""}</span>;
+  };
   return (
-    <>
-      <Simple rows={[["تجهیز", `${v(d.tag)} — ${v(d.name)}`], ["دسته", v(d.category)], ["قالب", v(d.templateName)], ["تاریخ", v(d.day)], ["انجام‌دهندگان", v(d.workers)], ["یادداشت", v(d.note)]]} />
-      <h2>چک‌لیست</h2>
-      <table><thead><tr><th>آیتم</th><th style={{ width: 120 }}>نتیجه</th><th>توضیح</th></tr></thead>
-        <tbody>{Object.entries(results).map(([k, val]) => { const [r, note] = String(val).split(" | "); return <tr key={k}><td>{k}</td><td>{r || "—"}</td><td className="small">{note || "—"}</td></tr>; })}</tbody></table>
-    </>
+    <div className={monthly ? "pm-print-form" : ""}>
+      {monthly && <div className="pm-print-heading"><b>امور بهره‌برداری و نگهداری</b><b>چک‌لیست ماهیانه الکتروموتور زمینی</b><span>طرح انتقال آب به کاشان — بخش: تصفیه‌خانه / موتورخانه</span></div>}
+      <table className="pm-meta"><tbody>
+        <tr><th>تجهیز / موتور</th><td className="ltr">{v(d.tag)} — {v(d.name)}</td><th>پمپ</th><td className="ltr">{v(d.pumpTag ?? pumpTagOf(String(d.tag ?? "")))}</td></tr>
+        <tr><th>ماه / تاریخ بازدید</th><td>{monthly ? String(d.day ?? "—").slice(0, 7) : v(d.day)}</td><th>تعداد دستگاه‌ها</th><td>{monthly ? "۸ موتور اصلی" : v(d.tag)}</td></tr>
+        <tr><th>مسئول تکمیل فرم</th><td>{v(d.workers)}</td><th>مرحلهٔ جاری / قالب</th><td>{monthly ? (String(d.stage) === "2" ? "مرحلهٔ دوم — هفتهٔ سوم ماه" : "مرحلهٔ اول — هفتهٔ اول ماه") : v(d.templateName)}</td></tr>
+      </tbody></table>
+      <h2>{monthly ? "شرح بازدید و نتیجهٔ کنترل" : "چک‌لیست"}</h2>
+      {monthly ? <div className="table-wrap"><table className="pm-checklist pm-matrix"><thead><tr><th rowSpan={2} style={{ minWidth: 32 }}>ردیف</th><th rowSpan={2} style={{ minWidth: 240 }}>شرح بازدید</th><th colSpan={8}>مرحلهٔ اول — هفتهٔ اول ماه</th><th colSpan={8}>مرحلهٔ دوم — هفتهٔ سوم ماه</th></tr><tr>{[...motorTags, ...motorTags].map((tag, i) => <th key={`${i}-${tag}`} className="ltr">{tag}</th>)}</tr></thead>
+        <tbody>{entries.map(([item], i) => <tr key={item}><td className="center">{i + 1}</td><td>{item}</td>{motorTags.map((tag) => <td key={`1-${tag}-${item}`} className="center">{cell("1", tag, item)}</td>)}{motorTags.map((tag) => <td key={`2-${tag}-${item}`} className="center">{cell("2", tag, item)}</td>)}</tr>)}</tbody></table></div> : <table className="pm-checklist"><thead><tr><th style={{ width: 34 }}>ردیف</th><th>شرح بازدید</th><th style={{ width: 100 }}>نتیجه</th><th>توضیحات</th></tr></thead><tbody>{entries.map(([k, val], i) => { const [r, note] = String(val).split(" | "); return <tr key={k}><td className="center">{i + 1}</td><td>{k}</td><td className="center">{r || "—"}</td><td className="small">{note || ""}</td></tr>; })}</tbody></table>}
+      {monthlyData.length > 0 && <table className="pm-notes"><thead><tr><th>موتور</th><th>مرحله</th><th>تاریخ بازدید</th><th>شرح عملیات / توضیحات</th></tr></thead><tbody>{monthlyData.map((r, i) => <tr key={`${String(r.tag)}-${String(r.stage)}-${i}`}><td className="ltr">{pumpTagOf(String(r.tag ?? ""))}</td><td>{String(r.stage) === "2" ? "مرحلهٔ دوم" : "مرحلهٔ اول"}</td><td>{v(r.day)}</td><td>{v(r.note)}</td></tr>)}</tbody></table>}
+      <table className="pm-notes"><tbody><tr><th>شرح عملیات انجام‌شده</th></tr><tr><td>{v(d.note)}</td></tr><tr><th>نام و امضای بازدیدکننده</th></tr><tr><td style={{ height: 34 }}>{v(d.workers)}</td></tr></tbody></table>
+    </div>
   );
 }
 

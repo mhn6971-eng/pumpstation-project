@@ -25,6 +25,7 @@ export const REPORT_KINDS: Record<string, string> = {
   daily: "پایش روزانه",
   aux: "تجهیزات جانبی",
   motor_service: "سرویس موتور اصلی",
+  motor_overhaul: "سرویس اورهال موتور اصلی",
   megger: "تست مگر",
   oil: "تعویض روغن",
   pm: "نگهداشت / PM",
@@ -128,7 +129,7 @@ export async function buildRegistryPayload(tags: string[] | null, category: stri
 
 export async function latestMotorRecords(tag: string, d: typeof db = db) {
   const [service, megger, oil] = await Promise.all([
-    d.select().from(motorServices).where(eq(motorServices.tag, tag)).orderBy(desc(motorServices.id)).limit(1),
+    d.select().from(motorServices).where(and(eq(motorServices.tag, tag), eq(motorServices.serviceKind, "monthly"))).orderBy(desc(motorServices.id)).limit(1),
     d.select().from(meggerTests).where(eq(meggerTests.tag, tag)).orderBy(desc(meggerTests.id)).limit(1),
     d.select().from(oilChanges).where(eq(oilChanges.tag, tag)).orderBy(desc(oilChanges.id)).limit(1),
   ]);

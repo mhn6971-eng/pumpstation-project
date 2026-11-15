@@ -125,6 +125,7 @@ export const motorServices = pgTable("motor_services", {
   at: text("at").notNull(),
   shiftKey: text("shift_key").notNull(),
   shiftLabel: text("shift_label").default("").notNull(),
+  serviceKind: text("service_kind").notNull().default("monthly"),
 });
 
 /** تست مگر (مقاومت عایقی) — فقط ۴ آیتم قفل‌شده + ولتاژ تست */
@@ -187,6 +188,7 @@ export const pmRecords = pgTable("pm_records", {
   id: serial("id").primaryKey(),
   tag: text("tag").notNull(),
   templateName: text("template_name").notNull().default(""),
+  stage: text("stage").notNull().default("1"),
   results: jsonb("results").$type<Record<string, string>>().notNull().default({}),
   workers: text("workers").default("").notNull(),
   note: text("note").default("").notNull(),

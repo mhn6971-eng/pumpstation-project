@@ -5,7 +5,7 @@ import { useApp } from "./context";
 import { CATEGORIES } from "@/lib/domain";
 import type { EquipmentView } from "@/lib/types";
 import { Icon, Panel, StatusPill, StatusToggle } from "./ui";
-import { EquipmentServiceForm } from "./ServiceForm";
+import { EquipmentServiceForm, MotorOverhaulForm } from "./ServiceForm";
 
 export default function RegistryTab() {
   const { state, act, busy, isAdmin, openModal } = useApp();
@@ -90,7 +90,7 @@ export default function RegistryTab() {
         </div>
         {rows.length === 0 && <div className="empty">رکوردی با این فیلتر پیدا نشد.</div>}
       </Panel>
-      <div className="note">دسته‌بندی تابلوها: فشار ضعیف، فشار قوی، لوکال و بانک خازنی. پس از دریافت لیست کامل اکسل و فرم‌های PM، رکوردها و قالب‌ها از صفحهٔ ادمین بدون تغییر کد تکمیل می‌شود.</div>
+      <div className="note">دسته‌بندی تابلوها: فشار ضعیف، فشار قوی، لوکال و بانک خازنی. قالب‌های PM از صفحهٔ ادمین قابل ویرایش هستند؛ چک‌لیست ماهیانهٔ الکتروموتور مطابق فرم دریافتی در دسترس است.</div>
     </div>
   );
 }
@@ -124,6 +124,8 @@ export function EquipmentDetail({ tag }: { tag: string }) {
         </tbody></table>
       </div>
 
+      {e.isMotor && <div className="note" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}><span><b>سرویس اورهال:</b> سابقهٔ ماندگار تاریخ و کارکرد هر اورهال</span><button type="button" className="btn primary" onClick={() => openModal(`سرویس اورهال ${tag}`, <MotorOverhaulForm tag={tag} />, { wide: true })}>سرویس اورهال</button></div>}
+      {e.isMotor && <MotorPlates />}
       <div className="row">
         <StatusToggle status={e.status} disabled={busy} onPick={(mode) => openModal(`${mode === "ready" ? "آماده به کار" : "در حال سرویس"} — ${tag}`, <EquipmentServiceForm tag={tag} name={e.name} defaultMode={mode} />)} />
         <button type="button" className="btn ghost" onClick={() => openModal(`گزارش سرویس ${tag}`, <EquipmentServiceForm tag={tag} name={e.name} defaultMode="report" />)}><Icon name="file" size={13} /> ثبت گزارش سرویس</button>
@@ -180,15 +182,17 @@ export function PmForm({ tag }: { tag: string }) {
   const { state, act, busy, closeModal } = useApp();
   const e = state.equipment.find((x) => x.tag === tag);
   const templates = state.pmTemplates.filter((t) => t.category === e?.category);
-  const [templateId, setTemplateId] = useState<number>(templates[0]?.id ?? 0);
+  const preferredTemplate = templates.find((t) => t.name.includes("ماهیانه")) ?? templates[0];
+  const [templateId, setTemplateId] = useState<number>(preferredTemplate?.id ?? 0);
   const template = state.pmTemplates.find((t) => t.id === templateId);
   const [results, setResults] = useState<Record<string, string>>({});
+  const [stage, setStage] = useState("1");
   const [workers, setWorkers] = useState("");
   const [note, setNote] = useState("");
   if (!e) return <div className="empty">تجهیز پیدا نشد.</div>;
   return (
-    <form onSubmit={async (ev) => { ev.preventDefault(); const id = await act("pm.record", { tag, templateName: template?.name ?? "PM", results, workers, note, day: state.now.day }); if (id) { closeModal(); if (typeof id === "number") window.open(`/report/${id}`, "_blank"); } }}>
-      <div className="note" style={{ marginBottom: 10 }}>چک‌لیست بر اساس دستهٔ <b>{e.category}</b>. قالب‌ها توسط ادمین قابل ویرایش‌اند؛ فرم کامل PM پس از دریافت از کارفرما جایگزین می‌شود.</div>
+    <form onSubmit={async (ev) => { ev.preventDefault(); const id = await act("pm.record", { tag, templateName: template?.name ?? "PM", stage, results, workers, note, day: state.now.day }); if (id) { closeModal(); if (typeof id === "number") window.open(`/report/${id}`, "_blank"); } }}>
+      <div className="note" style={{ marginBottom: 10 }}>چک‌لیست ماهیانهٔ مصوب بر اساس فرم ارسالی، برای موتور/تجهیز <b>{e.tag} — {e.name}</b>. نتیجه و توضیحات هر ردیف در گزارش قابل چاپ ثبت می‌شود.</div>
       {templates.length > 1 && <div className="field"><label>قالب</label><select className="input" value={templateId} onChange={(ev) => setTemplateId(Number(ev.target.value))}>{templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>}
       {!template ? <div className="empty">برای این دسته قالبی تعریف نشده؛ ادمین از تب ادمین قالب را بسازد.</div> : (
         <div className="table-wrap"><table className="data"><thead><tr><th>آیتم</th><th style={{ width: 140 }}>نتیجه</th><th>توضیح</th></tr></thead>
@@ -200,6 +204,7 @@ export function PmForm({ tag }: { tag: string }) {
           ))}</tbody></table></div>
       )}
       <div className="form-grid" style={{ marginTop: 10 }}>
+        {template?.name.includes("ماهیانه") && <div className="field"><label>مرحلهٔ بازدید ماهانه</label><select className="input" value={stage} onChange={(ev) => setStage(ev.target.value)}><option value="1">مرحلهٔ اول — هفتهٔ اول ماه</option><option value="2">مرحلهٔ دوم — هفتهٔ سوم ماه</option></select></div>}
         <div className="field"><label>انجام‌دهندگان</label><input className="input" value={workers} onChange={(ev) => setWorkers(ev.target.value)} /></div>
         <div className="field"><label>تاریخ</label><input className="input" value={state.now.day} readOnly /></div>
       </div>
@@ -207,4 +212,10 @@ export function PmForm({ tag }: { tag: string }) {
       <div className="row" style={{ justifyContent: "flex-end" }}><button type="button" className="btn ghost" onClick={closeModal}>انصراف</button><button type="submit" className="btn primary" disabled={busy || !template}>ثبت PM و ساخت گزارش</button></div>
     </form>
   );
+}
+
+
+function MotorPlates() {
+  const files = ["IMG_20261111_150359.jpg", "IMG_20261111_150436.jpg", "IMG_20261111_150447.jpg", "IMG_20261111_150454.jpg", "IMG_20261111_150458.jpg", "IMG_20261111_150526.jpg"];
+  return <section><div className="panel-title" style={{ fontSize: 14, marginBottom: 6 }}>پلاک‌ها و اطلاعات فنی موتورهای اصلی ۱۸۰۰ کیلووات</div><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: 8 }}>{files.map((file, i) => <a key={file} href={`/equipment-plates/${file}`} target="_blank" rel="noreferrer" style={{ border: "1px solid var(--line)", borderRadius: 8, padding: 6, textAlign: "center" }}><img src={`/equipment-plates/${file}`} alt={`پلاک یا مشخصات موتور ${i + 1}`} style={{ width: "100%", height: 140, objectFit: "contain" }} /><span className="small muted">مشخصات پلاک / اطلاعات فنی {i + 1}</span></a>)}</div><div className="small muted" style={{ marginTop: 6 }}>مشخصات پلاک اصلی: Siemens، مدل 1RU5566-4HA70-Z، ۱۸۰۰ kW، ۶۶۰۰ V، ۱۸۲ A، ۵۰ Hz، ۱۴۹۱ دور/دقیقه؛ یاتاقان 6230 M C3 و گریس Shell Alvania R3.</div></section>;
 }

@@ -329,7 +329,7 @@ export async function POST(request: Request) {
           if (v !== null) brush[`${ph}${i}`] = v;
         }
         const rid = await runTx(async (d) => {
-          const sid = (await d.insert(motorServices).values({ tag, day, hours, workers, note, brush, at: jalaliNow(), shiftKey, shiftLabel: shift.label }).returning({ id: motorServices.id }))[0].id;
+          const sid = (await d.insert(motorServices).values({ tag, day, hours, workers, note, brush, at: jalaliNow(), shiftKey, shiftLabel: shift.label, serviceKind: "monthly" }).returning({ id: motorServices.id }))[0].id;
           await d.update(motors).set({ totalHours: Math.max(hours, row.totalHours), lastServiceHours: hours, state: "off", stateChangedAt: jalaliNow() }).where(eq(motors.tag, tag));
           await d.insert(motorStateLogs).values({ tag, fromState: row.state, toState: "off", at: jalaliNow(), shiftKey });
           await d.insert(equipmentReports).values({ tag, kind: "motor_service", reason: `سرویس ماهانه — ساعت ${hours}${note ? ` — ${note}` : ""}`, operator: workers || shift.label, shiftKey, at: jalaliNow() });
@@ -340,6 +340,24 @@ export async function POST(request: Request) {
           return reportId;
         });
         return Response.json({ ok: true, id: rid, message: "سرویس ثبت و گزارش آن ساخته شد" });
+      }
+
+      case "motor.overhaul": {
+        const tag = str(p.tag, 10);
+        const row = (await db.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
+        if (!row) throw badRequest("موتور اصلی پیدا نشد");
+        const hours = num(p.hours);
+        const workers = str(p.workers, 200);
+        const note = str(p.note, 3000);
+        if (hours < 0) throw badRequest("ساعت کارکرد نمی‌تواند منفی باشد");
+        const result = await runTx(async (d) => {
+          const id = (await d.insert(motorServices).values({ tag, day, hours, workers, note, brush: {}, at: jalaliNow(), shiftKey, shiftLabel: shift.label, serviceKind: "overhaul" }).returning({ id: motorServices.id }))[0].id;
+          await d.insert(equipmentReports).values({ tag, kind: "motor_overhaul", reason: `اورهال موتور — ساعت ${hours}${note ? ` — ${note}` : ""}`, operator: workers || shift.label, shiftKey, at: jalaliNow() });
+          const reportId = await createReport({ kind: "motor_overhaul", day, shift, title: `سرویس اورهال ${tag} — ${day}`, payload: { overhaulId: id, tag, pumpTag: row.pumpTag, day, hours, workers, note, shiftLabel: `${shift.label} — ${shift.members.join(" و ")}`, generatedAt: jalaliNow() } }, d);
+          await logActivity(shiftKey, "ثبت سرویس اورهال موتور", `${tag} — ساعت ${hours}`, d);
+          return { id, reportId };
+        });
+        return Response.json({ ok: true, id: result.reportId, overhaulId: result.id, message: "سابقهٔ اورهال ثبت شد و به تاریخچهٔ موتور افزوده شد" });
       }
 
       case "motor.megger": {
@@ -460,14 +478,24 @@ export async function POST(request: Request) {
         const row = (await db.select().from(equipment).where(eq(equipment.tag, tag)).limit(1))[0];
         if (!row) throw badRequest("تجهیز پیدا نشد");
         const results = (p.results ?? {}) as Record<string, unknown>;
-        const clean: Record<string, string> = {};
-        for (const [k, v] of Object.entries(results)) clean[str(k, 200)] = str(v, 300);
-        if (!Object.keys(clean).length) throw badRequest("حداقل یک آیتم چک‌لیست را تکمیل کنید");
-        const rec = { tag, templateName: str(p.templateName, 200), results: clean, workers: str(p.workers, 200), note: str(p.note, 1500), day, at: jalaliNow(), shiftKey };
+        const templateName = str(p.templateName, 200);
+        const stage = String(p.stage ?? "1");
+        if (!["1", "2"].includes(stage)) throw badRequest("مرحلهٔ PM نامعتبر است");
+        const template = (await db.select().from(pmTemplates).where(eq(pmTemplates.name, templateName)).limit(1))[0];
+        const items = template?.items ?? Object.keys(results).map((x) => str(x, 200));
+        const clean: Record<string, string> = Object.fromEntries(items.map((item) => [item, ""]));
+        for (const [k, v] of Object.entries(results)) {
+          const key = str(k, 200);
+          if (items.includes(key)) clean[key] = str(v, 300);
+        }
+        if (!Object.values(clean).some(Boolean)) throw badRequest("حداقل یک آیتم چک‌لیست را تکمیل کنید");
+        const rec = { tag, templateName, stage, results: clean, workers: str(p.workers, 200), note: str(p.note, 1500), day, at: jalaliNow(), shiftKey };
         const rid = await runTx(async (d) => {
           const id = (await d.insert(pmRecords).values(rec).returning({ id: pmRecords.id }))[0].id;
           await d.insert(equipmentReports).values({ tag, kind: "pm", reason: `PM: ${rec.templateName}${rec.note ? ` — ${rec.note}` : ""}`, operator: rec.workers || shift.label, shiftKey, at: jalaliNow() });
-          const reportId = await createReport({ kind: "pm", day, shift, title: `PM ${tag} — ${day}`, payload: { ...rec, pmId: id, name: row.name, category: row.category, generatedAt: jalaliNow() } }, d);
+          const monthRows = await d.select().from(pmRecords).where(sql`${pmRecords.day} like ${`${day.slice(0, 7)}/%`}`).orderBy(pmRecords.id);
+          const monthlyData = monthRows.filter((r) => r.templateName === rec.templateName).map((r) => ({ tag: r.tag, stage: r.stage, day: r.day, results: r.results ?? {}, note: r.note, workers: r.workers }));
+          const reportId = await createReport({ kind: "pm", day, shift, title: `PM ماهیانه ${tag} — ${day}`, payload: { ...rec, items, monthlyData, pmId: id, name: row.name, category: row.category, pumpTag: row.isMotor ? row.tag.replace(/^M-/, "P-") : "", generatedAt: jalaliNow() } }, d);
           await logActivity(shiftKey, "ثبت PM", `${tag} — ${rec.templateName}`, d);
           return reportId;
         });

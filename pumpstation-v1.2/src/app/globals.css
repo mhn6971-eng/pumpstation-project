@@ -2157,6 +2157,32 @@ textarea.input {
   padding-top: 6px;
 }
 
+.pm-print-heading {
+  display: grid;
+  text-align: center;
+  gap: 2px;
+  padding: 5px 8px;
+  border: 1px solid #9aa9b7;
+  color: #10202e;
+}
+.pm-print-heading b:first-child { font-size: 12px; }
+.pm-print-heading b:nth-child(2) { font-size: 15px; }
+.pm-print-heading span { font-size: 11px; }
+.pm-meta th { width: 13%; white-space: nowrap; }
+.pm-meta td { width: 37%; }
+.pm-checklist th { background: #e7edf2 !important; color: #10202e !important; text-align: center !important; }
+.pm-checklist td { padding: 4px 6px !important; }
+.pm-print-form .table-wrap { overflow: visible; }
+.pm-matrix { table-layout: fixed; font-size: 8px !important; }
+.pm-matrix th, .pm-matrix td { padding: 2px 3px !important; text-align: center !important; }
+.pm-matrix thead tr:first-child th:nth-child(2), .pm-matrix tbody td:nth-child(2) { text-align: start !important; }
+.pm-matrix th.ltr { white-space: nowrap; font-size: 8px; }
+.pm-matrix td span { white-space: nowrap; }
+.pm-notes th { background: #e7edf2 !important; color: #10202e !important; }
+.pm-notes td { min-height: 28px; }
+@page pmLandscape { size: A4 landscape; margin: 9mm; }
+.pm-landscape { page: pmLandscape; }
+
 @media print {
   body {
     background: #fff !important;

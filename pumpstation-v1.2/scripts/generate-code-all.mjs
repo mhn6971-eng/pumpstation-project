@@ -33,7 +33,7 @@ const SECTIONS = [
     "src/db/index.ts", "src/db/schema.ts", "src/db/seed.ts", "src/lib/seed-helpers.ts",
     "data/roster.sample.json",
     "drizzle/0000_woozy_omega_flight.sql", "drizzle/0001_hardening.sql",
-    "drizzle/0002_resilience.sql", "drizzle/0003_two_factor.sql", "drizzle/0004_mirror_ts.sql",
+    "drizzle/0002_resilience.sql", "drizzle/0003_pm_overhaul.sql", "drizzle/0003_two_factor.sql", "drizzle/0004_mirror_ts.sql",
     "drizzle/0005_megger_pi.sql", "drizzle/0006_alerts_open_unique.sql",
   ] },
   { title: "کتابخانهٔ منطق (src/lib)", files: [
@@ -131,6 +131,7 @@ for (const s of entries) {
     out += `── FILE: ${f.path}  (${f.lines} خط) ──\n\n${f.content}\n\n`;
   }
 }
+out = out.replace(/\n+$/, "\n");
 
 // ---------- خودآزمایی بسته: استخراج ←→ مقایسه (اگر شکست: بدون خروجی) ----------
 writeFileSync("CODE_ALL_FA.txt.tmp", out);

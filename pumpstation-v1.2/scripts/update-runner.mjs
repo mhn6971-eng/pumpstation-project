@@ -86,7 +86,9 @@ function run(command, args, cwd, description) {
       cwd,
       env,
       windowsHide: true,
-      shell: process.platform === "win32",
+      // Only invoke cmd/bat files through the Windows shell. Node's executable must
+      // run directly so an npm.cmd shim cannot resolve npm's prefix relative to bin.
+      shell: process.platform === "win32" && /\.(?:cmd|bat)$/i.test(command),
       stdio: ["ignore", "pipe", "pipe"],
     });
     child.stdout.on("data", (chunk) => { void appendFile(logFile, chunk); });
@@ -295,9 +297,17 @@ async function main() {
   if (stagedPackage.version !== expectedVersion) throw new Error("نسخهٔ داخل ZIP با نسخهٔ تأییدشده یکی نیست");
 
   await log("Installing pinned dependencies in staging folder");
-  const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
-  await run(npmCommand, ["ci", "--include=dev", "--no-audit", "--no-fund"], stageApp, "نصب وابستگی‌های نسخهٔ جدید");
-  await run(npmCommand, ["run", "build"], stageApp, "ساخت نسخهٔ جدید");
+  // The bundled Windows npm.cmd assumes a global node_modules/npm layout, while
+  // the installer intentionally stores npm under runtime/npm. Invoke its checked
+  // CLI with this process's exact Node executable instead of the broken shim.
+  const windowsNpmCli = path.join(path.dirname(process.execPath), "npm", "bin", "npm-cli.js");
+  if (process.platform === "win32" && !existsSync(windowsNpmCli)) {
+    throw new Error(`npm CLI پایدار پیدا نشد: ${windowsNpmCli}`);
+  }
+  const npmCommand = process.platform === "win32" ? process.execPath : "npm";
+  const npmPrefixArgs = process.platform === "win32" ? [windowsNpmCli] : [];
+  await run(npmCommand, [...npmPrefixArgs, "ci", "--include=dev", "--no-audit", "--no-fund"], stageApp, "نصب وابستگی‌های نسخهٔ جدید");
+  await run(npmCommand, [...npmPrefixArgs, "run", "build"], stageApp, "ساخت نسخهٔ جدید");
 
   await setStatus("restarting", `نسخهٔ ${expectedVersion} آماده شد؛ در حال قفل نوشتن‌های جدید و گرفتن نسخهٔ پشتیبان.`, { logPath: logFile });
   await writeFile(lockFile, JSON.stringify({ version: expectedVersion, startedAt: new Date().toISOString() }), "utf8");

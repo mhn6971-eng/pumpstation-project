@@ -193,3 +193,34 @@ export function EquipmentServiceForm({ tag, name, defaultMode = "in_service" }: 
     </form>
   );
 }
+
+
+/** ثبت سابقهٔ جداگانهٔ اورهال؛ هر رکورد پایدار است و برای شمارش دفعات نگهداری می‌شود. */
+export function MotorOverhaulForm({ tag }: { tag: string }) {
+  const { state, act, busy, closeModal } = useApp();
+  const motor = state.motors.find((m) => m.tag === tag);
+  const history = state.motorServices.filter((s) => s.tag === tag && s.serviceKind === "overhaul").sort((a, b) => b.id - a.id);
+  const [day, setDay] = useState(state.now.day);
+  const [hours, setHours] = useState(motor ? String(motor.totalHours) : "");
+  const [workers, setWorkers] = useState(state.shift.members.join("، "));
+  const [note, setNote] = useState("");
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const id = await act("motor.overhaul", { tag, day, hours, workers, note });
+    if (id) { closeModal(); if (typeof id === "number") window.open(`/report/${id}`, "_blank"); }
+  }
+  const latest = history[0];
+  return <div className="grid" style={{ gap: 12 }}>
+    <div className="note"><b>آخرین اورهال:</b> {latest ? `${latest.day} — ساعت کارکرد ${latest.hours}` : "هنوز سابقه‌ای ثبت نشده است"}؛ <b>تعداد ثبت‌شده:</b> {history.length} بار</div>
+    <form onSubmit={submit} className="grid" style={{ gap: 10 }}>
+      <div className="form-grid">
+        <div className="field"><label>تاریخ اورهال</label><input className="input" value={day} onChange={(e) => setDay(e.target.value)} required /></div>
+        <div className="field"><label>کارکرد موتور (ساعت HMI)</label><input className="input mono" type="number" min="0" step="any" value={hours} onChange={(e) => setHours(e.target.value)} required /></div>
+        <div className="field"><label>انجام‌دهندگان</label><input className="input" value={workers} onChange={(e) => setWorkers(e.target.value)} /></div>
+      </div>
+      <div className="field"><label>شرح عملیات اورهال / قطعات تعویضی / نتیجه</label><textarea value={note} onChange={(e) => setNote(e.target.value)} style={{ minHeight: 90 }} /></div>
+      <div className="row" style={{ justifyContent: "flex-end" }}><button type="button" className="btn ghost" onClick={closeModal}>انصراف</button><button className="btn primary" disabled={busy}>ثبت سابقهٔ اورهال</button></div>
+    </form>
+    {history.length > 0 && <div><div className="panel-title" style={{ fontSize: 14 }}>تاریخچهٔ اورهال {tag} ({history.length} بار)</div><div className="table-wrap"><table className="data"><thead><tr><th>تاریخ</th><th>کارکرد (ساعت)</th><th>انجام‌دهندگان</th><th>شرح</th><th>گزارش</th></tr></thead><tbody>{history.map((h) => { const rep = state.reports.find((r) => r.kind === "motor_overhaul" && r.title.includes(tag) && r.day === h.day); return <tr key={h.id}><td className="mono">{h.day}</td><td className="mono">{h.hours}</td><td>{h.workers || h.shiftLabel || "—"}</td><td>{h.note || "—"}</td><td>{rep ? <button className="btn tiny" type="button" onClick={() => window.open(`/report/${rep.id}`, "_blank")}>PDF</button> : "—"}</td></tr>; })}</tbody></table></div></div>}
+  </div>;
+}

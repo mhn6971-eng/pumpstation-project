@@ -100,7 +100,7 @@ export async function buildState(input: { who: { key: string; label: string; rol
       db.select({ id: reports.id, kind: reports.kind, title: reports.title, day: reports.day, shiftKey: reports.shiftKey, operators: reports.operators, createdAt: reports.createdAt }).from(reports).orderBy(desc(reports.id)).limit(300),
       db.select({ id: backups.id, label: backups.label, createdAt: backups.createdAt, sizeBytes: backups.sizeBytes }).from(backups).orderBy(desc(backups.id)).limit(20),
       db.select().from(problems).orderBy(desc(problems.id)).limit(100),
-      db.select().from(motorServices).orderBy(desc(motorServices.id)).limit(80),
+      db.select().from(motorServices).orderBy(desc(motorServices.id)),
       db.select().from(meggerTests).orderBy(desc(meggerTests.id)).limit(80),
       db.select().from(oilChanges).orderBy(desc(oilChanges.id)).limit(80),
     ]);

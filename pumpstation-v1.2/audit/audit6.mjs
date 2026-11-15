@@ -434,7 +434,8 @@ t("pm.record creates + report id", recRes.status === 200 && typeof recBody?.id =
 let pmPdf = false;
 if (typeof recBody?.id === "number") {
   const pdf = await fetch(`${BASE}/report/${recBody.id}`, { headers: { cookie: opA.cookie } });
-  pmPdf = pdf.status === 200 && (await pdf.text()).includes("PM M-01");
+  const reportHtml = await pdf.text();
+  pmPdf = pdf.status === 200 && reportHtml.includes("M-01") && reportHtml.includes("قالب تست audit6");
 }
 t("pm report page renders", pmPdf);
 
