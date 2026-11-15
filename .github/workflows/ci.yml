@@ -41,7 +41,7 @@ jobs:
         run: npx next build
 
       - name: اجرای سامانه برای تست‌ها
-        run: npx next start -H 127.0.0.1 -p 3000 & echo $! > /tmp/next.pid
+        run: ALLOW_SAMPLE_ROSTER=1 npx next start -H 127.0.0.1 -p 3000 & echo $! > /tmp/next.pid
 
       - name: انتظار برای آماده شدن سرور
         run: |
