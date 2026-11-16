@@ -26,7 +26,7 @@ import {
 } from "@/db/schema";
 import { ensureSeed, getAllSettings } from "@/db/seed";
 import { appendActivity } from "@/lib/audit";
-import { INTERVALS, jalaliNow, operationalDay } from "@/lib/jalali";
+import { INTERVALS, jalaliNow, motorHoursAt, operationalDay } from "@/lib/jalali";
 import { MOTORS, MOTOR_PARAMS, MOTOR_STATE_FA, PROCESS_PARAMS, STATUS_FA, type Severity } from "@/lib/domain";
 import type { AppState, MotorView, ProcessView } from "@/lib/types";
 
@@ -131,6 +131,7 @@ export async function buildState(input: { who: { key: string; label: string; rol
     return { index, label: it.label, filled: tags.size, total: PROCESS_PARAMS.length, current: index === op.intervalIndex };
   });
 
+  const runtimeNow = Date.now();
   const motorsView: MotorView[] = MOTORS.map((m) => {
     const stateRow = motorStateRows.find((r) => r.tag === m.tag);
     const vals = latestPerParam(motorRowsAll.filter((r) => r.tag === m.tag), interval);
@@ -160,11 +161,11 @@ export async function buildState(input: { who: { key: string; label: string; rol
     add("VIB", "لرزش", maxVibration, cfg.vibWarn, cfg.vibCrit, "mm/s");
     if (avgCurrent !== null && avgCurrent > 5) add("I", "جریان میانگین", Number(avgCurrent.toFixed(1)), cfg.currentWarn, cfg.currentCrit, "A");
 
-    const totalHours = stateRow?.totalHours ?? 0;
+    const state = (stateRow?.state ?? "off") as MotorView["state"];
+    const totalHours = motorHoursAt(stateRow?.totalHours ?? 0, state, stateRow?.stateChangedAt ?? "", runtimeNow);
     const lastServiceHours = stateRow?.lastServiceHours ?? 0;
     const hoursSinceService = Math.max(0, totalHours - lastServiceHours);
     const servicePct = Math.min(150, (hoursSinceService / (cfg.serviceInterval || 1)) * 100);
-    const state = (stateRow?.state ?? "off") as MotorView["state"];
     const lastService = serviceRows.find((s) => s.tag === m.tag);
     if (state === "service" && severity === "ok") severity = "warning";
 

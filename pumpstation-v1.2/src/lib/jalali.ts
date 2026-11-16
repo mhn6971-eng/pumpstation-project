@@ -191,6 +191,42 @@ export function jalaliStamp(now = new Date()) {
   return `${j.jy}-${pad(j.jm)}-${pad(j.jd)}_${pad(p.hour)}-${pad(p.minute)}-${pad(p.second)}`;
 }
 
+/**
+ * زمان ذخیره‌شدهٔ تغییر وضعیت موتور را به epoch تبدیل می‌کند. نسخه‌های قدیمی
+ * تاریخ شمسیِ ساعت تهران ذخیره می‌کردند؛ نسخه‌های جدید ISO-8601 UTC می‌نویسند.
+ */
+export function parseStoredInstant(value: string): number | null {
+  const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/i.test(value)
+    ? Date.parse(value)
+    : Number.NaN;
+  if (Number.isFinite(iso)) return iso;
+
+  const match = /^(\d{4})[-/](\d{2})[-/](\d{2})[ T_](\d{2})[:\-](\d{2})[:\-](\d{2})$/.exec(value);
+  if (!match) return null;
+  const [, jyText, jmText, jdText, hourText, minuteText, secondText] = match;
+  const jy = Number(jyText), jm = Number(jmText), jd = Number(jdText);
+  const hour = Number(hourText), minute = Number(minuteText), second = Number(secondText);
+  if (!isValidJalaliDay(`${jyText}/${jmText}/${jdText}`) || hour > 23 || minute > 59 || second > 59) return null;
+
+  const gregorian = toGregorian(jy, jm, jd);
+  const wallAsUtc = Date.UTC(gregorian.gy, gregorian.gm - 1, gregorian.gd, hour, minute, second);
+  const tehran = tehranParts(new Date(wallAsUtc));
+  const tehranAsUtc = Date.UTC(tehran.gy, tehran.gm - 1, tehran.gd, tehran.hour, tehran.minute, tehran.second);
+  return wallAsUtc - (tehranAsUtc - wallAsUtc);
+}
+
+/**
+ * HMI پایه به‌علاوهٔ زمان سپری‌شده از لحظه‌ای که اپراتور موتور را روشن ثبت کرده.
+ * start timestamp در دیتابیس می‌ماند؛ بنابراین توقف برنامه/رایانه، زمان را قطع نمی‌کند.
+ */
+export function motorHoursAt(totalHours: number, state: string, stateChangedAt: string, nowMs = Date.now()) {
+  const base = Number.isFinite(totalHours) ? totalHours : 0;
+  if (state !== "on") return base;
+  const startedAt = parseStoredInstant(stateChangedAt);
+  if (startedAt === null || nowMs <= startedAt) return base;
+  return base + (nowMs - startedAt) / 3_600_000;
+}
+
 /** اعتبارسنجی تاریخ شمسی واقعی (روز/ماه/کبیسه) — ورودی نامعتبر رد می‌شود، نه تبدیل بی‌صدا (H4) */
 export function isValidJalaliDay(day: string) {
   if (typeof day !== "string" || !/^\d{4}\/\d{2}\/\d{2}$/.test(day)) return false;

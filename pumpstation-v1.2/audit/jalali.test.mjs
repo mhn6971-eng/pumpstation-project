@@ -17,6 +17,17 @@ eq("2025-03-21 -> jalali", J.toJalaali(2025, 3, 21), { jy: 1404, jm: 1, jd: 1 })
 eq("jalali 1404/01/01 -> greg", J.toGregorian(1404, 1, 1), { gy: 2025, gm: 3, gd: 21 });
 eq("Nowruz 1405", J.toGregorian(1405, 1, 1), { gy: 2026, gm: 3, gd: 21 });
 
+// Motor running-time accrual survives app/process restarts and reads legacy Tehran timestamps.
+const startMs = Date.parse("2026-11-04T03:30:00.000Z");
+eq("legacy Jalali motor timestamp → Tehran epoch", J.parseStoredInstant("1405/08/13 07:00:00"), startMs);
+eq("legacy stamped motor timestamp → Tehran epoch", J.parseStoredInstant("1405-08-13_07-00-00"), startMs);
+eq("ISO motor timestamp", J.parseStoredInstant("2026-11-04T03:30:00.000Z"), startMs);
+eq("one hour ON accrues through persisted start time", J.motorHoursAt(50, "on", "2026-11-04T03:30:00.000Z", startMs + 3_600_000), 51);
+eq("one hour ON accrues from legacy time", J.motorHoursAt(2, "on", "1405/08/13 07:00:00", startMs + 3_600_000), 3);
+eq("OFF does not accrue time", J.motorHoursAt(50, "off", "2026-11-04T03:30:00.000Z", startMs + 3_600_000), 50);
+eq("malformed start time does not invent runtime", J.motorHoursAt(50, "on", "invalid", startMs + 3_600_000), 50);
+eq("clock earlier than start does not subtract hours", J.motorHoursAt(50, "on", "2026-11-04T03:30:00.000Z", startMs - 1), 50);
+
 // day arithmetic across year/month boundaries
 eq("addDays 1405/12/29 +1", J.addDaysToDay("1405/12/29", 1), "1406/01/01");
 eq("addDays 1404/12/29 +1 (non-leap→next)", J.addDaysToDay("1404/12/29", 1), "1405/01/01");

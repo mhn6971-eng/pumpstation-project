@@ -51,6 +51,10 @@ export default function MotorDetail({ tag }: { tag: string }) {
         </div>
       </div>
 
+      <div className="note">
+        تایمر با ثبت وضعیت «روشن» شروع و با «خاموش» یا «سرویس» متوقف می‌شود؛ زمان شروع روی دیسک می‌ماند و پس از خاموشی/راه‌اندازی دوبارهٔ برنامه نیز محاسبه می‌شود. این برآورد بر اساس دکمه‌های وضعیت است، نه سیگنال PLC؛ شمارندهٔ واقعی را می‌توانید از HMI در «ثبت جزئیات» وارد کنید.
+      </div>
+
       <div className="motor-stats" style={{ gridTemplateColumns: "repeat(4, minmax(0,1fr))" }}>
         <div className="stat">
           <div className="v">{motor.avgCurrent !== null ? `${motor.avgCurrent.toFixed(1)} A` : "—"}</div>

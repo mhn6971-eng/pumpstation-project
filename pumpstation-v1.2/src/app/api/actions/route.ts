@@ -43,7 +43,7 @@ import { listBackupBundles, restoreBackupBundle, verifyBackupBundle, writeBackup
 import { bodyTooLarge, clearLoginLock, logSecurityEvent, rateLimitedResponse, tooLargeResponse, writeRateLimited } from "@/lib/security";
 import { effectiveShift, getProcessThresholds, logActivity, thresholdSeverity } from "@/lib/state";
 import { buildOperationalPayload, buildRegistryPayload, buildTrendPayload, createReport, latestMotorRecords, normalizeRange, REPORT_KINDS } from "@/lib/reporting";
-import { addDaysToDay, isValidJalaliDay, jalaliNow, operationalDay } from "@/lib/jalali";
+import { addDaysToDay, isValidJalaliDay, jalaliNow, motorHoursAt, operationalDay } from "@/lib/jalali";
 import { sendBotDocument, sendBotText } from "@/lib/bot";
 import { zipStored } from "@/lib/zip";
 import { CATEGORIES, MOTORS, MOTOR_PARAMS, MOTOR_TYPE_LIMITS, MOTOR_STATE_FA, PROCESS_LIMITS, PROCESS_PARAMS, TOTAL_LIMITS, limitError, type Settings } from "@/lib/domain";
@@ -288,30 +288,43 @@ export async function POST(request: Request) {
         const tag = str(p.tag, 10);
         const state = str(p.state, 10);
         if (!["on", "off", "service"].includes(state)) throw badRequest("وضعیت نامعتبر است");
-        const row = (await db.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
-        if (!row) throw badRequest("موتور پیدا نشد");
-        await db.update(motors).set({ state, stateChangedAt: jalaliNow() }).where(eq(motors.tag, tag));
-        await db.insert(motorStateLogs).values({ tag, fromState: row.state, toState: state, at: jalaliNow(), shiftKey });
-        await db.update(equipment).set({ status: state === "service" ? "in_service" : "ready", updatedAt: jalaliNow() }).where(eq(equipment.tag, tag));
         const reason = str(p.reason, 500);
-        if (state === "service" && reason) {
-          await db.insert(equipmentReports).values({ tag, kind: "service", reason, operator: shift.label, shiftKey, at: jalaliNow() });
-          await db.update(equipment).set({ description: reason, descriptionAt: jalaliNow(), descriptionBy: shift.label }).where(eq(equipment.tag, tag));
-        }
-        await logActivity(shiftKey, "تغییر وضعیت موتور", `${tag}: ${MOTOR_STATE_FA[row.state]} ← ${MOTOR_STATE_FA[state]}`);
-        return Response.json({ ok: true });
+        const nowMs = Date.now();
+        const now = new Date(nowMs);
+        const stateChangedAt = now.toISOString();
+        let changed = false;
+        await runTx(async (d) => {
+          const row = (await d.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
+          if (!row) throw badRequest("موتور پیدا نشد");
+          if (row.state === state) return;
+          changed = true;
+          const totalHours = motorHoursAt(row.totalHours, row.state, row.stateChangedAt, nowMs);
+          await d.update(motors).set({ state, totalHours, stateChangedAt }).where(eq(motors.tag, tag));
+          await d.insert(motorStateLogs).values({ tag, fromState: row.state, toState: state, at: jalaliNow(now), shiftKey });
+          await d.update(equipment).set({ status: state === "service" ? "in_service" : "ready", updatedAt: jalaliNow(now) }).where(eq(equipment.tag, tag));
+          if (state === "service" && reason) {
+            await d.insert(equipmentReports).values({ tag, kind: "service", reason, operator: shift.label, shiftKey, at: jalaliNow(now) });
+            await d.update(equipment).set({ description: reason, descriptionAt: jalaliNow(now), descriptionBy: shift.label }).where(eq(equipment.tag, tag));
+          }
+          await logActivity(shiftKey, "تغییر وضعیت موتور", `${tag}: ${MOTOR_STATE_FA[row.state]} ← ${MOTOR_STATE_FA[state]}`, d);
+        });
+        return Response.json({ ok: true, ...(changed ? {} : { unchanged: true }) });
       }
 
       case "motor.hours": {
         const tag = str(p.tag, 10);
         const hours = num(p.hours);
-        const row = (await db.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
-        if (!row) throw badRequest("موتور پیدا نشد");
-        if (hours < row.totalHours && !isAdmin) throw forbidden("شمارنده کمتر از مقدار قبلی است؛ اصلاح فقط توسط ادمین با ذکر دلیل");
-        if (hours < row.totalHours && !str(p.reason)) throw badRequest("برای اصلاح شمارنده، دلیل را بنویسید");
-        await audit(shiftKey, "hours", tag, "HMI", row.totalHours, hours);
-        await db.update(motors).set({ totalHours: hours }).where(eq(motors.tag, tag));
-        await logActivity(shiftKey, hours < row.totalHours ? "اصلاح شمارنده HMI (ادمین)" : "ثبت شمارنده HMI", `${tag}: ${row.totalHours} ← ${hours} ${str(p.reason)}`);
+        if (hours < 0) throw badRequest("شمارندهٔ موتور نمی‌تواند منفی باشد");
+        const now = new Date();
+        await runTx(async (d) => {
+          const row = (await d.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
+          if (!row) throw badRequest("موتور پیدا نشد");
+          if (hours < row.totalHours && !isAdmin) throw forbidden("شمارنده کمتر از مقدار قبلی است؛ اصلاح فقط توسط ادمین با ذکر دلیل");
+          if (hours < row.totalHours && !str(p.reason)) throw badRequest("برای اصلاح شمارنده، دلیل را بنویسید");
+          await audit(shiftKey, "hours", tag, "HMI", row.totalHours, hours, d);
+          await d.update(motors).set({ totalHours: hours, ...(row.state === "on" ? { stateChangedAt: now.toISOString() } : {}) }).where(eq(motors.tag, tag));
+          await logActivity(shiftKey, hours < row.totalHours ? "اصلاح شمارنده HMI (ادمین)" : "ثبت شمارنده HMI", `${tag}: ${row.totalHours} ← ${hours} ${str(p.reason)}`, d);
+        });
         return Response.json({ ok: true });
       }
 
@@ -319,7 +332,11 @@ export async function POST(request: Request) {
         const tag = str(p.tag, 10);
         const row = (await db.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
         if (!row) throw badRequest("موتور پیدا نشد");
-        const hours = p.hours === undefined || p.hours === "" ? row.totalHours : num(p.hours);
+        const enteredHours = p.hours === undefined || p.hours === "" ? row.totalHours : num(p.hours);
+        if (enteredHours < 0) throw badRequest("شمارندهٔ موتور نمی‌تواند منفی باشد");
+        const nowMs = Date.now();
+        const now = new Date(nowMs);
+        const hours = Math.max(enteredHours, motorHoursAt(row.totalHours, row.state, row.stateChangedAt, nowMs));
         const workers = "";
         const note = str(p.note, 1500);
         const brushRaw = (p.brush ?? {}) as Record<string, unknown>;
@@ -330,10 +347,10 @@ export async function POST(request: Request) {
         }
         const rid = await runTx(async (d) => {
           const sid = (await d.insert(motorServices).values({ tag, day, hours, workers, note, brush, at: jalaliNow(), shiftKey, shiftLabel: shift.label, serviceKind: "monthly" }).returning({ id: motorServices.id }))[0].id;
-          await d.update(motors).set({ totalHours: Math.max(hours, row.totalHours), lastServiceHours: hours, state: "off", stateChangedAt: jalaliNow() }).where(eq(motors.tag, tag));
-          await d.insert(motorStateLogs).values({ tag, fromState: row.state, toState: "off", at: jalaliNow(), shiftKey });
-          await d.insert(equipmentReports).values({ tag, kind: "motor_service", reason: `سرویس ماهانه — ساعت ${hours}${note ? ` — ${note}` : ""}`, operator: workers || shift.label, shiftKey, at: jalaliNow() });
-          await d.update(equipment).set({ description: `سرویس ماهانه انجام شد (ساعت ${hours})${note ? ` — ${note}` : ""}`, descriptionAt: jalaliNow(), descriptionBy: workers || shift.label, status: "ready", updatedAt: jalaliNow() }).where(eq(equipment.tag, tag));
+          await d.update(motors).set({ totalHours: hours, lastServiceHours: hours, state: "off", stateChangedAt: now.toISOString() }).where(eq(motors.tag, tag));
+          if (row.state !== "off") await d.insert(motorStateLogs).values({ tag, fromState: row.state, toState: "off", at: jalaliNow(now), shiftKey });
+          await d.insert(equipmentReports).values({ tag, kind: "motor_service", reason: `سرویس ماهانه — ساعت ${hours}${note ? ` — ${note}` : ""}`, operator: workers || shift.label, shiftKey, at: jalaliNow(now) });
+          await d.update(equipment).set({ description: `سرویس ماهانه انجام شد (ساعت ${hours})${note ? ` — ${note}` : ""}`, descriptionAt: jalaliNow(now), descriptionBy: workers || shift.label, status: "ready", updatedAt: jalaliNow(now) }).where(eq(equipment.tag, tag));
           const latest = await latestMotorRecords(tag, d);
           const reportId = await createReport({ kind: "motor_service", day, shift, title: `سرویس موتور ${tag} — ${day}`, payload: { serviceId: sid, tag, pumpTag: row.pumpTag, day, hours, shiftLabel: `${shift.label} — ${shift.members.join(" و ")}`, note, brush, megger: latest.megger, oil: latest.oil, generatedAt: jalaliNow() } }, d);
           await logActivity(shiftKey, "ثبت سرویس موتور", `${tag} — ساعت ${hours}`, d);
@@ -405,7 +422,15 @@ export async function POST(request: Request) {
           await d.update(equipment).set({ status, description: reason || row.description, descriptionAt: reason ? jalaliNow() : row.descriptionAt, descriptionBy: reason ? shift.label : row.descriptionBy, updatedAt: jalaliNow() }).where(eq(equipment.tag, tag));
           await d.insert(equipmentReports).values({ tag, kind: status === "in_service" ? "service" : "ready", reason: reason || "بازگشت به آماده به کار", operator: shift.label, shiftKey, at: jalaliNow() });
           if (row.isMotor) {
-            await d.update(motors).set({ state: status === "in_service" ? "service" : "off", stateChangedAt: jalaliNow() }).where(eq(motors.tag, tag));
+            const motor = (await d.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
+            if (motor) {
+              const nowMs = Date.now();
+              const now = new Date(nowMs);
+              const nextState = status === "in_service" ? "service" : "off";
+              const totalHours = motorHoursAt(motor.totalHours, motor.state, motor.stateChangedAt, nowMs);
+              await d.update(motors).set({ state: nextState, totalHours, stateChangedAt: now.toISOString() }).where(eq(motors.tag, tag));
+              if (motor.state !== nextState) await d.insert(motorStateLogs).values({ tag, fromState: motor.state, toState: nextState, at: jalaliNow(now), shiftKey });
+            }
           }
           await logActivity(shiftKey, status === "in_service" ? "تجهیز به حال سرویس رفت" : "تجهیز آماده به کار شد", `${tag} — ${reason}`, d);
         });

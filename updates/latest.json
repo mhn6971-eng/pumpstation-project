@@ -1,11 +1,11 @@
 {
-  "version": "1.4.27",
-  "archiveUrl": "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/Pumpstation-App-Update-1.4.27.zip",
-  "sha256": "a2a3c6732a1f7e8921ca8d33caace79bb6164b0379003c8a45637cc233787647",
+  "version": "1.4.28",
+  "archiveUrl": "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/Pumpstation-App-Update-1.4.28.zip",
+  "sha256": "c66ac813625f4f2737925ceb5aa4b219cd915274f22c55c9fc54f2185efe65b9",
   "publishedAt": "2026-11-04",
   "notes": [
-    "رفع خطای اجرای npm.cmd در updater ویندوز؛ نصب وابستگی‌ها و build مستقیماً با Node پایدار و npm-cli.js انجام می‌شود.",
-    "قابلیت‌های چک‌لیست PM ماهیانه، گزارش ماتریسی با نشان آب منطقه‌ای اصفهان، تصاویر پلاک و تاریخچهٔ اورهال نسخهٔ ۱.۴.۲۶ حفظ شده‌اند.",
-    "بسته فقط update برنامه است؛ نصاب کامل نیست و migration افزایشی، داده‌های عملیاتی را پاک یا بازنشانی نمی‌کند."
+    "شمارندهٔ ساعات موتور از ثبت «روشن» تا «خاموش» ادامه می‌یابد و زمان شروع پایدار در دیتابیس ذخیره می‌شود؛ پس از خاموشی یا راه‌اندازی مجدد برنامه نیز زمان سپری‌شده منظور می‌شود.",
+    "خاموش‌کردن یا ثبت سرویس، زمان روشن‌بودن را در شمارندهٔ کل تثبیت می‌کند؛ شمارندهٔ HMI همچنان قابل ثبت است.",
+    "این مقدار از وضعیت دستی موتور برآورد می‌شود و جایگزین سیگنال یا شمارندهٔ PLC نیست؛ بدون migration و بدون بازنشانی داده‌ها."
   ]
 }

@@ -92,9 +92,9 @@ export default function MotorCard({
         <button type="button" className="btn tiny primary" style={{ flex: 1 }} onClick={onOpen}>
           <Icon name="gauge" size={13} /> ثبت جزئیات
         </button>
-        <div className="stat" style={{ flex: 1.2, padding: "4px 8px", textAlign: "center" }}>
+        <div className="stat" style={{ flex: 1.2, padding: "4px 8px", textAlign: "center" }} title="شمارندهٔ HMI به‌علاوهٔ زمان از ثبت روشن تا خاموش؛ این مقدار از سیگنال PLC خوانده نمی‌شود">
           <div className="v" style={{ justifyContent: "center" }} dir="ltr">{Math.round(m.totalHours).toLocaleString("en-US")} h</div>
-          <div className="l">ساعت کارکرد کل از نصب</div>
+          <div className="l">HMI + تایمر وضعیت</div>
         </div>
         <button type="button" className="btn tiny warn" style={{ flex: 1 }} onClick={onService}>
           <Icon name="wrench" size={13} /> ثبت سرویس

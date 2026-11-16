@@ -1,7 +1,7 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.27   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: ff7130f
-تاریخ تولید: 2026-11-15   |   134 فایل   |   27,049 خط
+نسخهٔ برنامه: 1.4.28   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: f3ed7c3
+تاریخ تولید: 2026-11-16   |   134 فایل   |   27,137 خط
 ==============================================================================
 
 این فایل، «نسخهٔ خوانا»ی کل کد برنامه است؛ هر فایل کامل و بدون حذف درج شده و
@@ -55,9 +55,9 @@
      src/lib/sessions.ts                                  215 خط
      src/lib/security.ts                                  173 خط
      src/lib/audit.ts                                     79 خط
-     src/lib/jalali.ts                                    221 خط
+     src/lib/jalali.ts                                    257 خط
      src/lib/domain.ts                                    332 خط
-     src/lib/state.ts                                     261 خط
+     src/lib/state.ts                                     262 خط
      src/lib/motor-history.ts                             15 خط
      src/lib/reporting.ts                                 215 خط
      src/lib/backup.ts                                    355 خط
@@ -75,7 +75,7 @@
 
   ۴) مسیرهای API (src/app/api)
      src/app/api/auth/route.ts                            147 خط
-     src/app/api/actions/route.ts                         1125 خط
+     src/app/api/actions/route.ts                         1150 خط
      src/app/api/state/route.ts                           48 خط
      src/app/api/history/route.ts                         31 خط
      src/app/api/totals/route.ts                          48 خط
@@ -108,7 +108,7 @@
      src/components/Dashboard.tsx                         165 خط
      src/components/MotorCard.tsx                         107 خط
      src/components/MotorVisual.tsx                       123 خط
-     src/components/MotorDetail.tsx                       195 خط
+     src/components/MotorDetail.tsx                       199 خط
      src/components/AuxTab.tsx                            97 خط
      src/components/RegistryTab.tsx                       222 خط
      src/components/PmTab.tsx                             134 خط
@@ -143,7 +143,7 @@
      scripts/stackblitz-warning.mjs                       14 خط
 
   ۸) آزمون‌های خودکار (audit)
-     audit/audit1.mjs                                     178 خط
+     audit/audit1.mjs                                     189 خط
      audit/audit2.mjs                                     88 خط
      audit/audit3.mjs                                     206 خط
      audit/audit4.mjs                                     91 خط
@@ -153,7 +153,7 @@
      audit/perf.mjs                                       27 خط
      audit/conc.mjs                                       69 خط
      audit/db-inspect.mjs                                 12 خط
-     audit/jalali.test.mjs                                42 خط
+     audit/jalali.test.mjs                                53 خط
      audit/updater.test.mjs                               15 خط
      audit/update-zip.test.mjs                            68 خط
      audit/windows-installer.test.mjs                     182 خط
@@ -218,7 +218,7 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   },
-  "version": "1.4.27",
+  "version": "1.4.28",
   "overrides": {
     "@typescript-eslint/typescript-estree": {
       "minimatch": "11.0.5"
@@ -236,7 +236,7 @@
   "packages": {
     "": {
       "name": "pumpstation-monitoring",
-      "version": "1.4.27",
+      "version": "1.4.28",
       "dependencies": {
         "@electric-sql/pglite": "^0.5.15",
         "dotenv": "17.3.1",
@@ -10274,7 +10274,7 @@ export async function verifyActivityChain(limit = 5000): Promise<ChainReport> {
   return { checked: slice.length, ok: true, brokenAtId: null, firstCheckedId: slice[0]?.id ?? null, lastCheckedId: slice[slice.length - 1]?.id ?? null, legacyRows: legacy };
 }
 
-── FILE: src/lib/jalali.ts  (221 خط) ──
+── FILE: src/lib/jalali.ts  (257 خط) ──
 
 /** تبدیل و قالب‌بندی تاریخ شمسی (الگوریتم استاندارد jalaali) — تمام UI شمسی است. */
 
@@ -10467,6 +10467,42 @@ export function jalaliStamp(now = new Date()) {
   const p = tehranParts(now);
   const j = toJalaali(p.gy, p.gm, p.gd);
   return `${j.jy}-${pad(j.jm)}-${pad(j.jd)}_${pad(p.hour)}-${pad(p.minute)}-${pad(p.second)}`;
+}
+
+/**
+ * زمان ذخیره‌شدهٔ تغییر وضعیت موتور را به epoch تبدیل می‌کند. نسخه‌های قدیمی
+ * تاریخ شمسیِ ساعت تهران ذخیره می‌کردند؛ نسخه‌های جدید ISO-8601 UTC می‌نویسند.
+ */
+export function parseStoredInstant(value: string): number | null {
+  const iso = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/i.test(value)
+    ? Date.parse(value)
+    : Number.NaN;
+  if (Number.isFinite(iso)) return iso;
+
+  const match = /^(\d{4})[-/](\d{2})[-/](\d{2})[ T_](\d{2})[:\-](\d{2})[:\-](\d{2})$/.exec(value);
+  if (!match) return null;
+  const [, jyText, jmText, jdText, hourText, minuteText, secondText] = match;
+  const jy = Number(jyText), jm = Number(jmText), jd = Number(jdText);
+  const hour = Number(hourText), minute = Number(minuteText), second = Number(secondText);
+  if (!isValidJalaliDay(`${jyText}/${jmText}/${jdText}`) || hour > 23 || minute > 59 || second > 59) return null;
+
+  const gregorian = toGregorian(jy, jm, jd);
+  const wallAsUtc = Date.UTC(gregorian.gy, gregorian.gm - 1, gregorian.gd, hour, minute, second);
+  const tehran = tehranParts(new Date(wallAsUtc));
+  const tehranAsUtc = Date.UTC(tehran.gy, tehran.gm - 1, tehran.gd, tehran.hour, tehran.minute, tehran.second);
+  return wallAsUtc - (tehranAsUtc - wallAsUtc);
+}
+
+/**
+ * HMI پایه به‌علاوهٔ زمان سپری‌شده از لحظه‌ای که اپراتور موتور را روشن ثبت کرده.
+ * start timestamp در دیتابیس می‌ماند؛ بنابراین توقف برنامه/رایانه، زمان را قطع نمی‌کند.
+ */
+export function motorHoursAt(totalHours: number, state: string, stateChangedAt: string, nowMs = Date.now()) {
+  const base = Number.isFinite(totalHours) ? totalHours : 0;
+  if (state !== "on") return base;
+  const startedAt = parseStoredInstant(stateChangedAt);
+  if (startedAt === null || nowMs <= startedAt) return base;
+  return base + (nowMs - startedAt) / 3_600_000;
 }
 
 /** اعتبارسنجی تاریخ شمسی واقعی (روز/ماه/کبیسه) — ورودی نامعتبر رد می‌شود، نه تبدیل بی‌صدا (H4) */
@@ -10831,7 +10867,7 @@ export function limitError(label: string, unit: string, min: number, max: number
   return new Error(`${label}: مقدار باید بین ${min} و ${max} ${unit} باشد`);
 }
 
-── FILE: src/lib/state.ts  (261 خط) ──
+── FILE: src/lib/state.ts  (262 خط) ──
 
 import { desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -10861,7 +10897,7 @@ import {
 } from "@/db/schema";
 import { ensureSeed, getAllSettings } from "@/db/seed";
 import { appendActivity } from "@/lib/audit";
-import { INTERVALS, jalaliNow, operationalDay } from "@/lib/jalali";
+import { INTERVALS, jalaliNow, motorHoursAt, operationalDay } from "@/lib/jalali";
 import { MOTORS, MOTOR_PARAMS, MOTOR_STATE_FA, PROCESS_PARAMS, STATUS_FA, type Severity } from "@/lib/domain";
 import type { AppState, MotorView, ProcessView } from "@/lib/types";
 
@@ -10966,6 +11002,7 @@ export async function buildState(input: { who: { key: string; label: string; rol
     return { index, label: it.label, filled: tags.size, total: PROCESS_PARAMS.length, current: index === op.intervalIndex };
   });
 
+  const runtimeNow = Date.now();
   const motorsView: MotorView[] = MOTORS.map((m) => {
     const stateRow = motorStateRows.find((r) => r.tag === m.tag);
     const vals = latestPerParam(motorRowsAll.filter((r) => r.tag === m.tag), interval);
@@ -10995,11 +11032,11 @@ export async function buildState(input: { who: { key: string; label: string; rol
     add("VIB", "لرزش", maxVibration, cfg.vibWarn, cfg.vibCrit, "mm/s");
     if (avgCurrent !== null && avgCurrent > 5) add("I", "جریان میانگین", Number(avgCurrent.toFixed(1)), cfg.currentWarn, cfg.currentCrit, "A");
 
-    const totalHours = stateRow?.totalHours ?? 0;
+    const state = (stateRow?.state ?? "off") as MotorView["state"];
+    const totalHours = motorHoursAt(stateRow?.totalHours ?? 0, state, stateRow?.stateChangedAt ?? "", runtimeNow);
     const lastServiceHours = stateRow?.lastServiceHours ?? 0;
     const hoursSinceService = Math.max(0, totalHours - lastServiceHours);
     const servicePct = Math.min(150, (hoursSinceService / (cfg.serviceInterval || 1)) * 100);
-    const state = (stateRow?.state ?? "off") as MotorView["state"];
     const lastService = serviceRows.find((s) => s.tag === m.tag);
     if (state === "service" && severity === "ok") severity = "warning";
 
@@ -13485,7 +13522,7 @@ export async function DELETE(request: Request) {
   }
 }
 
-── FILE: src/app/api/actions/route.ts  (1125 خط) ──
+── FILE: src/app/api/actions/route.ts  (1150 خط) ──
 
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -13532,7 +13569,7 @@ import { listBackupBundles, restoreBackupBundle, verifyBackupBundle, writeBackup
 import { bodyTooLarge, clearLoginLock, logSecurityEvent, rateLimitedResponse, tooLargeResponse, writeRateLimited } from "@/lib/security";
 import { effectiveShift, getProcessThresholds, logActivity, thresholdSeverity } from "@/lib/state";
 import { buildOperationalPayload, buildRegistryPayload, buildTrendPayload, createReport, latestMotorRecords, normalizeRange, REPORT_KINDS } from "@/lib/reporting";
-import { addDaysToDay, isValidJalaliDay, jalaliNow, operationalDay } from "@/lib/jalali";
+import { addDaysToDay, isValidJalaliDay, jalaliNow, motorHoursAt, operationalDay } from "@/lib/jalali";
 import { sendBotDocument, sendBotText } from "@/lib/bot";
 import { zipStored } from "@/lib/zip";
 import { CATEGORIES, MOTORS, MOTOR_PARAMS, MOTOR_TYPE_LIMITS, MOTOR_STATE_FA, PROCESS_LIMITS, PROCESS_PARAMS, TOTAL_LIMITS, limitError, type Settings } from "@/lib/domain";
@@ -13777,30 +13814,43 @@ export async function POST(request: Request) {
         const tag = str(p.tag, 10);
         const state = str(p.state, 10);
         if (!["on", "off", "service"].includes(state)) throw badRequest("وضعیت نامعتبر است");
-        const row = (await db.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
-        if (!row) throw badRequest("موتور پیدا نشد");
-        await db.update(motors).set({ state, stateChangedAt: jalaliNow() }).where(eq(motors.tag, tag));
-        await db.insert(motorStateLogs).values({ tag, fromState: row.state, toState: state, at: jalaliNow(), shiftKey });
-        await db.update(equipment).set({ status: state === "service" ? "in_service" : "ready", updatedAt: jalaliNow() }).where(eq(equipment.tag, tag));
         const reason = str(p.reason, 500);
-        if (state === "service" && reason) {
-          await db.insert(equipmentReports).values({ tag, kind: "service", reason, operator: shift.label, shiftKey, at: jalaliNow() });
-          await db.update(equipment).set({ description: reason, descriptionAt: jalaliNow(), descriptionBy: shift.label }).where(eq(equipment.tag, tag));
-        }
-        await logActivity(shiftKey, "تغییر وضعیت موتور", `${tag}: ${MOTOR_STATE_FA[row.state]} ← ${MOTOR_STATE_FA[state]}`);
-        return Response.json({ ok: true });
+        const nowMs = Date.now();
+        const now = new Date(nowMs);
+        const stateChangedAt = now.toISOString();
+        let changed = false;
+        await runTx(async (d) => {
+          const row = (await d.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
+          if (!row) throw badRequest("موتور پیدا نشد");
+          if (row.state === state) return;
+          changed = true;
+          const totalHours = motorHoursAt(row.totalHours, row.state, row.stateChangedAt, nowMs);
+          await d.update(motors).set({ state, totalHours, stateChangedAt }).where(eq(motors.tag, tag));
+          await d.insert(motorStateLogs).values({ tag, fromState: row.state, toState: state, at: jalaliNow(now), shiftKey });
+          await d.update(equipment).set({ status: state === "service" ? "in_service" : "ready", updatedAt: jalaliNow(now) }).where(eq(equipment.tag, tag));
+          if (state === "service" && reason) {
+            await d.insert(equipmentReports).values({ tag, kind: "service", reason, operator: shift.label, shiftKey, at: jalaliNow(now) });
+            await d.update(equipment).set({ description: reason, descriptionAt: jalaliNow(now), descriptionBy: shift.label }).where(eq(equipment.tag, tag));
+          }
+          await logActivity(shiftKey, "تغییر وضعیت موتور", `${tag}: ${MOTOR_STATE_FA[row.state]} ← ${MOTOR_STATE_FA[state]}`, d);
+        });
+        return Response.json({ ok: true, ...(changed ? {} : { unchanged: true }) });
       }
 
       case "motor.hours": {
         const tag = str(p.tag, 10);
         const hours = num(p.hours);
-        const row = (await db.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
-        if (!row) throw badRequest("موتور پیدا نشد");
-        if (hours < row.totalHours && !isAdmin) throw forbidden("شمارنده کمتر از مقدار قبلی است؛ اصلاح فقط توسط ادمین با ذکر دلیل");
-        if (hours < row.totalHours && !str(p.reason)) throw badRequest("برای اصلاح شمارنده، دلیل را بنویسید");
-        await audit(shiftKey, "hours", tag, "HMI", row.totalHours, hours);
-        await db.update(motors).set({ totalHours: hours }).where(eq(motors.tag, tag));
-        await logActivity(shiftKey, hours < row.totalHours ? "اصلاح شمارنده HMI (ادمین)" : "ثبت شمارنده HMI", `${tag}: ${row.totalHours} ← ${hours} ${str(p.reason)}`);
+        if (hours < 0) throw badRequest("شمارندهٔ موتور نمی‌تواند منفی باشد");
+        const now = new Date();
+        await runTx(async (d) => {
+          const row = (await d.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
+          if (!row) throw badRequest("موتور پیدا نشد");
+          if (hours < row.totalHours && !isAdmin) throw forbidden("شمارنده کمتر از مقدار قبلی است؛ اصلاح فقط توسط ادمین با ذکر دلیل");
+          if (hours < row.totalHours && !str(p.reason)) throw badRequest("برای اصلاح شمارنده، دلیل را بنویسید");
+          await audit(shiftKey, "hours", tag, "HMI", row.totalHours, hours, d);
+          await d.update(motors).set({ totalHours: hours, ...(row.state === "on" ? { stateChangedAt: now.toISOString() } : {}) }).where(eq(motors.tag, tag));
+          await logActivity(shiftKey, hours < row.totalHours ? "اصلاح شمارنده HMI (ادمین)" : "ثبت شمارنده HMI", `${tag}: ${row.totalHours} ← ${hours} ${str(p.reason)}`, d);
+        });
         return Response.json({ ok: true });
       }
 
@@ -13808,7 +13858,11 @@ export async function POST(request: Request) {
         const tag = str(p.tag, 10);
         const row = (await db.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
         if (!row) throw badRequest("موتور پیدا نشد");
-        const hours = p.hours === undefined || p.hours === "" ? row.totalHours : num(p.hours);
+        const enteredHours = p.hours === undefined || p.hours === "" ? row.totalHours : num(p.hours);
+        if (enteredHours < 0) throw badRequest("شمارندهٔ موتور نمی‌تواند منفی باشد");
+        const nowMs = Date.now();
+        const now = new Date(nowMs);
+        const hours = Math.max(enteredHours, motorHoursAt(row.totalHours, row.state, row.stateChangedAt, nowMs));
         const workers = "";
         const note = str(p.note, 1500);
         const brushRaw = (p.brush ?? {}) as Record<string, unknown>;
@@ -13819,10 +13873,10 @@ export async function POST(request: Request) {
         }
         const rid = await runTx(async (d) => {
           const sid = (await d.insert(motorServices).values({ tag, day, hours, workers, note, brush, at: jalaliNow(), shiftKey, shiftLabel: shift.label, serviceKind: "monthly" }).returning({ id: motorServices.id }))[0].id;
-          await d.update(motors).set({ totalHours: Math.max(hours, row.totalHours), lastServiceHours: hours, state: "off", stateChangedAt: jalaliNow() }).where(eq(motors.tag, tag));
-          await d.insert(motorStateLogs).values({ tag, fromState: row.state, toState: "off", at: jalaliNow(), shiftKey });
-          await d.insert(equipmentReports).values({ tag, kind: "motor_service", reason: `سرویس ماهانه — ساعت ${hours}${note ? ` — ${note}` : ""}`, operator: workers || shift.label, shiftKey, at: jalaliNow() });
-          await d.update(equipment).set({ description: `سرویس ماهانه انجام شد (ساعت ${hours})${note ? ` — ${note}` : ""}`, descriptionAt: jalaliNow(), descriptionBy: workers || shift.label, status: "ready", updatedAt: jalaliNow() }).where(eq(equipment.tag, tag));
+          await d.update(motors).set({ totalHours: hours, lastServiceHours: hours, state: "off", stateChangedAt: now.toISOString() }).where(eq(motors.tag, tag));
+          if (row.state !== "off") await d.insert(motorStateLogs).values({ tag, fromState: row.state, toState: "off", at: jalaliNow(now), shiftKey });
+          await d.insert(equipmentReports).values({ tag, kind: "motor_service", reason: `سرویس ماهانه — ساعت ${hours}${note ? ` — ${note}` : ""}`, operator: workers || shift.label, shiftKey, at: jalaliNow(now) });
+          await d.update(equipment).set({ description: `سرویس ماهانه انجام شد (ساعت ${hours})${note ? ` — ${note}` : ""}`, descriptionAt: jalaliNow(now), descriptionBy: workers || shift.label, status: "ready", updatedAt: jalaliNow(now) }).where(eq(equipment.tag, tag));
           const latest = await latestMotorRecords(tag, d);
           const reportId = await createReport({ kind: "motor_service", day, shift, title: `سرویس موتور ${tag} — ${day}`, payload: { serviceId: sid, tag, pumpTag: row.pumpTag, day, hours, shiftLabel: `${shift.label} — ${shift.members.join(" و ")}`, note, brush, megger: latest.megger, oil: latest.oil, generatedAt: jalaliNow() } }, d);
           await logActivity(shiftKey, "ثبت سرویس موتور", `${tag} — ساعت ${hours}`, d);
@@ -13894,7 +13948,15 @@ export async function POST(request: Request) {
           await d.update(equipment).set({ status, description: reason || row.description, descriptionAt: reason ? jalaliNow() : row.descriptionAt, descriptionBy: reason ? shift.label : row.descriptionBy, updatedAt: jalaliNow() }).where(eq(equipment.tag, tag));
           await d.insert(equipmentReports).values({ tag, kind: status === "in_service" ? "service" : "ready", reason: reason || "بازگشت به آماده به کار", operator: shift.label, shiftKey, at: jalaliNow() });
           if (row.isMotor) {
-            await d.update(motors).set({ state: status === "in_service" ? "service" : "off", stateChangedAt: jalaliNow() }).where(eq(motors.tag, tag));
+            const motor = (await d.select().from(motors).where(eq(motors.tag, tag)).limit(1))[0];
+            if (motor) {
+              const nowMs = Date.now();
+              const now = new Date(nowMs);
+              const nextState = status === "in_service" ? "service" : "off";
+              const totalHours = motorHoursAt(motor.totalHours, motor.state, motor.stateChangedAt, nowMs);
+              await d.update(motors).set({ state: nextState, totalHours, stateChangedAt: now.toISOString() }).where(eq(motors.tag, tag));
+              if (motor.state !== nextState) await d.insert(motorStateLogs).values({ tag, fromState: motor.state, toState: nextState, at: jalaliNow(now), shiftKey });
+            }
           }
           await logActivity(shiftKey, status === "in_service" ? "تجهیز به حال سرویس رفت" : "تجهیز آماده به کار شد", `${tag} — ${reason}`, d);
         });
@@ -19472,9 +19534,9 @@ export default function MotorCard({
         <button type="button" className="btn tiny primary" style={{ flex: 1 }} onClick={onOpen}>
           <Icon name="gauge" size={13} /> ثبت جزئیات
         </button>
-        <div className="stat" style={{ flex: 1.2, padding: "4px 8px", textAlign: "center" }}>
+        <div className="stat" style={{ flex: 1.2, padding: "4px 8px", textAlign: "center" }} title="شمارندهٔ HMI به‌علاوهٔ زمان از ثبت روشن تا خاموش؛ این مقدار از سیگنال PLC خوانده نمی‌شود">
           <div className="v" style={{ justifyContent: "center" }} dir="ltr">{Math.round(m.totalHours).toLocaleString("en-US")} h</div>
-          <div className="l">ساعت کارکرد کل از نصب</div>
+          <div className="l">HMI + تایمر وضعیت</div>
         </div>
         <button type="button" className="btn tiny warn" style={{ flex: 1 }} onClick={onService}>
           <Icon name="wrench" size={13} /> ثبت سرویس
@@ -19610,7 +19672,7 @@ export default function MotorVisual({ tag, pumpTag, on, hot, smoke }: { tag: str
   );
 }
 
-── FILE: src/components/MotorDetail.tsx  (195 خط) ──
+── FILE: src/components/MotorDetail.tsx  (199 خط) ──
 
 "use client";
 
@@ -19663,6 +19725,10 @@ export default function MotorDetail({ tag }: { tag: string }) {
           <button type="button" className="btn tiny" onClick={() => openModal(`تست مگر ${tag}`, <MeggerForm tag={tag} />)}>تست مگر</button>
           <button type="button" className="btn tiny" onClick={() => openModal(`تعویض روغن ${tag}`, <OilForm tag={tag} />)}>تعویض روغن</button>
         </div>
+      </div>
+
+      <div className="note">
+        تایمر با ثبت وضعیت «روشن» شروع و با «خاموش» یا «سرویس» متوقف می‌شود؛ زمان شروع روی دیسک می‌ماند و پس از خاموشی/راه‌اندازی دوبارهٔ برنامه نیز محاسبه می‌شود. این برآورد بر اساس دکمه‌های وضعیت است، نه سیگنال PLC؛ شمارندهٔ واقعی را می‌توانید از HMI در «ثبت جزئیات» وارد کنید.
       </div>
 
       <div className="motor-stats" style={{ gridTemplateColumns: "repeat(4, minmax(0,1fr))" }}>
@@ -25174,7 +25240,7 @@ try {
   process.exitCode = status;
 }
 
-── FILE: audit/audit1.mjs  (178 خط) ──
+── FILE: audit/audit1.mjs  (189 خط) ──
 
 import { addDaysToDay } from "../src/lib/jalali.ts";
 const BASE = (process.env.BASE ?? "http://127.0.0.1:3000").replace(/\/$/, "");
@@ -25348,6 +25414,17 @@ const H = (cookie) => ({ cookie });
   log("megger invalid rotor voltage rejected", mgBad.status === 400, `status=${mgBad.status}`);
   const mgLegacy = await act(A, "motor.megger", { tag: "M-02", day, testVoltage: 2500, statorU: 50, pi: 1.5 });
   log("megger legacy payload (single PI) still works", mgLegacy.status === 200 && mgLegacy.body?.ok === true, `status=${mgLegacy.status}`);
+
+  // ---------- I: elapsed runtime persists when a motor is turned off ----------
+  const beforeRuntime = await fetch(`${BASE}/api/state`, { headers: H(A) }).then((r) => r.json());
+  const beforeHours = beforeRuntime.motors.find((m) => m.tag === "M-01")?.totalHours ?? 0;
+  const runtimeOn = await act(A, "motor.state", { tag: "M-01", state: "on" });
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+  const runtimeOff = await act(A, "motor.state", { tag: "M-01", state: "off" });
+  const afterRuntime = await fetch(`${BASE}/api/state`, { headers: H(A) }).then((r) => r.json());
+  const afterMotor = afterRuntime.motors.find((m) => m.tag === "M-01");
+  const runtimeDelta = Number(afterMotor?.totalHours ?? 0) - beforeHours;
+  log("motor ON→OFF accrues and persists elapsed runtime", runtimeOn.status === 200 && runtimeOff.status === 200 && afterMotor?.state === "off" && runtimeDelta >= 0.0001, `delta=${runtimeDelta.toFixed(6)}h state=${afterMotor?.state}`);
 
   console.log("\n=== summary ===");
   console.log(`total=${out.length} pass=${out.filter((o) => o.pass).length} fail=${out.filter((o) => !o.pass).length}`);
@@ -26800,7 +26877,7 @@ await q("invalid jalali days stored", `select day, count(*) from process_reading
 await q("db size", `select pg_size_pretty(pg_database_size(current_database())) s`);
 await db.close();
 
-── FILE: audit/jalali.test.mjs  (42 خط) ──
+── FILE: audit/jalali.test.mjs  (53 خط) ──
 
 import * as J from "../src/lib/jalali.ts";
 let fails = 0;
@@ -26820,6 +26897,17 @@ eq("2026-11-04 -> jalali", J.toJalaali(2026, 11, 4), { jy: 1405, jm: 8, jd: 13 }
 eq("2025-03-21 -> jalali", J.toJalaali(2025, 3, 21), { jy: 1404, jm: 1, jd: 1 });
 eq("jalali 1404/01/01 -> greg", J.toGregorian(1404, 1, 1), { gy: 2025, gm: 3, gd: 21 });
 eq("Nowruz 1405", J.toGregorian(1405, 1, 1), { gy: 2026, gm: 3, gd: 21 });
+
+// Motor running-time accrual survives app/process restarts and reads legacy Tehran timestamps.
+const startMs = Date.parse("2026-11-04T03:30:00.000Z");
+eq("legacy Jalali motor timestamp → Tehran epoch", J.parseStoredInstant("1405/08/13 07:00:00"), startMs);
+eq("legacy stamped motor timestamp → Tehran epoch", J.parseStoredInstant("1405-08-13_07-00-00"), startMs);
+eq("ISO motor timestamp", J.parseStoredInstant("2026-11-04T03:30:00.000Z"), startMs);
+eq("one hour ON accrues through persisted start time", J.motorHoursAt(50, "on", "2026-11-04T03:30:00.000Z", startMs + 3_600_000), 51);
+eq("one hour ON accrues from legacy time", J.motorHoursAt(2, "on", "1405/08/13 07:00:00", startMs + 3_600_000), 3);
+eq("OFF does not accrue time", J.motorHoursAt(50, "off", "2026-11-04T03:30:00.000Z", startMs + 3_600_000), 50);
+eq("malformed start time does not invent runtime", J.motorHoursAt(50, "on", "invalid", startMs + 3_600_000), 50);
+eq("clock earlier than start does not subtract hours", J.motorHoursAt(50, "on", "2026-11-04T03:30:00.000Z", startMs - 1), 50);
 
 // day arithmetic across year/month boundaries
 eq("addDays 1405/12/29 +1", J.addDaysToDay("1405/12/29", 1), "1406/01/01");
@@ -27452,7 +27540,7 @@ jobs:
         run: npx next build
 
       - name: اجرای سامانه برای تست‌ها
-        run: npx next start -H 127.0.0.1 -p 3000 & echo $! > /tmp/next.pid
+        run: ALLOW_SAMPLE_ROSTER=1 npx next start -H 127.0.0.1 -p 3000 & echo $! > /tmp/next.pid
 
       - name: انتظار برای آماده شدن سرور
         run: |

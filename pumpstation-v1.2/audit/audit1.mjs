@@ -171,6 +171,17 @@ const H = (cookie) => ({ cookie });
   const mgLegacy = await act(A, "motor.megger", { tag: "M-02", day, testVoltage: 2500, statorU: 50, pi: 1.5 });
   log("megger legacy payload (single PI) still works", mgLegacy.status === 200 && mgLegacy.body?.ok === true, `status=${mgLegacy.status}`);
 
+  // ---------- I: elapsed runtime persists when a motor is turned off ----------
+  const beforeRuntime = await fetch(`${BASE}/api/state`, { headers: H(A) }).then((r) => r.json());
+  const beforeHours = beforeRuntime.motors.find((m) => m.tag === "M-01")?.totalHours ?? 0;
+  const runtimeOn = await act(A, "motor.state", { tag: "M-01", state: "on" });
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+  const runtimeOff = await act(A, "motor.state", { tag: "M-01", state: "off" });
+  const afterRuntime = await fetch(`${BASE}/api/state`, { headers: H(A) }).then((r) => r.json());
+  const afterMotor = afterRuntime.motors.find((m) => m.tag === "M-01");
+  const runtimeDelta = Number(afterMotor?.totalHours ?? 0) - beforeHours;
+  log("motor ON→OFF accrues and persists elapsed runtime", runtimeOn.status === 200 && runtimeOff.status === 200 && afterMotor?.state === "off" && runtimeDelta >= 0.0001, `delta=${runtimeDelta.toFixed(6)}h state=${afterMotor?.state}`);
+
   console.log("\n=== summary ===");
   console.log(`total=${out.length} pass=${out.filter((o) => o.pass).length} fail=${out.filter((o) => !o.pass).length}`);
   console.log(JSON.stringify(out.filter((o) => !o.pass).map((o) => o.name), null, 1));
