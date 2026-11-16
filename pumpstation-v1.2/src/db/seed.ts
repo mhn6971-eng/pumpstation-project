@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   shifts,
@@ -24,7 +24,7 @@ import {
   PM_TEMPLATE_SEED,
   type Settings,
 } from "@/lib/domain";
-import { loadRosterFile, resolveRoster, sampleRosterPath } from "@/lib/roster";
+import { loadRosterFile, normalizeRosterDisplayText, resolveRoster, sampleRosterPath } from "@/lib/roster";
 import { jelaliSeedDays, padSeedValue } from "@/lib/seed-helpers";
 import { jalaliNow, operationalDay } from "@/lib/jalali";
 import { hashPin, verifyPin } from "@/lib/pin";
@@ -75,6 +75,17 @@ async function runSeed() {
       });
       if (hasSamplePin) {
         throw new Error("پایگاه داده با PINهای روستر نمونه مقداردهی شده است؛ production متوقف شد. روستر واقعی را نصب و PINها را با فرایند مدیریتی تغییر دهید.");
+      }
+    }
+    // Repair display-only roster text corrupted by a UTF-8/ANSI PowerShell script mismatch.
+    // Keys, roles, PIN hashes, reports, and all operational measurements remain untouched.
+    for (const row of await db.select().from(shifts)) {
+      const fallbackLabel = row.key === "admin" ? "مدیر سامانه" : `شیفت ${row.key}`;
+      const fallbackMember = row.key === "admin" ? "مدیر سامانه" : `اپراتور شیفت ${row.key}`;
+      const label = normalizeRosterDisplayText(row.label, fallbackLabel);
+      const members = (row.members ?? []).map((member) => normalizeRosterDisplayText(member, fallbackMember));
+      if (label !== row.label || JSON.stringify(members) !== JSON.stringify(row.members ?? [])) {
+        await db.update(shifts).set({ label, members }).where(eq(shifts.key, row.key));
       }
     }
     return;

@@ -163,6 +163,16 @@ process.env.ROSTER_FILE = "/tmp/audit6-bad.json";
 t("invalid local blocks", throws(() => resolveRoster()));
 delete process.env.ROSTER_FILE;
 t("sample file loads", loadRosterFile("data/roster.sample.json").length === 4);
+const mojibake = (value) => Buffer.from(value, "utf8").toString("latin1");
+const repairedRoster = validateRoster([
+  { key: "A", label: mojibake("شیفت A"), role: "operator", pin: "5555", members: [mojibake("اپراتور شیفت A")] },
+  { key: "admin", label: "مدیر سامانه", role: "admin", pin: "6666", members: ["مدیر سامانه"] },
+], "encoding-test");
+t("UTF-8/ANSI mojibake roster labels are repaired", repairedRoster[0].label === "شیفت A" && repairedRoster[0].members[0] === "اپراتور شیفت A");
+t("unrecoverable mojibake uses readable defaults", validateRoster([
+  { key: "B", label: "Ø´Û\uFFFDØª B", role: "operator", pin: "5555", members: ["Ø§Û\uFFFDØª B"] },
+  { key: "admin", label: "مدیر سامانه", role: "admin", pin: "6666", members: ["مدیر سامانه"] },
+], "encoding-test")[0].label === "شیفت B");
 
 // ---------- ج) نگهبان مسیر ابری ----------
 t("cloud paths detected",

@@ -10,7 +10,9 @@ if (!existsSync(path.join(root, "install-windows.ps1"))) {
   console.log("SKIP | Windows installer integration | root installer files are not present in the app-only update bundle");
   process.exit(0);
 }
-const installer = await readFile(path.join(root, "install-windows.ps1"), "utf8");
+const installerBytes = await readFile(path.join(root, "install-windows.ps1"));
+assert.deepEqual(installerBytes.subarray(0, 3), Buffer.from([0xef, 0xbb, 0xbf]), "Windows PowerShell 5.1 installer source must declare UTF-8 with BOM");
+const installer = installerBytes.toString("utf8").replace(/^\uFEFF/, "");
 const batch = await readFile(path.join(root, "install-windows.bat"), "utf8");
 const freshBatch = await readFile(path.join(root, "install-windows-fresh.bat"), "utf8");
 const launcher = await readFile(path.join(root, "launch-pumpstation.ps1"), "utf8");

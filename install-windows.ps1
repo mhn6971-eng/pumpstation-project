@@ -1,4 +1,4 @@
-param([switch]$FreshData)
+﻿param([switch]$FreshData)
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
