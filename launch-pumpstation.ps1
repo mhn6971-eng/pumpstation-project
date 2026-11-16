@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 try {
   $utf8 = [System.Text.UTF8Encoding]::new($false)
@@ -49,8 +49,10 @@ trap {
   }
   exit 1
 }
-$skipBrowser = $env:PUMPSTATION_SKIP_BROWSER -eq '1'
+$updateLaunch = -not [string]::IsNullOrWhiteSpace($env:PUMPSTATION_UPDATE_STOP_TOKEN)
+$skipBrowser = $env:PUMPSTATION_SKIP_BROWSER -eq '1' -or $updateLaunch
 Remove-Item Env:\PUMPSTATION_SKIP_BROWSER -ErrorAction SilentlyContinue
+Remove-Item Env:\PUMPSTATION_UPDATE_STOP_TOKEN -ErrorAction SilentlyContinue
 $installRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $configPath = Join-Path $installRoot 'config\install.json'
 if (-not (Test-Path -LiteralPath $configPath)) {

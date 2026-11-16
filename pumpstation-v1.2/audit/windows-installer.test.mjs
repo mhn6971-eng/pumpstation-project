@@ -17,6 +17,7 @@ const batch = await readFile(path.join(root, "install-windows.bat"), "utf8");
 const freshBatch = await readFile(path.join(root, "install-windows-fresh.bat"), "utf8");
 const launcher = await readFile(path.join(root, "launch-pumpstation.ps1"), "utf8");
 const appLauncher = await readFile(path.join(root, "pumpstation-v1.2/launch-pumpstation.ps1"), "utf8");
+const updaterRunner = await readFile(path.join(root, "pumpstation-v1.2/scripts/update-runner.mjs"), "utf8");
 const packager = await readFile(path.join(root, "package-windows.ps1"), "utf8");
 const installGuide = await readFile(path.join(root, "INSTALL-WINDOWS-FA.md"), "utf8");
 const appInstallGuide = await readFile(path.join(root, "pumpstation-v1.2/docs/INSTALL-WINDOWS-FA.md"), "utf8");
@@ -151,6 +152,12 @@ assert.match(installer, /if \(\$databaseHasFiles -and -not \(Test-Path -LiteralP
 assert.equal(/\bRead-Host\b/i.test(launcher), true, "launch errors can wait for the user in a visible console");
 assert.match(launcher, /\[regex\]::Replace\(\[string\]\$item, '\[\^\\x00-\\x7F\]', '\?'\)/);
 assert.match(launcher, /PUMPSTATION_SKIP_BROWSER -eq '1'/);
+assert.match(launcher, /PUMPSTATION_UPDATE_STOP_TOKEN -ErrorAction SilentlyContinue/,
+  "the single-use updater token must not be inherited by the restarted server");
+assert.match(launcher, /updateLaunch[\s\S]*skipBrowser[\s\S]*PUMPSTATION_UPDATE_STOP_TOKEN/,
+  "an updater-launched server must skip opening a second browser window and clear the hand-off token before startup");
+assert.match(updaterRunner, /configuredPort\(\)[\s\S]*preferred \+ index \+ 1/,
+  "health-check must follow the installer's bounded fallback-port selection instead of probing only stale PORT");
 assert.equal(launcher, appLauncher, "the bundled and root launchers must stay in sync");
 assert.match(batch, /INSTALLATION COMPLETE/);
 assert.match(batch, /set \/p "PUMPSTATION_WAIT="/);

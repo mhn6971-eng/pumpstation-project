@@ -1,7 +1,7 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.31   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: aea0e82
-تاریخ تولید: 2026-11-16   |   137 فایل   |   27,315 خط
+نسخهٔ برنامه: 1.4.32   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: baef64b
+تاریخ تولید: 2026-11-16   |   137 فایل   |   27,342 خط
 ==============================================================================
 
 این فایل، «نسخهٔ خوانا»ی کل کد برنامه است؛ هر فایل کامل و بدون حذف درج شده و
@@ -127,7 +127,7 @@
      src/components/UpdatePanel.tsx                       315 خط
 
   ۷) اسکریپت‌های عملیاتی (scripts)
-     launch-pumpstation.ps1                               213 خط
+     launch-pumpstation.ps1                               215 خط
      launch-pumpstation.vbs                               34 خط
      scripts/init-db.mjs                                  87 خط
      scripts/doctor.mjs                                   259 خط
@@ -137,7 +137,7 @@
      scripts/pg-import-json.mjs                           205 خط
      scripts/serve.mjs                                    70 خط
      scripts/bulk-import.mjs                              206 خط
-     scripts/update-runner.mjs                            406 خط
+     scripts/update-runner.mjs                            424 خط
      scripts/generate-code-all.mjs                        193 خط
      scripts/extract-code-all.mjs                         70 خط
      scripts/test-fresh-install.mjs                       203 خط
@@ -159,7 +159,7 @@
      audit/update-zip.test.mjs                            68 خط
      audit/manual-report.test.mjs                         18 خط
      audit/build-compat.test.mjs                          6 خط
-     audit/windows-installer.test.mjs                     184 خط
+     audit/windows-installer.test.mjs                     191 خط
      audit/probe.mjs                                      10 خط
      audit/sess.mjs                                       34 خط
      audit/writeperf.mjs                                  14 خط
@@ -221,7 +221,7 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   },
-  "version": "1.4.31",
+  "version": "1.4.32",
   "overrides": {
     "@typescript-eslint/typescript-estree": {
       "minimatch": "11.0.5"
@@ -233,13 +233,13 @@
 
 {
   "name": "pumpstation-monitoring",
-  "version": "1.4.31",
+  "version": "1.4.32",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "pumpstation-monitoring",
-      "version": "1.4.31",
+      "version": "1.4.32",
       "dependencies": {
         "@electric-sql/pglite": "^0.5.15",
         "dotenv": "17.3.1",
@@ -16088,7 +16088,7 @@ function Pm({ d }: { d: Any }) {
       <h2>{monthly ? "شرح بازدید و نتیجهٔ کنترل" : "چک‌لیست"}</h2>
       {monthly ? <div className="table-wrap"><table className="pm-checklist pm-matrix"><thead><tr><th rowSpan={2} style={{ minWidth: 32 }}>ردیف</th><th rowSpan={2} style={{ minWidth: 240 }}>شرح بازدید</th><th colSpan={8}>مرحلهٔ اول — هفتهٔ اول ماه</th><th colSpan={8}>مرحلهٔ دوم — هفتهٔ سوم ماه</th></tr><tr>{[...motorTags, ...motorTags].map((tag, i) => <th key={`${i}-${tag}`} className="ltr">{tag}</th>)}</tr></thead>
         <tbody>{entries.map(([item], i) => <tr key={item}><td className="center">{i + 1}</td><td>{item}</td>{motorTags.map((tag) => <td key={`1-${tag}-${item}`} className="center">{cell("1", tag, item)}</td>)}{motorTags.map((tag) => <td key={`2-${tag}-${item}`} className="center">{cell("2", tag, item)}</td>)}</tr>)}</tbody></table></div> : <table className="pm-checklist"><thead><tr><th style={{ width: 34 }}>ردیف</th><th>شرح بازدید</th><th style={{ width: 100 }}>نتیجه</th><th>توضیحات</th></tr></thead><tbody>{entries.map(([k, val], i) => { const [r, note] = String(val).split(" | "); return <tr key={k}><td className="center">{i + 1}</td><td>{k}</td><td className="center">{r || "—"}</td><td className="small">{note || ""}</td></tr>; })}</tbody></table>}
-      {monthlyData.length > 0 && <table className="pm-notes"><thead><tr><th>موتور</th><th>مرحله</th><th>تاریخ بازدید</th><th>شرح عملیات / توضیحات</th></tr></thead><tbody>{monthlyData.map((r, i) => <tr key={`${String(r.tag)}-${String(r.stage)}-${i}`}><td className="ltr">{pumpTagOf(String(r.tag ?? ""))}</td><td>{String(r.stage) === "2" ? "مرحلهٔ دوم" : "مرحلهٔ اول"}</td><td>{v(r.day)}</td><td>{v(r.note)}</td></tr>)}</tbody></table>}
+      {monthlyData.length > 0 && <table className="pm-notes"><thead><tr><th>موتور</th><th>مرحله</th><th>تاریخ بازدید</th><th>شرح عملیات / توضیحات</th></tr></thead><tbody>{monthlyData.map((r, i) => <tr key={`${pumpTagOf(String(r.tag ?? ""))}-${String(r.stage)}-${i}`}><td className="ltr">{pumpTagOf(String(r.tag ?? ""))}</td><td>{String(r.stage) === "2" ? "مرحلهٔ دوم" : "مرحلهٔ اول"}</td><td>{v(r.day)}</td><td>{v(r.note)}</td></tr>)}</tbody></table>}
       <table className="pm-notes"><tbody><tr><th>شرح عملیات انجام‌شده</th></tr><tr><td>{v(d.note)}</td></tr><tr><th>نام و امضای بازدیدکننده</th></tr><tr><td style={{ height: 34 }}>{v(d.workers)}</td></tr></tbody></table>
     </div>
   );
@@ -23191,9 +23191,9 @@ export default function UpdatePanel() {
   );
 }
 
-── FILE: launch-pumpstation.ps1  (213 خط) ──
+── FILE: launch-pumpstation.ps1  (215 خط) ──
 
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 try {
   $utf8 = [System.Text.UTF8Encoding]::new($false)
@@ -23244,8 +23244,10 @@ trap {
   }
   exit 1
 }
-$skipBrowser = $env:PUMPSTATION_SKIP_BROWSER -eq '1'
+$updateLaunch = -not [string]::IsNullOrWhiteSpace($env:PUMPSTATION_UPDATE_STOP_TOKEN)
+$skipBrowser = $env:PUMPSTATION_SKIP_BROWSER -eq '1' -or $updateLaunch
 Remove-Item Env:\PUMPSTATION_SKIP_BROWSER -ErrorAction SilentlyContinue
+Remove-Item Env:\PUMPSTATION_UPDATE_STOP_TOKEN -ErrorAction SilentlyContinue
 $installRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $configPath = Join-Path $installRoot 'config\install.json'
 if (-not (Test-Path -LiteralPath $configPath)) {
@@ -24491,12 +24493,12 @@ for (const f of sendFailures.slice(0, 10)) console.log(`  درخواست ${f.n} 
 for (const v of verify) console.log(`  ${v}`);
 process.exit(sendFailures.length || failures.length ? 1 : 0);
 
-── FILE: scripts/update-runner.mjs  (406 خط) ──
+── FILE: scripts/update-runner.mjs  (424 خط) ──
 
 import { createHash } from "node:crypto";
 import { execFile as execFileCallback, spawn, spawnSync } from "node:child_process";
 import { promisify } from "node:util";
-import { createReadStream, existsSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync } from "node:fs";
 import { appendFile, copyFile, cp, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -24641,14 +24643,32 @@ async function launch() {
 
 async function waitForHealth(expectedVersion, timeoutMs = 90_000) {
   const until = Date.now() + timeoutMs;
-  while (Date.now() < until) {
+  const configuredPort = () => {
     try {
-      const response = await fetch(`${baseUrl}/api/health`, { cache: "no-store", signal: AbortSignal.timeout(2_000) });
-      if (response.ok) {
+      const installConfig = JSON.parse(readFileSync(path.join(path.dirname(launcher), "config", "install.json"), "utf8"));
+      const value = Number(installConfig.port);
+      return Number.isInteger(value) && value > 0 && value < 65536 ? value : port;
+    } catch { return port; }
+  };
+  while (Date.now() < until) {
+    const preferred = configuredPort();
+    // The Windows launcher may move to a nearby free port if another local process
+    // occupies the saved one. Probe the configured port and its bounded fallback range
+    // so health-check follows the new server instead of an older process on PORT.
+    const candidates = [...new Set([port, preferred, ...Array.from({ length: 30 }, (_, index) => preferred + index + 1)])]
+      .filter((candidate) => Number.isInteger(candidate) && candidate > 0 && candidate < 65536);
+    const healthy = await Promise.all(candidates.map(async (candidate) => {
+      try {
+        const response = await fetch(`http://127.0.0.1:${candidate}/api/health`, {
+          cache: "no-store",
+          signal: AbortSignal.timeout(750),
+        });
+        if (!response.ok) return false;
         const result = await response.json();
-        if (result?.ok === true && result?.version === expectedVersion) return true;
-      }
-    } catch { /* server is still starting */ }
+        return result?.ok === true && result?.version === expectedVersion;
+      } catch { return false; }
+    }));
+    if (healthy.some(Boolean)) return true;
     await new Promise((resolve) => setTimeout(resolve, 1_000));
   }
   return false;
@@ -27204,7 +27224,7 @@ import nextConfig from "../next.config.ts";
 assert.equal(nextConfig.experimental?.cpus, 2, "build concurrency must stay low for Windows stations");
 console.log("PASS | Next build | page-data worker count is capped at 2");
 
-── FILE: audit/windows-installer.test.mjs  (184 خط) ──
+── FILE: audit/windows-installer.test.mjs  (191 خط) ──
 
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
@@ -27225,6 +27245,7 @@ const batch = await readFile(path.join(root, "install-windows.bat"), "utf8");
 const freshBatch = await readFile(path.join(root, "install-windows-fresh.bat"), "utf8");
 const launcher = await readFile(path.join(root, "launch-pumpstation.ps1"), "utf8");
 const appLauncher = await readFile(path.join(root, "pumpstation-v1.2/launch-pumpstation.ps1"), "utf8");
+const updaterRunner = await readFile(path.join(root, "pumpstation-v1.2/scripts/update-runner.mjs"), "utf8");
 const packager = await readFile(path.join(root, "package-windows.ps1"), "utf8");
 const installGuide = await readFile(path.join(root, "INSTALL-WINDOWS-FA.md"), "utf8");
 const appInstallGuide = await readFile(path.join(root, "pumpstation-v1.2/docs/INSTALL-WINDOWS-FA.md"), "utf8");
@@ -27359,6 +27380,12 @@ assert.match(installer, /if \(\$databaseHasFiles -and -not \(Test-Path -LiteralP
 assert.equal(/\bRead-Host\b/i.test(launcher), true, "launch errors can wait for the user in a visible console");
 assert.match(launcher, /\[regex\]::Replace\(\[string\]\$item, '\[\^\\x00-\\x7F\]', '\?'\)/);
 assert.match(launcher, /PUMPSTATION_SKIP_BROWSER -eq '1'/);
+assert.match(launcher, /PUMPSTATION_UPDATE_STOP_TOKEN -ErrorAction SilentlyContinue/,
+  "the single-use updater token must not be inherited by the restarted server");
+assert.match(launcher, /updateLaunch[\s\S]*skipBrowser[\s\S]*PUMPSTATION_UPDATE_STOP_TOKEN/,
+  "an updater-launched server must skip opening a second browser window and clear the hand-off token before startup");
+assert.match(updaterRunner, /configuredPort\(\)[\s\S]*preferred \+ index \+ 1/,
+  "health-check must follow the installer's bounded fallback-port selection instead of probing only stale PORT");
 assert.equal(launcher, appLauncher, "the bundled and root launchers must stay in sync");
 assert.match(batch, /INSTALLATION COMPLETE/);
 assert.match(batch, /set \/p "PUMPSTATION_WAIT="/);

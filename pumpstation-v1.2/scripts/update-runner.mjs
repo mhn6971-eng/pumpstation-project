@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { execFile as execFileCallback, spawn, spawnSync } from "node:child_process";
 import { promisify } from "node:util";
-import { createReadStream, existsSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync } from "node:fs";
 import { appendFile, copyFile, cp, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -146,14 +146,32 @@ async function launch() {
 
 async function waitForHealth(expectedVersion, timeoutMs = 90_000) {
   const until = Date.now() + timeoutMs;
-  while (Date.now() < until) {
+  const configuredPort = () => {
     try {
-      const response = await fetch(`${baseUrl}/api/health`, { cache: "no-store", signal: AbortSignal.timeout(2_000) });
-      if (response.ok) {
+      const installConfig = JSON.parse(readFileSync(path.join(path.dirname(launcher), "config", "install.json"), "utf8"));
+      const value = Number(installConfig.port);
+      return Number.isInteger(value) && value > 0 && value < 65536 ? value : port;
+    } catch { return port; }
+  };
+  while (Date.now() < until) {
+    const preferred = configuredPort();
+    // The Windows launcher may move to a nearby free port if another local process
+    // occupies the saved one. Probe the configured port and its bounded fallback range
+    // so health-check follows the new server instead of an older process on PORT.
+    const candidates = [...new Set([port, preferred, ...Array.from({ length: 30 }, (_, index) => preferred + index + 1)])]
+      .filter((candidate) => Number.isInteger(candidate) && candidate > 0 && candidate < 65536);
+    const healthy = await Promise.all(candidates.map(async (candidate) => {
+      try {
+        const response = await fetch(`http://127.0.0.1:${candidate}/api/health`, {
+          cache: "no-store",
+          signal: AbortSignal.timeout(750),
+        });
+        if (!response.ok) return false;
         const result = await response.json();
-        if (result?.ok === true && result?.version === expectedVersion) return true;
-      }
-    } catch { /* server is still starting */ }
+        return result?.ok === true && result?.version === expectedVersion;
+      } catch { return false; }
+    }));
+    if (healthy.some(Boolean)) return true;
     await new Promise((resolve) => setTimeout(resolve, 1_000));
   }
   return false;

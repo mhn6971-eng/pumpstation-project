@@ -1,13 +1,14 @@
 {
-  "version": "1.4.31",
-  "archiveUrl": "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/Pumpstation-App-Update-1.4.31.zip",
-  "sha256": "e9d225266e5d9ba48ccf41c78b3af252c03b56adafe867b0056c7dac38b6bab8",
+  "version": "1.4.32",
+  "archiveUrl": "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/Pumpstation-App-Update-1.4.32.zip",
+  "sha256": "5edd0b90447126c7f70f58a42a238dd22386625363045bd84f6c09257746920b",
   "publishedAt": "2026-11-04",
   "notes": [
     "رفع توقف ساخت نسخه روی Collecting page data: تعداد workerهای Next.js هنگام build روی دو محدود شد.",
     "شناسهٔ پمپ‌های اصلی در گزارش‌های چاپی و فهرست گزارش‌ها P-01 تا P-08 است؛ کلیدهای داخلی M حفظ می‌شوند.",
     "فرم PM تاریخ بازدید شمسیِ قابل ویرایش، سربرگ جدید و نام تجهیز/توان نامی را چاپ می‌کند.",
     "گزارش دستی به شرح عملیات و اعلام خرابی تفکیک شد؛ متن‌های قبلی حفظ شده و به‌عنوان شرح عملیات نمایش داده می‌شوند.",
+    "راه‌اندازی پس از به‌روزرسانی پنجرهٔ مرورگر اضافه باز نمی‌کند، توکن توقف داخلی را به سرور جدید منتقل نمی‌کند و بررسی سلامت را با پورت جایگزین انتخاب‌شده هماهنگ می‌کند.",
     "هیچ دیتابیسی بازنشانی نمی‌شود؛ اصلاحات گزارش و یادداشت از migration پایگاه داده استفاده نمی‌کنند."
   ]
 }
