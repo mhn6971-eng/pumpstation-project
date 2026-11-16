@@ -1,7 +1,7 @@
 {
   "version": "1.4.28",
   "archiveUrl": "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/Pumpstation-App-Update-1.4.28.zip",
-  "sha256": "c66ac813625f4f2737925ceb5aa4b219cd915274f22c55c9fc54f2185efe65b9",
+  "sha256": "9e3454f94d6647ee9b6ce8f2beeb08e1aad97c9e43a134f7f446d2d6561ff932",
   "publishedAt": "2026-11-04",
   "notes": [
     "شمارندهٔ ساعات موتور از ثبت «روشن» تا «خاموش» ادامه می‌یابد و زمان شروع پایدار در دیتابیس ذخیره می‌شود؛ پس از خاموشی یا راه‌اندازی مجدد برنامه نیز زمان سپری‌شده منظور می‌شود.",
