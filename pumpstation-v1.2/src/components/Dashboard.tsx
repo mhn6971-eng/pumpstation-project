@@ -1,19 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useApp } from "./context";
+import { useApp, type AppContextValue } from "./context";
 import { Icon, Panel } from "./ui";
 import MotorCard from "./MotorCard";
 import MotorDetail from "./MotorDetail";
 import { MotorServiceForm, MotorServiceStartForm } from "./ServiceForm";
 import ChartModal from "./ChartModal";
 import { addDaysToDay, operationalDay } from "@/lib/jalali";
+import { parseManualReport } from "@/lib/manual-report";
 
 export default function Dashboard() {
   const { state, day, interval, setDay, setInterval, act, busy, openModal } = useApp();
-  const [note, setNote] = useState(state.note);
   const op = operationalDay();
-  useEffect(() => setNote(state.note), [state.note, day]);
 
   const activeAlerts = state.alerts.filter((a) => !a.seenAt && !a.actedAt);
   const on = state.motors.filter((m) => m.state === "on");
@@ -131,12 +130,15 @@ export default function Dashboard() {
       </Panel>
 
       {/* گزارش دستی اپراتور */}
-      <Panel title="گزارش دستی اپراتور" icon="file" hint={`${state.shift.label} — ${state.shift.members.join(" و ")} — ${day}`}>
-        <textarea className="input" rows={4} value={note} onChange={(e) => setNote(e.target.value)} placeholder="کارهای انجام‌شدهٔ شیفت، مشکلات، نکات تحویل شیفت…" />
-        <div className="row" style={{ marginTop: 8, justifyContent: "flex-end" }}>
-          <button type="button" className="btn primary" disabled={busy} onClick={() => act("note.save", { text: note, day, expected: state.note })}>ذخیره گزارش دستی</button>
-        </div>
-      </Panel>
+      <ManualReportPanel
+        key={`${day}:${state.note}`}
+        note={state.note}
+        day={day}
+        shiftLabel={state.shift.label}
+        members={state.shift.members}
+        busy={busy}
+        act={act}
+      />
 
       {/* انتهای صفحه: فقط ارسال و چاپ */}
       <div className="panel" style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "space-between", alignItems: "center" }}>
@@ -147,6 +149,34 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+  );
+}
+
+function ManualReportPanel({ note, day, shiftLabel, members, busy, act }: {
+  note: string;
+  day: string;
+  shiftLabel: string;
+  members: string[];
+  busy: boolean;
+  act: AppContextValue["act"];
+}) {
+  const [manualReport, setManualReport] = useState(() => parseManualReport(note));
+  return (
+    <Panel title="گزارش دستی اپراتور" icon="file" hint={`${shiftLabel} — ${members.join(" و ")} — ${day}`}>
+      <div className="form-grid">
+        <div className="field">
+          <label>شرح عملیات انجام‌شده</label>
+          <textarea className="input" rows={4} value={manualReport.operations} onChange={(e) => setManualReport({ ...manualReport, operations: e.target.value })} placeholder="کارها و اقدامات انجام‌شده در این شیفت…" />
+        </div>
+        <div className="field">
+          <label>اعلام خرابی / موارد نیازمند پیگیری</label>
+          <textarea className="input" rows={4} value={manualReport.failures} onChange={(e) => setManualReport({ ...manualReport, failures: e.target.value })} placeholder="خرابی، نشانهٔ غیرعادی، تجهیز و اقدام یا پیگیری لازم…" />
+        </div>
+      </div>
+      <div className="row" style={{ marginTop: 8, justifyContent: "flex-end" }}>
+        <button type="button" className="btn primary" disabled={busy} onClick={() => act("note.save", { operations: manualReport.operations, failures: manualReport.failures, day, expected: note })}>ذخیره گزارش دستی</button>
+      </div>
+    </Panel>
   );
 }
 

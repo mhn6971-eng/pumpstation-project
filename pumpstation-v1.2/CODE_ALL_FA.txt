@@ -1,7 +1,7 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.29   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: e608d82
-تاریخ تولید: 2026-11-16   |   134 فایل   |   27,137 خط
+نسخهٔ برنامه: 1.4.31   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: aea0e82
+تاریخ تولید: 2026-11-16   |   137 فایل   |   27,315 خط
 ==============================================================================
 
 این فایل، «نسخهٔ خوانا»ی کل کد برنامه است؛ هر فایل کامل و بدون حذف درج شده و
@@ -19,7 +19,7 @@
      package.json                                         55 خط
      package-lock.json                                    7100 خط
      CODE-MAP_FA.md                                       53 خط
-     next.config.ts                                       43 خط
+     next.config.ts                                       46 خط
      tsconfig.json                                        43 خط
      eslint.config.mjs                                    23 خط
      postcss.config.mjs                                   8 خط
@@ -30,7 +30,7 @@
   ۲) دیتابیس و مهاجرت‌ها
      src/db/index.ts                                      108 خط
      src/db/schema.ts                                     466 خط
-     src/db/seed.ts                                       290 خط
+     src/db/seed.ts                                       301 خط
      src/lib/seed-helpers.ts                              12 خط
      data/roster.sample.json                              10 خط
      drizzle/0000_woozy_omega_flight.sql                  259 خط
@@ -59,13 +59,14 @@
      src/lib/domain.ts                                    332 خط
      src/lib/state.ts                                     262 خط
      src/lib/motor-history.ts                             15 خط
-     src/lib/reporting.ts                                 215 خط
+     src/lib/reporting.ts                                 217 خط
      src/lib/backup.ts                                    355 خط
      src/lib/backup-validation.ts                         15 خط
      src/lib/backup-bundle.ts                             530 خط
      src/lib/mirror.ts                                    243 خط
      src/lib/archive.ts                                   193 خط
-     src/lib/roster.ts                                    117 خط
+     src/lib/roster.ts                                    160 خط
+     src/lib/manual-report.ts                             28 خط
      src/lib/netbind.ts                                   110 خط
      src/lib/sqlite-cloud.ts                              41 خط
      src/lib/bot.ts                                       71 خط
@@ -75,7 +76,7 @@
 
   ۴) مسیرهای API (src/app/api)
      src/app/api/auth/route.ts                            147 خط
-     src/app/api/actions/route.ts                         1150 خط
+     src/app/api/actions/route.ts                         1156 خط
      src/app/api/state/route.ts                           48 خط
      src/app/api/history/route.ts                         31 خط
      src/app/api/totals/route.ts                          48 خط
@@ -93,7 +94,7 @@
      src/app/error.tsx                                    26 خط
      src/app/loading.tsx                                  11 خط
      src/app/not-found.tsx                                14 خط
-     src/app/report/[id]/page.tsx                         253 خط
+     src/app/report/[id]/page.tsx                         268 خط
      src/app/totals/page.tsx                              81 خط
      src/app/globals.css                                  2215 خط
      src/proxy.ts                                         155 خط
@@ -105,16 +106,16 @@
      src/components/ui.tsx                                134 خط
      src/components/AppShell.tsx                          412 خط
      src/components/Login.tsx                             118 خط
-     src/components/Dashboard.tsx                         165 خط
+     src/components/Dashboard.tsx                         195 خط
      src/components/MotorCard.tsx                         107 خط
      src/components/MotorVisual.tsx                       123 خط
      src/components/MotorDetail.tsx                       199 خط
      src/components/AuxTab.tsx                            97 خط
-     src/components/RegistryTab.tsx                       222 خط
-     src/components/PmTab.tsx                             134 خط
+     src/components/RegistryTab.tsx                       223 خط
+     src/components/PmTab.tsx                             135 خط
      src/components/ServiceForm.tsx                       227 خط
      src/components/ReportsTab.tsx                        220 خط
-     src/components/ReportsHub.tsx                        102 خط
+     src/components/ReportsHub.tsx                        104 خط
      src/components/ChartModal.tsx                        270 خط
      src/components/PrintBar.tsx                          20 خط
      src/components/AlertsTab.tsx                         49 خط
@@ -148,7 +149,7 @@
      audit/audit3.mjs                                     206 خط
      audit/audit4.mjs                                     91 خط
      audit/audit5.mjs                                     336 خط
-     audit/audit6.mjs                                     491 خط
+     audit/audit6.mjs                                     501 خط
      audit/bulk.mjs                                       108 خط
      audit/perf.mjs                                       27 خط
      audit/conc.mjs                                       69 خط
@@ -156,7 +157,9 @@
      audit/jalali.test.mjs                                53 خط
      audit/updater.test.mjs                               15 خط
      audit/update-zip.test.mjs                            68 خط
-     audit/windows-installer.test.mjs                     182 خط
+     audit/manual-report.test.mjs                         18 خط
+     audit/build-compat.test.mjs                          6 خط
+     audit/windows-installer.test.mjs                     184 خط
      audit/probe.mjs                                      10 خط
      audit/sess.mjs                                       34 خط
      audit/writeperf.mjs                                  14 خط
@@ -187,7 +190,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "doctor": "node scripts/doctor.mjs",
-    "test:audit": "node audit/jalali.test.mjs && node audit/updater.test.mjs && node audit/update-zip.test.mjs && node audit/windows-installer.test.mjs && node audit/audit1.mjs && node audit/audit2.mjs && node audit/audit3.mjs && node audit/audit4.mjs && node audit/audit5.mjs && node audit/audit6.mjs && node audit/conc.mjs",
+    "test:audit": "node audit/jalali.test.mjs && node audit/updater.test.mjs && node audit/update-zip.test.mjs && node audit/manual-report.test.mjs && node audit/build-compat.test.mjs && node audit/windows-installer.test.mjs && node audit/audit1.mjs && node audit/audit2.mjs && node audit/audit3.mjs && node audit/audit4.mjs && node audit/audit5.mjs && node audit/audit6.mjs && node audit/conc.mjs",
     "test:perf": "node audit/perf.mjs",
     "test": "npm run typecheck && npm run test:audit",
     "db:pg-init": "node scripts/pg-init.mjs",
@@ -218,7 +221,7 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   },
-  "version": "1.4.29",
+  "version": "1.4.31",
   "overrides": {
     "@typescript-eslint/typescript-estree": {
       "minimatch": "11.0.5"
@@ -230,13 +233,13 @@
 
 {
   "name": "pumpstation-monitoring",
-  "version": "1.4.29",
+  "version": "1.4.31",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "pumpstation-monitoring",
-      "version": "1.4.28",
+      "version": "1.4.31",
       "dependencies": {
         "@electric-sql/pglite": "^0.5.15",
         "dotenv": "17.3.1",
@@ -7383,7 +7386,7 @@ rg -n "پلاک موتور|MOTOR_BRAND|1800" src/components/MotorVisual.tsx src/
 - رنگ‌ها و چیدمان سراسری: `src/app/globals.css`
 - آزمون‌های خودکار: `audit/`؛ دستور کامل پروژه `npm test` است.
 
-── FILE: next.config.ts  (43 خط) ──
+── FILE: next.config.ts  (46 خط) ──
 
 import type { NextConfig } from "next";
 
@@ -7419,6 +7422,9 @@ if (process.env.COOKIE_SECURE === "1" || process.env.FORCE_HTTPS === "1") {
 const nextConfig: NextConfig = {
   // PGlite و pg باید بیرون از باندل Next بمانند (فایل WASM و باینری بومی)
   serverExternalPackages: ["@electric-sql/pglite", "pg"],
+  // Keep Windows update builds reliable on station PCs with limited memory. Next.js
+  // defaults to nearly every logical CPU; page-data workers initialize DB modules.
+  experimental: { cpus: 2 },
   // اجازهٔ دسترسی از دامنهٔ پیش‌نمایش
   allowedDevOrigins: ["*.e2b.app", "*.e2b.dev", "localhost", "127.0.0.1"],
   async headers() {
@@ -8171,9 +8177,9 @@ export const backupMirrorRuns = pgTable(
   (t) => [index("backup_mirror_at_idx").on(t.ts)],
 );
 
-── FILE: src/db/seed.ts  (290 خط) ──
+── FILE: src/db/seed.ts  (301 خط) ──
 
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   shifts,
@@ -8199,7 +8205,7 @@ import {
   PM_TEMPLATE_SEED,
   type Settings,
 } from "@/lib/domain";
-import { loadRosterFile, resolveRoster, sampleRosterPath } from "@/lib/roster";
+import { loadRosterFile, normalizeRosterDisplayText, resolveRoster, sampleRosterPath } from "@/lib/roster";
 import { jelaliSeedDays, padSeedValue } from "@/lib/seed-helpers";
 import { jalaliNow, operationalDay } from "@/lib/jalali";
 import { hashPin, verifyPin } from "@/lib/pin";
@@ -8250,6 +8256,17 @@ async function runSeed() {
       });
       if (hasSamplePin) {
         throw new Error("پایگاه داده با PINهای روستر نمونه مقداردهی شده است؛ production متوقف شد. روستر واقعی را نصب و PINها را با فرایند مدیریتی تغییر دهید.");
+      }
+    }
+    // Repair display-only roster text corrupted by a UTF-8/ANSI PowerShell script mismatch.
+    // Keys, roles, PIN hashes, reports, and all operational measurements remain untouched.
+    for (const row of await db.select().from(shifts)) {
+      const fallbackLabel = row.key === "admin" ? "مدیر سامانه" : `شیفت ${row.key}`;
+      const fallbackMember = row.key === "admin" ? "مدیر سامانه" : `اپراتور شیفت ${row.key}`;
+      const label = normalizeRosterDisplayText(row.label, fallbackLabel);
+      const members = (row.members ?? []).map((member) => normalizeRosterDisplayText(member, fallbackMember));
+      if (label !== row.label || JSON.stringify(members) !== JSON.stringify(row.members ?? [])) {
+        await db.update(shifts).set({ label, members }).where(eq(shifts.key, row.key));
       }
     }
     return;
@@ -11148,7 +11165,7 @@ export function motorStateAtDayEnd(currentState: string, entries: MotorStateHist
   return ordered.find((entry) => entry.at > dayEnd)?.fromState ?? currentState;
 }
 
-── FILE: src/lib/reporting.ts  (215 خط) ──
+── FILE: src/lib/reporting.ts  (217 خط) ──
 
 import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { db } from "@/db";
@@ -11170,6 +11187,7 @@ import {
 import { getProcessThresholds, thresholdSeverity } from "@/lib/state";
 import { jalaliNow, operationalDay } from "@/lib/jalali";
 import { MOTORS, MOTOR_PARAMS, PROCESS_PARAMS, STATUS_FA } from "@/lib/domain";
+import { parseManualReport } from "@/lib/manual-report";
 import { motorStateAtDayEnd } from "@/lib/motor-history";
 
 export const REPORT_KINDS: Record<string, string> = {
@@ -11202,6 +11220,7 @@ export async function buildOperationalPayload(kind: "daily" | "aux", day: string
   ]);
   const total = totalRows[0];
   const note = noteRows[0];
+  const manualNote = parseManualReport(note?.text ?? "");
   const dayEnd = `${day} 23:59:59`;
   const stateLogsByTag = new Map<string, typeof stateLogs>();
   for (const entry of stateLogs) stateLogsByTag.set(entry.tag, [...(stateLogsByTag.get(entry.tag) ?? []), entry]);
@@ -11221,7 +11240,7 @@ export async function buildOperationalPayload(kind: "daily" | "aux", day: string
     };
   });
 
-  const empty = processRows.length === 0 && !total && !note?.text;
+  const empty = processRows.length === 0 && !total && !manualNote.operations.trim() && !manualNote.failures.trim();
   return {
     kind,
     day,
@@ -12711,7 +12730,7 @@ export async function ensureYearlyArchive() {
   return archiveOlderThan(Number(process.env.ARCHIVE_AFTER_YEARS ?? 3), "system");
 }
 
-── FILE: src/lib/roster.ts  (117 خط) ──
+── FILE: src/lib/roster.ts  (160 خط) ──
 
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -12756,6 +12775,45 @@ export function localRosterPath(): string {
   return path.isAbsolute(raw) ? raw : path.join(process.cwd(), raw);
 }
 
+const CP1252_REVERSE = new Map<number, number>([
+  [0x20ac, 0x80], [0x201a, 0x82], [0x0192, 0x83], [0x201e, 0x84], [0x2026, 0x85],
+  [0x2020, 0x86], [0x2021, 0x87], [0x02c6, 0x88], [0x2030, 0x89], [0x0160, 0x8a],
+  [0x2039, 0x8b], [0x0152, 0x8c], [0x017d, 0x8e], [0x2018, 0x91], [0x2019, 0x92],
+  [0x201c, 0x93], [0x201d, 0x94], [0x2022, 0x95], [0x2013, 0x96], [0x2014, 0x97],
+  [0x02dc, 0x98], [0x2122, 0x99], [0x0161, 0x9a], [0x203a, 0x9b], [0x0153, 0x9c],
+  [0x017e, 0x9e], [0x0178, 0x9f],
+]);
+
+/**
+ * Repair Persian text that Windows PowerShell 5.1 wrote after reading a UTF-8
+ * installer script without a BOM. Only suspicious Latin-1/CP1252 mojibake is
+ * decoded; if bytes were irreversibly replaced, use a readable generic label.
+ */
+export function normalizeRosterDisplayText(value: string, fallback: string): string {
+  const suspiciousCount = (text: string) => (text.match(/[ØÙÛÃÂÐÑ]/g) ?? []).length;
+  if (!suspiciousCount(value)) return value;
+  let candidate = value;
+  for (let pass = 0; pass < 2 && suspiciousCount(candidate) > 0; pass += 1) {
+    const bytes: number[] = [];
+    let reversible = true;
+    for (const character of candidate) {
+      const code = character.codePointAt(0)!;
+      if (code <= 0xff) bytes.push(code);
+      else if (CP1252_REVERSE.has(code)) bytes.push(CP1252_REVERSE.get(code)!);
+      else { reversible = false; break; }
+    }
+    if (!reversible) break;
+    try {
+      const decoded = new TextDecoder("utf-8", { fatal: true }).decode(Uint8Array.from(bytes));
+      if (suspiciousCount(decoded) >= suspiciousCount(candidate)) break;
+      candidate = decoded;
+    } catch {
+      break;
+    }
+  }
+  return /[\u0600-\u06ff]/.test(candidate) && suspiciousCount(candidate) < suspiciousCount(value) ? candidate : fallback;
+}
+
 /** اعتبارسنجی ساختار روستر؛ در صورت ایراد با پیام فارسی خطا می‌دهد. */
 export function validateRoster(input: unknown, sourceName: string): RosterEntry[] {
   const bad = (why: string): Error => new Error(`روستر ${sourceName} معتبر نیست: ${why}`);
@@ -12771,13 +12829,17 @@ export function validateRoster(input: unknown, sourceName: string): RosterEntry[
     if (!/^[A-Za-z0-9_-]{1,10}$/.test(key)) throw bad(`کلید شیفت نامعتبر است (${String(e.key ?? "")})`);
     if (seen.has(key)) throw bad(`کلید تکراری: ${key}`);
     seen.add(key);
-    const label = String(e.label ?? "").trim();
+    const fallbackLabel = key === "admin" ? "مدیر سامانه" : `شیفت ${key}`;
+    const label = normalizeRosterDisplayText(String(e.label ?? "").trim(), fallbackLabel);
     if (!label || label.length > 40) throw bad(`نام نمایشی شیفت ${key} نامعتبر است`);
     const role = e.role;
     if (role !== "operator" && role !== "admin") throw bad(`نقش شیفت ${key} باید operator یا admin باشد`);
     const pin = String(e.pin ?? "");
     if (!/^\d{4}$/.test(pin)) throw bad(`PIN شیفت ${key} باید دقیقاً چهار رقم باشد`);
-    const members = Array.isArray(e.members) ? e.members.map((m) => String(m ?? "").trim()).filter(Boolean) : [];
+    const fallbackMember = key === "admin" ? "مدیر سامانه" : `اپراتور شیفت ${key}`;
+    const members = Array.isArray(e.members)
+      ? e.members.map((m) => normalizeRosterDisplayText(String(m ?? "").trim(), fallbackMember)).filter(Boolean)
+      : [];
     if (members.length === 0 || members.length > 4) throw bad(`اعضای شیفت ${key} باید یک تا چهار نام باشد`);
     if (members.some((m) => m.length > 80)) throw bad(`نام یکی از اعضای شیفت ${key} بیش از حد طولانی است`);
     out.push({ key, label, role, pin, members });
@@ -12828,6 +12890,36 @@ export function resolveRoster(): { roster: RosterEntry[]; source: RosterSource; 
   const roster = loadRosterFile(sample);
   warnSampleRoster(local);
   return { roster, source: "sample", path: sample };
+}
+
+── FILE: src/lib/manual-report.ts  (28 خط) ──
+
+const STRUCTURED_NOTE_PREFIX = "[[PUMPSTATION_MANUAL_REPORT_V1]]\n";
+
+export type ManualReportFields = {
+  operations: string;
+  failures: string;
+};
+
+/** Old notes remain readable as the operations field; the DB column stays unchanged. */
+export function parseManualReport(text: string): ManualReportFields {
+  if (!text.startsWith(STRUCTURED_NOTE_PREFIX)) return { operations: text, failures: "" };
+  try {
+    const value = JSON.parse(text.slice(STRUCTURED_NOTE_PREFIX.length)) as Partial<ManualReportFields>;
+    if (typeof value.operations === "string" && typeof value.failures === "string") {
+      return { operations: value.operations, failures: value.failures };
+    }
+  } catch {
+    // A malformed marker is kept visible as a legacy note instead of discarded.
+  }
+  return { operations: text, failures: "" };
+}
+
+export function serializeManualReport(fields: ManualReportFields): string {
+  return `${STRUCTURED_NOTE_PREFIX}${JSON.stringify({
+    operations: fields.operations.trim(),
+    failures: fields.failures.trim(),
+  })}`;
 }
 
 ── FILE: src/lib/netbind.ts  (110 خط) ──
@@ -13522,7 +13614,7 @@ export async function DELETE(request: Request) {
   }
 }
 
-── FILE: src/app/api/actions/route.ts  (1150 خط) ──
+── FILE: src/app/api/actions/route.ts  (1156 خط) ──
 
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -13572,6 +13664,7 @@ import { buildOperationalPayload, buildRegistryPayload, buildTrendPayload, creat
 import { addDaysToDay, isValidJalaliDay, jalaliNow, motorHoursAt, operationalDay } from "@/lib/jalali";
 import { sendBotDocument, sendBotText } from "@/lib/bot";
 import { zipStored } from "@/lib/zip";
+import { serializeManualReport } from "@/lib/manual-report";
 import { CATEGORIES, MOTORS, MOTOR_PARAMS, MOTOR_TYPE_LIMITS, MOTOR_STATE_FA, PROCESS_LIMITS, PROCESS_PARAMS, TOTAL_LIMITS, limitError, type Settings } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
@@ -14046,7 +14139,7 @@ export async function POST(request: Request) {
           await d.insert(equipmentReports).values({ tag, kind: "pm", reason: `PM: ${rec.templateName}${rec.note ? ` — ${rec.note}` : ""}`, operator: rec.workers || shift.label, shiftKey, at: jalaliNow() });
           const monthRows = await d.select().from(pmRecords).where(sql`${pmRecords.day} like ${`${day.slice(0, 7)}/%`}`).orderBy(pmRecords.id);
           const monthlyData = monthRows.filter((r) => r.templateName === rec.templateName).map((r) => ({ tag: r.tag, stage: r.stage, day: r.day, results: r.results ?? {}, note: r.note, workers: r.workers }));
-          const reportId = await createReport({ kind: "pm", day, shift, title: `PM ماهیانه ${tag} — ${day}`, payload: { ...rec, items, monthlyData, pmId: id, name: row.name, category: row.category, pumpTag: row.isMotor ? row.tag.replace(/^M-/, "P-") : "", generatedAt: jalaliNow() } }, d);
+          const reportId = await createReport({ kind: "pm", day, shift, title: `PM ماهیانه ${tag} — ${day}`, payload: { ...rec, items, monthlyData, pmId: id, name: row.name, spec: row.spec, category: row.category, isMotor: row.isMotor, pumpTag: row.isMotor ? row.tag.replace(/^M-/, "P-") : "", generatedAt: jalaliNow() } }, d);
           await logActivity(shiftKey, "ثبت PM", `${tag} — ${rec.templateName}`, d);
           return reportId;
         });
@@ -14066,8 +14159,13 @@ export async function POST(request: Request) {
       }
 
       case "note.save": {
-        const raw = String(p.text ?? "");
-        if (raw.length > 4000) throw badRequest("متن گزارش حداکثر ۴٬۰۰۰ کاراکتر است؛ لطفاً کوتاه‌تر کنید");
+        const hasStructuredFields = typeof p.operations === "string" || typeof p.failures === "string";
+        const raw = hasStructuredFields
+          ? serializeManualReport({ operations: String(p.operations ?? ""), failures: String(p.failures ?? "") })
+          : String(p.text ?? "");
+        if (raw.length > 4000) throw badRequest(hasStructuredFields
+          ? "مجموع شرح عملیات و اعلام خرابی حداکثر ۳٬۹۰۰ نویسه باشد"
+          : "متن گزارش حداکثر ۴٬۰۰۰ کاراکتر است؛ لطفاً کوتاه‌تر کنید");
         const text = raw.trim();
         await runTx(async (d) => {
           // «گزارش دستی روز» یک متن مشترک برای همان روز است؛ همهٔ شیفت‌ها همان را می‌بینند
@@ -15782,7 +15880,7 @@ export default function NotFound() {
   );
 }
 
-── FILE: src/app/report/[id]/page.tsx  (253 خط) ──
+── FILE: src/app/report/[id]/page.tsx  (268 خط) ──
 
 import { notFound, redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
@@ -15791,13 +15889,17 @@ import { reports } from "@/db/schema";
 import { getSessionUser } from "@/lib/auth";
 import { ensureSeed } from "@/db/seed";
 import PrintBar from "@/components/PrintBar";
-import { APP_NAME, APP_SUBTITLE, ORG_NAME, pumpTagOf } from "@/lib/domain";
+import { APP_NAME, APP_SUBTITLE, MOTOR_POWER_KW, ORG_NAME, pumpTagOf } from "@/lib/domain";
+import { faDigits } from "@/lib/jalali";
+import { parseManualReport } from "@/lib/manual-report";
 import { REPORT_KINDS } from "@/lib/reporting";
 
 export const dynamic = "force-dynamic";
 
 type Any = Record<string, unknown>;
 const v = (x: unknown) => (x === null || x === undefined || x === "" ? "—" : String(x));
+const reportTag = (tag: unknown) => pumpTagOf(String(tag ?? ""));
+const reportText = (value: unknown) => String(value ?? "").replace(/M-(0[1-8])\b/g, "P-$1");
 const kindOf = (k: string) => (k === "service" ? "در حال سرویس" : k === "ready" ? "آماده به کار" : k === "motor_service" ? "سرویس موتور" : k === "motor_overhaul" ? "سرویس اورهال" : k === "pm" ? "PM" : "گزارش سرویس");
 
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
@@ -15812,7 +15914,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
 
   return (
     <main className="report-page">
-      <PrintBar title={`${row.title} — نسخه ${row.id}`} />
+      <PrintBar title={`${reportText(row.title)} — نسخه ${row.id}`} />
       <article className={`print-sheet${row.kind === "pm" ? " pm-landscape" : ""}`}>
         <header className="print-head">
           <div>
@@ -15835,9 +15937,9 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         {row.kind === "daily" && <Daily d={d} />}
         {row.kind === "aux" && <Aux d={d} />}
         {row.kind === "motor_service" && <MotorService d={d} />}
-        {row.kind === "motor_overhaul" && <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(d.pumpTag ?? pumpTagOf(String(d.tag ?? "")))}`], ["تاریخ اورهال", v(d.day)], ["کارکرد هنگام اورهال (ساعت HMI)", v(d.hours)], ["انجام‌دهندگان", v(d.workers)], ["شیفت ثبت‌کننده", v(d.shiftLabel)], ["شرح عملیات و قطعات", v(d.note)]]} />}
+        {row.kind === "motor_overhaul" && <Simple rows={[["پمپ", v(d.pumpTag ?? reportTag(d.tag))], ["تاریخ اورهال", v(d.day)], ["کارکرد هنگام اورهال (ساعت HMI)", v(d.hours)], ["انجام‌دهندگان", v(d.workers)], ["شیفت ثبت‌کننده", v(d.shiftLabel)], ["شرح عملیات و قطعات", v(d.note)]]} />}
         {row.kind === "megger" && <Megger d={d} />}
-        {row.kind === "oil" && <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(pumpTagOf(String(d.tag ?? "")))}`], ["تاریخ", v(d.day)], ["ساعت کارکرد", v(d.hours)], ["یادداشت", v(d.note)]]} />}
+        {row.kind === "oil" && <Simple rows={[["پمپ", v(reportTag(d.tag))], ["تاریخ", v(d.day)], ["ساعت کارکرد", v(d.hours)], ["یادداشت", v(d.note)]]} />}
         {row.kind === "pm" && <Pm d={d} />}
         {row.kind === "registry" && <Registry d={d} />}
         {row.kind === "trend" && <Trend d={d} />}
@@ -15858,8 +15960,10 @@ function Simple({ rows }: { rows: [string, string][] }) {
 
 function Daily({ d }: { d: Any }) {
   const process = (d.process as Any[]) ?? [];
-  const motorsOn = (d.motorsOn as string[]) ?? [];
-  const motorsService = (d.motorsService as string[]) ?? [];
+  const motorsOn = ((d.motorsOn as string[]) ?? []).map(reportTag);
+  const motorsService = ((d.motorsService as string[]) ?? []).map(reportTag);
+  const motorsOff = ((d.motorsOff as string[]) ?? []).map(reportTag);
+  const manualReport = parseManualReport(String(d.note ?? ""));
   const hasStar = process.some((p) => p.out);
   return (
     <>
@@ -15882,12 +15986,15 @@ function Daily({ d }: { d: Any }) {
       <h2>وضعیت موتورهای اصلی</h2>
       <table><tbody>
         <tr><th style={{ width: 160 }}>روشن</th><td className="ltr">{motorsOn.length ? motorsOn.join("، ") : "—"}</td></tr>
-        <tr><th>خاموش / آماده به کار</th><td className="ltr">{((d.motorsOff as string[]) ?? []).join("، ") || "—"}</td></tr>
+        <tr><th>خاموش / آماده به کار</th><td className="ltr">{motorsOff.join("، ") || "—"}</td></tr>
         <tr><th>در حال سرویس</th><td className="ltr">{motorsService.join("، ") || "—"}</td></tr>
       </tbody></table>
 
       <h2>گزارش دستی اپراتور</h2>
-      <p className="print-para">{v(d.note)}</p>
+      <table><tbody>
+        <tr><th>شرح عملیات انجام‌شده</th></tr><tr><td>{v(manualReport.operations)}</td></tr>
+        <tr><th>اعلام خرابی / موارد نیازمند پیگیری</th></tr><tr><td>{v(manualReport.failures)}</td></tr>
+      </tbody></table>
 
     </>
   );
@@ -15901,12 +16008,12 @@ function Aux({ d }: { d: Any }) {
     <>
       <h2>وضعیت تجهیزات جانبی</h2>
       <table><thead><tr><th style={{ width: 80 }}>تگ</th><th>تجهیز</th><th style={{ width: 100 }}>وضعیت</th><th>توضیحات / دلیل سرویس</th><th style={{ width: 120 }}>زمان ثبت</th></tr></thead>
-        <tbody>{equipment.map((e) => <tr key={String(e.tag)}><td className="ltr">{v(e.tag)}{e.safetyCritical ? " *" : ""}</td><td>{v(e.name)}</td><td><span className={`st ${tone(String(e.statusFa ?? ""))}`}>{v(e.statusFa)}</span></td><td className="small">{v(e.description)}</td><td className="ltr small">{v(e.descriptionAt)}</td></tr>)}</tbody></table>
+        <tbody>{equipment.map((e) => <tr key={String(e.tag)}><td className="ltr">{reportTag(e.tag)}{e.safetyCritical ? " *" : ""}</td><td>{reportText(e.name)}</td><td><span className={`st ${tone(String(e.statusFa ?? ""))}`}>{v(e.statusFa)}</span></td><td className="small">{v(e.description)}</td><td className="ltr small">{v(e.descriptionAt)}</td></tr>)}</tbody></table>
       <p className="print-note">* تجهیز حیاتی ایمنی</p>
       <h2>گزارش‌های سرویس امروز</h2>
       {svc.length === 0 ? <p className="print-para">گزارشی ثبت نشده است.</p> : (
         <table><thead><tr><th style={{ width: 80 }}>تگ</th><th style={{ width: 100 }}>نوع</th><th>توضیحات</th><th style={{ width: 130 }}>زمان</th></tr></thead>
-          <tbody>{svc.map((s, i) => <tr key={i}><td className="ltr">{v(s.tag)}</td><td>{kindOf(String(s.kind))}</td><td>{v(s.reason)}</td><td className="ltr small">{v(s.at)}</td></tr>)}</tbody></table>)}
+          <tbody>{svc.map((s, i) => <tr key={i}><td className="ltr">{reportTag(s.tag)}</td><td>{kindOf(String(s.kind))}</td><td>{v(s.reason)}</td><td className="ltr small">{v(s.at)}</td></tr>)}</tbody></table>)}
     </>
   );
 }
@@ -15917,7 +16024,7 @@ function MotorService({ d }: { d: Any }) {
   const oil = d.oil as Any | null;
   return (
     <>
-      <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(d.pumpTag ?? pumpTagOf(String(d.tag ?? "")))}`], ["تاریخ سرویس", v(d.day)], ["ساعت HMI هنگام سرویس", v(d.hours)], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)], ["یادداشت", v(d.note)]]} />
+      <Simple rows={[["پمپ", v(d.pumpTag ?? reportTag(d.tag))], ["تاریخ سرویس", v(d.day)], ["ساعت HMI هنگام سرویس", v(d.hours)], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)], ["یادداشت", v(d.note)]]} />
       <h2>قرائت ذغال‌ها (میلی‌متر)</h2>
       <table><thead><tr><th>فاز</th>{Array.from({ length: 8 }, (_, i) => <th key={i} className="center">برس {i + 1}</th>)}</tr></thead>
         <tbody>{["U", "V", "W"].map((ph) => <tr key={ph}><td className="ltr"><b>{ph}</b></td>{Array.from({ length: 8 }, (_, i) => <td key={i} className="ltr center">{brush[`${ph}${i + 1}`] ?? "—"}</td>)}</tr>)}</tbody></table>
@@ -15932,7 +16039,7 @@ function MotorService({ d }: { d: Any }) {
 function Megger({ d }: { d: Any }) {
   return (
     <>
-      <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(pumpTagOf(String(d.tag ?? "")))}`], ["تاریخ", v(d.day)], ["ولتاژ تست استاتور", `${v(d.testVoltage)} V`], ["ولتاژ تست رتور", `${v(d.testVoltageRotor ?? d.testVoltage)} V`], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)]]} />
+      <Simple rows={[["پمپ", v(reportTag(d.tag))], ["تاریخ", v(d.day)], ["ولتاژ تست استاتور", `${v(d.testVoltage)} V`], ["ولتاژ تست رتور", `${v(d.testVoltageRotor ?? d.testVoltage)} V`], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)]]} />
       <h2>نتایج</h2>
       <table><thead><tr><th>آیتم</th><th className="center">U1</th><th className="center">V1</th><th className="center">W1</th></tr></thead>
         <tbody>
@@ -15955,6 +16062,12 @@ function Pm({ d }: { d: Any }) {
   const entries = keys.map((key) => [key, results[key] ?? ""] as [string, string]);
   const monthly = String(d.templateName ?? "").includes("ماهیانه") || entries.length >= 16;
   const monthlyData = (d.monthlyData as Any[]) ?? [];
+  const equipmentIsMotor = Boolean(d.isMotor) || /^M-0[1-8]$/.test(String(d.tag ?? ""));
+  const pmHeading = monthly
+    ? equipmentIsMotor
+      ? `چک‌لیست ماهانهٔ الکتروموتورهای ${faDigits(MOTOR_POWER_KW)} کیلووات`
+      : `چک‌لیست ماهانهٔ ${reportText(d.templateName ?? d.name ?? "تجهیز")}`
+    : `فرم نگهداشت پیشگیرانه — ${reportText(d.templateName ?? "PM")}`;
   const motorTags = Array.from({ length: 8 }, (_, i) => `P-${String(i + 1).padStart(2, "0")}`);
   const cell = (stage: string, pumpTag: string, item: string) => {
     const records = monthlyData.filter((r) => String(r.stage) === stage && pumpTagOf(String(r.tag ?? "")) === pumpTag);
@@ -15966,10 +16079,10 @@ function Pm({ d }: { d: Any }) {
   };
   return (
     <div className={monthly ? "pm-print-form" : ""}>
-      {monthly && <div className="pm-print-heading"><b>امور بهره‌برداری و نگهداری</b><b>چک‌لیست ماهیانه الکتروموتور زمینی</b><span>طرح انتقال آب به کاشان — بخش: تصفیه‌خانه / موتورخانه</span></div>}
+      <div className="pm-print-heading"><b>امور بهره‌برداری و نگهداری</b><span>طرح آبرسانی به کاشان</span><b>{pmHeading}</b><span>ایستگاه پمپاژ زیرزمینی</span></div>
       <table className="pm-meta"><tbody>
-        <tr><th>تجهیز / موتور</th><td className="ltr">{v(d.tag)} — {v(d.name)}</td><th>پمپ</th><td className="ltr">{v(d.pumpTag ?? pumpTagOf(String(d.tag ?? "")))}</td></tr>
-        <tr><th>ماه / تاریخ بازدید</th><td>{monthly ? String(d.day ?? "—").slice(0, 7) : v(d.day)}</td><th>تعداد دستگاه‌ها</th><td>{monthly ? "۸ موتور اصلی" : v(d.tag)}</td></tr>
+        <tr><th>تجهیز</th><td>{reportTag(d.tag)} — {reportText(d.name)}</td><th>مشخصات</th><td>{v(d.spec)}</td></tr>
+        <tr><th>تاریخ بازدید</th><td>{v(d.day)}</td><th>تعداد دستگاه‌ها</th><td>{monthly ? "۸ موتور اصلی" : reportTag(d.tag)}</td></tr>
         <tr><th>مسئول تکمیل فرم</th><td>{v(d.workers)}</td><th>مرحلهٔ جاری / قالب</th><td>{monthly ? (String(d.stage) === "2" ? "مرحلهٔ دوم — هفتهٔ سوم ماه" : "مرحلهٔ اول — هفتهٔ اول ماه") : v(d.templateName)}</td></tr>
       </tbody></table>
       <h2>{monthly ? "شرح بازدید و نتیجهٔ کنترل" : "چک‌لیست"}</h2>
@@ -16014,7 +16127,7 @@ function Trend({ d }: { d: Any }) {
         <table><thead><tr><th style={{ width: 110 }}>{isCompare ? "موتور" : "تاریخ"}</th><th style={{ width: 110 }}>{isCompare ? "پارامتر" : d.grouped === "day" ? "نوع" : "بازه"}</th><th>مقدار ({v(d.unit)})</th><th style={{ width: 120 }}>شیفت / ثبت</th></tr></thead>
           <tbody>{shown.map((p, i) => (
             <tr key={i}>
-              <td className="ltr">{isCompare ? v(p.x) : v(p.day)}</td>
+              <td className="ltr">{isCompare ? reportTag(p.x) : v(p.day)}</td>
               <td className="small">{isCompare ? v(d.label) : d.grouped === "day" ? "میانگین روزانه" : `بازه ${Number(p.interval) + 1}`}</td>
               <td className="ltr"><b>{v(p.y)}</b></td>
               <td className="small">{v(p.shift)}</td>
@@ -16032,7 +16145,7 @@ function Registry({ d }: { d: Any }) {
     <>
       <p className="print-para">محدوده: {d.scope === "all" ? "کل رجیستری" : d.scope === "category" ? `دستهٔ ${v(d.category)}` : d.scope === "single" ? "یک تجهیز" : "چند تجهیز انتخابی"} — {items.length} رکورد</p>
       <table><thead><tr><th style={{ width: 80 }}>تگ</th><th>نام</th><th>دسته</th><th>مشخصات</th><th>پلاک / قطعات</th><th>محل</th><th style={{ width: 80 }}>وضعیت</th><th style={{ width: 70 }}>آخرین PM</th></tr></thead>
-        <tbody>{items.map((e) => <tr key={String(e.tag)}><td className="ltr">{v(e.tag)}</td><td>{v(e.name)}</td><td className="small">{v(e.category)}</td><td className="small">{v(e.spec)}</td><td className="small">{[e.plate, e.partNumbers].filter(Boolean).join(" — ") || "—"}</td><td className="small">{v(e.location)}</td><td>{v(e.statusFa)}</td><td className="ltr small">{v(e.lastPm)}</td></tr>)}</tbody></table>
+        <tbody>{items.map((e) => <tr key={String(e.tag)}><td className="ltr">{reportTag(e.tag)}</td><td>{reportText(e.name)}</td><td className="small">{v(e.category)}</td><td className="small">{v(e.spec)}</td><td className="small">{[e.plate, e.partNumbers].filter(Boolean).join(" — ") || "—"}</td><td className="small">{v(e.location)}</td><td>{v(e.statusFa)}</td><td className="ltr small">{v(e.lastPm)}</td></tr>)}</tbody></table>
     </>
   );
 }
@@ -18290,7 +18403,7 @@ textarea.input {
   color: #10202e;
 }
 .pm-print-heading b:first-child { font-size: 12px; }
-.pm-print-heading b:nth-child(2) { font-size: 15px; }
+.pm-print-heading b:nth-of-type(2) { font-size: 15px; }
 .pm-print-heading span { font-size: 11px; }
 .pm-meta th { width: 13%; white-space: nowrap; }
 .pm-meta td { width: 37%; }
@@ -19271,24 +19384,23 @@ export default function Login({ roster, weekday, day }: { roster: ShiftOption[];
   );
 }
 
-── FILE: src/components/Dashboard.tsx  (165 خط) ──
+── FILE: src/components/Dashboard.tsx  (195 خط) ──
 
 "use client";
 
 import { useEffect, useState } from "react";
-import { useApp } from "./context";
+import { useApp, type AppContextValue } from "./context";
 import { Icon, Panel } from "./ui";
 import MotorCard from "./MotorCard";
 import MotorDetail from "./MotorDetail";
 import { MotorServiceForm, MotorServiceStartForm } from "./ServiceForm";
 import ChartModal from "./ChartModal";
 import { addDaysToDay, operationalDay } from "@/lib/jalali";
+import { parseManualReport } from "@/lib/manual-report";
 
 export default function Dashboard() {
   const { state, day, interval, setDay, setInterval, act, busy, openModal } = useApp();
-  const [note, setNote] = useState(state.note);
   const op = operationalDay();
-  useEffect(() => setNote(state.note), [state.note, day]);
 
   const activeAlerts = state.alerts.filter((a) => !a.seenAt && !a.actedAt);
   const on = state.motors.filter((m) => m.state === "on");
@@ -19406,12 +19518,15 @@ export default function Dashboard() {
       </Panel>
 
       {/* گزارش دستی اپراتور */}
-      <Panel title="گزارش دستی اپراتور" icon="file" hint={`${state.shift.label} — ${state.shift.members.join(" و ")} — ${day}`}>
-        <textarea className="input" rows={4} value={note} onChange={(e) => setNote(e.target.value)} placeholder="کارهای انجام‌شدهٔ شیفت، مشکلات، نکات تحویل شیفت…" />
-        <div className="row" style={{ marginTop: 8, justifyContent: "flex-end" }}>
-          <button type="button" className="btn primary" disabled={busy} onClick={() => act("note.save", { text: note, day, expected: state.note })}>ذخیره گزارش دستی</button>
-        </div>
-      </Panel>
+      <ManualReportPanel
+        key={`${day}:${state.note}`}
+        note={state.note}
+        day={day}
+        shiftLabel={state.shift.label}
+        members={state.shift.members}
+        busy={busy}
+        act={act}
+      />
 
       {/* انتهای صفحه: فقط ارسال و چاپ */}
       <div className="panel" style={{ display: "flex", flexWrap: "wrap", gap: 10, justifyContent: "space-between", alignItems: "center" }}>
@@ -19422,6 +19537,34 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+  );
+}
+
+function ManualReportPanel({ note, day, shiftLabel, members, busy, act }: {
+  note: string;
+  day: string;
+  shiftLabel: string;
+  members: string[];
+  busy: boolean;
+  act: AppContextValue["act"];
+}) {
+  const [manualReport, setManualReport] = useState(() => parseManualReport(note));
+  return (
+    <Panel title="گزارش دستی اپراتور" icon="file" hint={`${shiftLabel} — ${members.join(" و ")} — ${day}`}>
+      <div className="form-grid">
+        <div className="field">
+          <label>شرح عملیات انجام‌شده</label>
+          <textarea className="input" rows={4} value={manualReport.operations} onChange={(e) => setManualReport({ ...manualReport, operations: e.target.value })} placeholder="کارها و اقدامات انجام‌شده در این شیفت…" />
+        </div>
+        <div className="field">
+          <label>اعلام خرابی / موارد نیازمند پیگیری</label>
+          <textarea className="input" rows={4} value={manualReport.failures} onChange={(e) => setManualReport({ ...manualReport, failures: e.target.value })} placeholder="خرابی، نشانهٔ غیرعادی، تجهیز و اقدام یا پیگیری لازم…" />
+        </div>
+      </div>
+      <div className="row" style={{ marginTop: 8, justifyContent: "flex-end" }}>
+        <button type="button" className="btn primary" disabled={busy} onClick={() => act("note.save", { operations: manualReport.operations, failures: manualReport.failures, day, expected: note })}>ذخیره گزارش دستی</button>
+      </div>
+    </Panel>
   );
 }
 
@@ -19972,13 +20115,13 @@ export default function AuxTab() {
   );
 }
 
-── FILE: src/components/RegistryTab.tsx  (222 خط) ──
+── FILE: src/components/RegistryTab.tsx  (223 خط) ──
 
 "use client";
 
 import { useMemo, useState } from "react";
 import { useApp } from "./context";
-import { CATEGORIES } from "@/lib/domain";
+import { CATEGORIES, pumpTagOf } from "@/lib/domain";
 import type { EquipmentView } from "@/lib/types";
 import { Icon, Panel, StatusPill, StatusToggle } from "./ui";
 import { EquipmentServiceForm, MotorOverhaulForm } from "./ServiceForm";
@@ -20163,12 +20306,13 @@ export function PmForm({ tag }: { tag: string }) {
   const template = state.pmTemplates.find((t) => t.id === templateId);
   const [results, setResults] = useState<Record<string, string>>({});
   const [stage, setStage] = useState("1");
+  const [visitDay, setVisitDay] = useState(state.now.day);
   const [workers, setWorkers] = useState("");
   const [note, setNote] = useState("");
   if (!e) return <div className="empty">تجهیز پیدا نشد.</div>;
   return (
-    <form onSubmit={async (ev) => { ev.preventDefault(); const id = await act("pm.record", { tag, templateName: template?.name ?? "PM", stage, results, workers, note, day: state.now.day }); if (id) { closeModal(); if (typeof id === "number") window.open(`/report/${id}`, "_blank"); } }}>
-      <div className="note" style={{ marginBottom: 10 }}>چک‌لیست ماهیانهٔ مصوب بر اساس فرم ارسالی، برای موتور/تجهیز <b>{e.tag} — {e.name}</b>. نتیجه و توضیحات هر ردیف در گزارش قابل چاپ ثبت می‌شود.</div>
+    <form onSubmit={async (ev) => { ev.preventDefault(); const id = await act("pm.record", { tag, templateName: template?.name ?? "PM", stage, results, workers, note, day: visitDay }); if (id) { closeModal(); if (typeof id === "number") window.open(`/report/${id}`, "_blank"); } }}>
+      <div className="note" style={{ marginBottom: 10 }}>چک‌لیست ماهیانهٔ مصوب بر اساس فرم ارسالی، برای تجهیز <b>{pumpTagOf(e.tag)} — {e.name.replace(/M-(0[1-8])\b/g, "P-$1")}</b>. نتیجه و توضیحات هر ردیف در گزارش قابل چاپ ثبت می‌شود.</div>
       {templates.length > 1 && <div className="field"><label>قالب</label><select className="input" value={templateId} onChange={(ev) => setTemplateId(Number(ev.target.value))}>{templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>}
       {!template ? <div className="empty">برای این دسته قالبی تعریف نشده؛ ادمین از تب ادمین قالب را بسازد.</div> : (
         <div className="table-wrap"><table className="data"><thead><tr><th>آیتم</th><th style={{ width: 140 }}>نتیجه</th><th>توضیح</th></tr></thead>
@@ -20182,7 +20326,7 @@ export function PmForm({ tag }: { tag: string }) {
       <div className="form-grid" style={{ marginTop: 10 }}>
         {template?.name.includes("ماهیانه") && <div className="field"><label>مرحلهٔ بازدید ماهانه</label><select className="input" value={stage} onChange={(ev) => setStage(ev.target.value)}><option value="1">مرحلهٔ اول — هفتهٔ اول ماه</option><option value="2">مرحلهٔ دوم — هفتهٔ سوم ماه</option></select></div>}
         <div className="field"><label>انجام‌دهندگان</label><input className="input" value={workers} onChange={(ev) => setWorkers(ev.target.value)} /></div>
-        <div className="field"><label>تاریخ</label><input className="input" value={state.now.day} readOnly /></div>
+        <div className="field"><label>تاریخ بازدید (شمسی)</label><input className="input" inputMode="numeric" placeholder="۱۴۰۵/۰۸/۱۳" value={visitDay} onChange={(ev) => setVisitDay(ev.target.value.replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit))))} /><div className="tiny muted">قالب تاریخ: سال/ماه/روز؛ ثبت تاریخ آینده مجاز نیست.</div></div>
       </div>
       <div className="field"><label>یادداشت</label><textarea value={note} onChange={(ev) => setNote(ev.target.value)} style={{ minHeight: 60 }} /></div>
       <div className="row" style={{ justifyContent: "flex-end" }}><button type="button" className="btn ghost" onClick={closeModal}>انصراف</button><button type="submit" className="btn primary" disabled={busy || !template}>ثبت PM و ساخت گزارش</button></div>
@@ -20196,7 +20340,7 @@ function MotorPlates() {
   return <section><div className="panel-title" style={{ fontSize: 14, marginBottom: 6 }}>پلاک‌ها و اطلاعات فنی موتورهای اصلی ۱۸۰۰ کیلووات</div><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: 8 }}>{files.map((file, i) => <a key={file} href={`/equipment-plates/${file}`} target="_blank" rel="noreferrer" style={{ border: "1px solid var(--line)", borderRadius: 8, padding: 6, textAlign: "center" }}><img src={`/equipment-plates/${file}`} alt={`پلاک یا مشخصات موتور ${i + 1}`} style={{ width: "100%", height: 140, objectFit: "contain" }} /><span className="small muted">مشخصات پلاک / اطلاعات فنی {i + 1}</span></a>)}</div><div className="small muted" style={{ marginTop: 6 }}>مشخصات پلاک اصلی: Siemens، مدل 1RU5566-4HA70-Z، ۱۸۰۰ kW، ۶۶۰۰ V، ۱۸۲ A، ۵۰ Hz، ۱۴۹۱ دور/دقیقه؛ یاتاقان 6230 M C3 و گریس Shell Alvania R3.</div></section>;
 }
 
-── FILE: src/components/PmTab.tsx  (134 خط) ──
+── FILE: src/components/PmTab.tsx  (135 خط) ──
 
 "use client";
 
@@ -20204,6 +20348,7 @@ import { useState } from "react";
 import { useApp } from "./context";
 import { Panel } from "./ui";
 import { PmForm } from "./RegistryTab";
+import { pumpTagOf } from "@/lib/domain";
 
 /** سربرگ نگهداشت دوره‌ای (PM): قالب‌ها + تاریخچهٔ همهٔ تجهیزات */
 export default function PmTab() {
@@ -20226,7 +20371,7 @@ export default function PmTab() {
           <select className="input" value={eqTag} onChange={(e) => setEqTag(e.target.value)}>
             <option value="">— انتخاب تجهیز —</option>
             {equipTags.map((e) => (
-              <option key={e.tag} value={e.tag}>{e.tag} — {e.name}</option>
+              <option key={e.tag} value={e.tag}>{pumpTagOf(e.tag)} — {e.name.replace(/M-(0[1-8])\b/g, "P-$1")}</option>
             ))}
           </select>
         </div>
@@ -20249,7 +20394,7 @@ export default function PmTab() {
             <select className="input" value={tag} onChange={(e) => setTag(e.target.value)}>
               <option value="">همهٔ تجهیزات</option>
               {tags.map((t) => (
-                <option key={t} value={t}>{t}</option>
+                <option key={t} value={t}>{pumpTagOf(t)}</option>
               ))}
             </select>
           </div>
@@ -20266,7 +20411,7 @@ export default function PmTab() {
                   return (
                     <tr key={r.id}>
                       <td className="mono">{r.day}</td>
-                      <td className="mono">{r.tag}</td>
+                      <td className="mono">{pumpTagOf(r.tag)}</td>
                       <td>{r.templateName}</td>
                       <td>{r.workers || "—"}</td>
                       <td>{r.shiftKey}</td>
@@ -20783,7 +20928,7 @@ export default function ReportsTab({ initialView = "reports" }: { initialView?: 
   );
 }
 
-── FILE: src/components/ReportsHub.tsx  (102 خط) ──
+── FILE: src/components/ReportsHub.tsx  (104 خط) ──
 
 "use client";
 
@@ -20791,6 +20936,8 @@ import { useMemo, useState } from "react";
 import { useApp } from "./context";
 import { Icon, Panel } from "./ui";
 import { addDaysToDay, operationalDay } from "@/lib/jalali";
+
+const displayReportTitle = (title: string) => title.replace(/M-(0[1-8])\b/g, "P-$1");
 
 const KINDS: { key: string; label: string; desc: string; creatable: boolean }[] = [
   { key: "daily", label: "پایش روزانه", desc: "پارامترهای فرآیندی، موتورهای روشن، گزارش دستی و امضاها", creatable: true },
@@ -20862,7 +21009,7 @@ export default function ReportsHub() {
               <tbody>
                 {matches.map((r) => (
                   <tr key={r.id}>
-                    <td className="mono">{r.id}</td><td>{r.title}</td><td className="mono">{r.day}</td><td className="small">{r.operators}</td><td className="mono small">{r.createdAt}</td>
+                    <td className="mono">{r.id}</td><td>{displayReportTitle(r.title)}</td><td className="mono">{r.day}</td><td className="small">{r.operators}</td><td className="mono small">{r.createdAt}</td>
                     <td><button type="button" className="btn tiny primary" onClick={() => window.open(`/report/${r.id}`, "_blank")}>مشاهده / چاپ PDF</button></td>
                   </tr>
                 ))}
@@ -24798,7 +24945,7 @@ const SECTIONS = [
     "src/lib/auth.ts", "src/lib/sessions.ts", "src/lib/security.ts", "src/lib/audit.ts",
     "src/lib/jalali.ts", "src/lib/domain.ts", "src/lib/state.ts", "src/lib/motor-history.ts", "src/lib/reporting.ts",
     "src/lib/backup.ts", "src/lib/backup-validation.ts", "src/lib/backup-bundle.ts", "src/lib/mirror.ts", "src/lib/archive.ts",
-    "src/lib/roster.ts", "src/lib/netbind.ts", "src/lib/sqlite-cloud.ts",
+    "src/lib/roster.ts", "src/lib/manual-report.ts", "src/lib/netbind.ts", "src/lib/sqlite-cloud.ts",
     "src/lib/bot.ts", "src/lib/zip.ts", "src/lib/update-zip.ts", "src/lib/updater.ts",
   ] },
   { title: "مسیرهای API (src/app/api)", files: [
@@ -24835,7 +24982,7 @@ const SECTIONS = [
     "audit/audit1.mjs", "audit/audit2.mjs", "audit/audit3.mjs", "audit/audit4.mjs",
     "audit/audit5.mjs", "audit/audit6.mjs", "audit/bulk.mjs", "audit/perf.mjs", "audit/conc.mjs",
     "audit/db-inspect.mjs", "audit/jalali.test.mjs", "audit/updater.test.mjs", "audit/update-zip.test.mjs",
-    "audit/windows-installer.test.mjs", "audit/probe.mjs", "audit/sess.mjs", "audit/writeperf.mjs",
+    "audit/manual-report.test.mjs", "audit/build-compat.test.mjs", "audit/windows-installer.test.mjs", "audit/probe.mjs", "audit/sess.mjs", "audit/writeperf.mjs",
     "audit/README.md",
   ] },
   { title: "استقرار و CI", files: [
@@ -26160,7 +26307,7 @@ main().catch((error) => {
   process.exit(1);
 });
 
-── FILE: audit/audit6.mjs  (491 خط) ──
+── FILE: audit/audit6.mjs  (501 خط) ──
 
 /**
  * audit6 — آزمون‌های نسخهٔ ۱٫۴٫۱ (روستر محلی، بایند شبکه، نگهبان مسیر، ورود گروهی).
@@ -26327,6 +26474,16 @@ process.env.ROSTER_FILE = "/tmp/audit6-bad.json";
 t("invalid local blocks", throws(() => resolveRoster()));
 delete process.env.ROSTER_FILE;
 t("sample file loads", loadRosterFile("data/roster.sample.json").length === 4);
+const mojibake = (value) => Buffer.from(value, "utf8").toString("latin1");
+const repairedRoster = validateRoster([
+  { key: "A", label: mojibake("شیفت A"), role: "operator", pin: "5555", members: [mojibake("اپراتور شیفت A")] },
+  { key: "admin", label: "مدیر سامانه", role: "admin", pin: "6666", members: ["مدیر سامانه"] },
+], "encoding-test");
+t("UTF-8/ANSI mojibake roster labels are repaired", repairedRoster[0].label === "شیفت A" && repairedRoster[0].members[0] === "اپراتور شیفت A");
+t("unrecoverable mojibake uses readable defaults", validateRoster([
+  { key: "B", label: "Ø´Û\uFFFDØª B", role: "operator", pin: "5555", members: ["Ø§Û\uFFFDØª B"] },
+  { key: "admin", label: "مدیر سامانه", role: "admin", pin: "6666", members: ["مدیر سامانه"] },
+], "encoding-test")[0].label === "شیفت B");
 
 // ---------- ج) نگهبان مسیر ابری ----------
 t("cloud paths detected",
@@ -26599,7 +26756,7 @@ let pmPdf = false;
 if (typeof recBody?.id === "number") {
   const pdf = await fetch(`${BASE}/report/${recBody.id}`, { headers: { cookie: opA.cookie } });
   const reportHtml = await pdf.text();
-  pmPdf = pdf.status === 200 && reportHtml.includes("M-01") && reportHtml.includes("قالب تست audit6");
+  pmPdf = pdf.status === 200 && reportHtml.includes("P-01") && !reportHtml.includes("M-01") && reportHtml.includes("قالب تست audit6");
 }
 t("pm report page renders", pmPdf);
 
@@ -27019,7 +27176,35 @@ await assert.rejects(
 );
 console.log("PASS | update zip | rejects prerelease or malformed versions");
 
-── FILE: audit/windows-installer.test.mjs  (182 خط) ──
+── FILE: audit/manual-report.test.mjs  (18 خط) ──
+
+import assert from "node:assert/strict";
+import { parseManualReport, serializeManualReport } from "../src/lib/manual-report.ts";
+
+const legacy = "تیغه‌های صافی تمیز شد؛ لرزش غیرعادی پمپ مشاهده شد.";
+assert.deepEqual(parseManualReport(legacy), { operations: legacy, failures: "" });
+console.log("PASS | manual report | legacy text remains visible as operations");
+
+const fields = {
+  operations: "روغن‌کاری یاتاقان پمپ P-03 انجام شد.",
+  failures: "لرزش غیرعادی پمپ P-05؛ بازدید فنی لازم است.",
+};
+assert.deepEqual(parseManualReport(serializeManualReport(fields)), fields);
+console.log("PASS | manual report | operations and failure notice round-trip separately");
+
+const malformed = "[[PUMPSTATION_MANUAL_REPORT_V1]]\nnot-json";
+assert.deepEqual(parseManualReport(malformed), { operations: malformed, failures: "" });
+console.log("PASS | manual report | malformed marker does not discard old text");
+
+── FILE: audit/build-compat.test.mjs  (6 خط) ──
+
+import assert from "node:assert/strict";
+import nextConfig from "../next.config.ts";
+
+assert.equal(nextConfig.experimental?.cpus, 2, "build concurrency must stay low for Windows stations");
+console.log("PASS | Next build | page-data worker count is capped at 2");
+
+── FILE: audit/windows-installer.test.mjs  (184 خط) ──
 
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
@@ -27033,7 +27218,9 @@ if (!existsSync(path.join(root, "install-windows.ps1"))) {
   console.log("SKIP | Windows installer integration | root installer files are not present in the app-only update bundle");
   process.exit(0);
 }
-const installer = await readFile(path.join(root, "install-windows.ps1"), "utf8");
+const installerBytes = await readFile(path.join(root, "install-windows.ps1"));
+assert.deepEqual(installerBytes.subarray(0, 3), Buffer.from([0xef, 0xbb, 0xbf]), "Windows PowerShell 5.1 installer source must declare UTF-8 with BOM");
+const installer = installerBytes.toString("utf8").replace(/^\uFEFF/, "");
 const batch = await readFile(path.join(root, "install-windows.bat"), "utf8");
 const freshBatch = await readFile(path.join(root, "install-windows-fresh.bat"), "utf8");
 const launcher = await readFile(path.join(root, "launch-pumpstation.ps1"), "utf8");

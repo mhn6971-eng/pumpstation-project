@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useApp } from "./context";
 import { Panel } from "./ui";
 import { PmForm } from "./RegistryTab";
+import { pumpTagOf } from "@/lib/domain";
 
 /** سربرگ نگهداشت دوره‌ای (PM): قالب‌ها + تاریخچهٔ همهٔ تجهیزات */
 export default function PmTab() {
@@ -26,7 +27,7 @@ export default function PmTab() {
           <select className="input" value={eqTag} onChange={(e) => setEqTag(e.target.value)}>
             <option value="">— انتخاب تجهیز —</option>
             {equipTags.map((e) => (
-              <option key={e.tag} value={e.tag}>{e.tag} — {e.name}</option>
+              <option key={e.tag} value={e.tag}>{pumpTagOf(e.tag)} — {e.name.replace(/M-(0[1-8])\b/g, "P-$1")}</option>
             ))}
           </select>
         </div>
@@ -49,7 +50,7 @@ export default function PmTab() {
             <select className="input" value={tag} onChange={(e) => setTag(e.target.value)}>
               <option value="">همهٔ تجهیزات</option>
               {tags.map((t) => (
-                <option key={t} value={t}>{t}</option>
+                <option key={t} value={t}>{pumpTagOf(t)}</option>
               ))}
             </select>
           </div>
@@ -66,7 +67,7 @@ export default function PmTab() {
                   return (
                     <tr key={r.id}>
                       <td className="mono">{r.day}</td>
-                      <td className="mono">{r.tag}</td>
+                      <td className="mono">{pumpTagOf(r.tag)}</td>
                       <td>{r.templateName}</td>
                       <td>{r.workers || "—"}</td>
                       <td>{r.shiftKey}</td>

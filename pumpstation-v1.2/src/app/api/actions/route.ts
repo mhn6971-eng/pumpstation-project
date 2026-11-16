@@ -46,6 +46,7 @@ import { buildOperationalPayload, buildRegistryPayload, buildTrendPayload, creat
 import { addDaysToDay, isValidJalaliDay, jalaliNow, motorHoursAt, operationalDay } from "@/lib/jalali";
 import { sendBotDocument, sendBotText } from "@/lib/bot";
 import { zipStored } from "@/lib/zip";
+import { serializeManualReport } from "@/lib/manual-report";
 import { CATEGORIES, MOTORS, MOTOR_PARAMS, MOTOR_TYPE_LIMITS, MOTOR_STATE_FA, PROCESS_LIMITS, PROCESS_PARAMS, TOTAL_LIMITS, limitError, type Settings } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
@@ -520,7 +521,7 @@ export async function POST(request: Request) {
           await d.insert(equipmentReports).values({ tag, kind: "pm", reason: `PM: ${rec.templateName}${rec.note ? ` — ${rec.note}` : ""}`, operator: rec.workers || shift.label, shiftKey, at: jalaliNow() });
           const monthRows = await d.select().from(pmRecords).where(sql`${pmRecords.day} like ${`${day.slice(0, 7)}/%`}`).orderBy(pmRecords.id);
           const monthlyData = monthRows.filter((r) => r.templateName === rec.templateName).map((r) => ({ tag: r.tag, stage: r.stage, day: r.day, results: r.results ?? {}, note: r.note, workers: r.workers }));
-          const reportId = await createReport({ kind: "pm", day, shift, title: `PM ماهیانه ${tag} — ${day}`, payload: { ...rec, items, monthlyData, pmId: id, name: row.name, category: row.category, pumpTag: row.isMotor ? row.tag.replace(/^M-/, "P-") : "", generatedAt: jalaliNow() } }, d);
+          const reportId = await createReport({ kind: "pm", day, shift, title: `PM ماهیانه ${tag} — ${day}`, payload: { ...rec, items, monthlyData, pmId: id, name: row.name, spec: row.spec, category: row.category, isMotor: row.isMotor, pumpTag: row.isMotor ? row.tag.replace(/^M-/, "P-") : "", generatedAt: jalaliNow() } }, d);
           await logActivity(shiftKey, "ثبت PM", `${tag} — ${rec.templateName}`, d);
           return reportId;
         });
@@ -540,8 +541,13 @@ export async function POST(request: Request) {
       }
 
       case "note.save": {
-        const raw = String(p.text ?? "");
-        if (raw.length > 4000) throw badRequest("متن گزارش حداکثر ۴٬۰۰۰ کاراکتر است؛ لطفاً کوتاه‌تر کنید");
+        const hasStructuredFields = typeof p.operations === "string" || typeof p.failures === "string";
+        const raw = hasStructuredFields
+          ? serializeManualReport({ operations: String(p.operations ?? ""), failures: String(p.failures ?? "") })
+          : String(p.text ?? "");
+        if (raw.length > 4000) throw badRequest(hasStructuredFields
+          ? "مجموع شرح عملیات و اعلام خرابی حداکثر ۳٬۹۰۰ نویسه باشد"
+          : "متن گزارش حداکثر ۴٬۰۰۰ کاراکتر است؛ لطفاً کوتاه‌تر کنید");
         const text = raw.trim();
         await runTx(async (d) => {
           // «گزارش دستی روز» یک متن مشترک برای همان روز است؛ همهٔ شیفت‌ها همان را می‌بینند

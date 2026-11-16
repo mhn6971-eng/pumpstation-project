@@ -42,7 +42,7 @@ const SECTIONS = [
     "src/lib/auth.ts", "src/lib/sessions.ts", "src/lib/security.ts", "src/lib/audit.ts",
     "src/lib/jalali.ts", "src/lib/domain.ts", "src/lib/state.ts", "src/lib/motor-history.ts", "src/lib/reporting.ts",
     "src/lib/backup.ts", "src/lib/backup-validation.ts", "src/lib/backup-bundle.ts", "src/lib/mirror.ts", "src/lib/archive.ts",
-    "src/lib/roster.ts", "src/lib/netbind.ts", "src/lib/sqlite-cloud.ts",
+    "src/lib/roster.ts", "src/lib/manual-report.ts", "src/lib/netbind.ts", "src/lib/sqlite-cloud.ts",
     "src/lib/bot.ts", "src/lib/zip.ts", "src/lib/update-zip.ts", "src/lib/updater.ts",
   ] },
   { title: "مسیرهای API (src/app/api)", files: [
@@ -79,7 +79,7 @@ const SECTIONS = [
     "audit/audit1.mjs", "audit/audit2.mjs", "audit/audit3.mjs", "audit/audit4.mjs",
     "audit/audit5.mjs", "audit/audit6.mjs", "audit/bulk.mjs", "audit/perf.mjs", "audit/conc.mjs",
     "audit/db-inspect.mjs", "audit/jalali.test.mjs", "audit/updater.test.mjs", "audit/update-zip.test.mjs",
-    "audit/windows-installer.test.mjs", "audit/probe.mjs", "audit/sess.mjs", "audit/writeperf.mjs",
+    "audit/manual-report.test.mjs", "audit/build-compat.test.mjs", "audit/windows-installer.test.mjs", "audit/probe.mjs", "audit/sess.mjs", "audit/writeperf.mjs",
     "audit/README.md",
   ] },
   { title: "استقرار و CI", files: [

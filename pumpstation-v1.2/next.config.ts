@@ -32,6 +32,9 @@ if (process.env.COOKIE_SECURE === "1" || process.env.FORCE_HTTPS === "1") {
 const nextConfig: NextConfig = {
   // PGlite و pg باید بیرون از باندل Next بمانند (فایل WASM و باینری بومی)
   serverExternalPackages: ["@electric-sql/pglite", "pg"],
+  // Keep Windows update builds reliable on station PCs with limited memory. Next.js
+  // defaults to nearly every logical CPU; page-data workers initialize DB modules.
+  experimental: { cpus: 2 },
   // اجازهٔ دسترسی از دامنهٔ پیش‌نمایش
   allowedDevOrigins: ["*.e2b.app", "*.e2b.dev", "localhost", "127.0.0.1"],
   async headers() {

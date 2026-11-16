@@ -18,6 +18,7 @@ import {
 import { getProcessThresholds, thresholdSeverity } from "@/lib/state";
 import { jalaliNow, operationalDay } from "@/lib/jalali";
 import { MOTORS, MOTOR_PARAMS, PROCESS_PARAMS, STATUS_FA } from "@/lib/domain";
+import { parseManualReport } from "@/lib/manual-report";
 import { motorStateAtDayEnd } from "@/lib/motor-history";
 
 export const REPORT_KINDS: Record<string, string> = {
@@ -50,6 +51,7 @@ export async function buildOperationalPayload(kind: "daily" | "aux", day: string
   ]);
   const total = totalRows[0];
   const note = noteRows[0];
+  const manualNote = parseManualReport(note?.text ?? "");
   const dayEnd = `${day} 23:59:59`;
   const stateLogsByTag = new Map<string, typeof stateLogs>();
   for (const entry of stateLogs) stateLogsByTag.set(entry.tag, [...(stateLogsByTag.get(entry.tag) ?? []), entry]);
@@ -69,7 +71,7 @@ export async function buildOperationalPayload(kind: "daily" | "aux", day: string
     };
   });
 
-  const empty = processRows.length === 0 && !total && !note?.text;
+  const empty = processRows.length === 0 && !total && !manualNote.operations.trim() && !manualNote.failures.trim();
   return {
     kind,
     day,

@@ -2166,7 +2166,7 @@ textarea.input {
   color: #10202e;
 }
 .pm-print-heading b:first-child { font-size: 12px; }
-.pm-print-heading b:nth-child(2) { font-size: 15px; }
+.pm-print-heading b:nth-of-type(2) { font-size: 15px; }
 .pm-print-heading span { font-size: 11px; }
 .pm-meta th { width: 13%; white-space: nowrap; }
 .pm-meta td { width: 37%; }

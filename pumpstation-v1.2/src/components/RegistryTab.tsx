@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useApp } from "./context";
-import { CATEGORIES } from "@/lib/domain";
+import { CATEGORIES, pumpTagOf } from "@/lib/domain";
 import type { EquipmentView } from "@/lib/types";
 import { Icon, Panel, StatusPill, StatusToggle } from "./ui";
 import { EquipmentServiceForm, MotorOverhaulForm } from "./ServiceForm";
@@ -187,12 +187,13 @@ export function PmForm({ tag }: { tag: string }) {
   const template = state.pmTemplates.find((t) => t.id === templateId);
   const [results, setResults] = useState<Record<string, string>>({});
   const [stage, setStage] = useState("1");
+  const [visitDay, setVisitDay] = useState(state.now.day);
   const [workers, setWorkers] = useState("");
   const [note, setNote] = useState("");
   if (!e) return <div className="empty">تجهیز پیدا نشد.</div>;
   return (
-    <form onSubmit={async (ev) => { ev.preventDefault(); const id = await act("pm.record", { tag, templateName: template?.name ?? "PM", stage, results, workers, note, day: state.now.day }); if (id) { closeModal(); if (typeof id === "number") window.open(`/report/${id}`, "_blank"); } }}>
-      <div className="note" style={{ marginBottom: 10 }}>چک‌لیست ماهیانهٔ مصوب بر اساس فرم ارسالی، برای موتور/تجهیز <b>{e.tag} — {e.name}</b>. نتیجه و توضیحات هر ردیف در گزارش قابل چاپ ثبت می‌شود.</div>
+    <form onSubmit={async (ev) => { ev.preventDefault(); const id = await act("pm.record", { tag, templateName: template?.name ?? "PM", stage, results, workers, note, day: visitDay }); if (id) { closeModal(); if (typeof id === "number") window.open(`/report/${id}`, "_blank"); } }}>
+      <div className="note" style={{ marginBottom: 10 }}>چک‌لیست ماهیانهٔ مصوب بر اساس فرم ارسالی، برای تجهیز <b>{pumpTagOf(e.tag)} — {e.name.replace(/M-(0[1-8])\b/g, "P-$1")}</b>. نتیجه و توضیحات هر ردیف در گزارش قابل چاپ ثبت می‌شود.</div>
       {templates.length > 1 && <div className="field"><label>قالب</label><select className="input" value={templateId} onChange={(ev) => setTemplateId(Number(ev.target.value))}>{templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select></div>}
       {!template ? <div className="empty">برای این دسته قالبی تعریف نشده؛ ادمین از تب ادمین قالب را بسازد.</div> : (
         <div className="table-wrap"><table className="data"><thead><tr><th>آیتم</th><th style={{ width: 140 }}>نتیجه</th><th>توضیح</th></tr></thead>
@@ -206,7 +207,7 @@ export function PmForm({ tag }: { tag: string }) {
       <div className="form-grid" style={{ marginTop: 10 }}>
         {template?.name.includes("ماهیانه") && <div className="field"><label>مرحلهٔ بازدید ماهانه</label><select className="input" value={stage} onChange={(ev) => setStage(ev.target.value)}><option value="1">مرحلهٔ اول — هفتهٔ اول ماه</option><option value="2">مرحلهٔ دوم — هفتهٔ سوم ماه</option></select></div>}
         <div className="field"><label>انجام‌دهندگان</label><input className="input" value={workers} onChange={(ev) => setWorkers(ev.target.value)} /></div>
-        <div className="field"><label>تاریخ</label><input className="input" value={state.now.day} readOnly /></div>
+        <div className="field"><label>تاریخ بازدید (شمسی)</label><input className="input" inputMode="numeric" placeholder="۱۴۰۵/۰۸/۱۳" value={visitDay} onChange={(ev) => setVisitDay(ev.target.value.replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit))))} /><div className="tiny muted">قالب تاریخ: سال/ماه/روز؛ ثبت تاریخ آینده مجاز نیست.</div></div>
       </div>
       <div className="field"><label>یادداشت</label><textarea value={note} onChange={(ev) => setNote(ev.target.value)} style={{ minHeight: 60 }} /></div>
       <div className="row" style={{ justifyContent: "flex-end" }}><button type="button" className="btn ghost" onClick={closeModal}>انصراف</button><button type="submit" className="btn primary" disabled={busy || !template}>ثبت PM و ساخت گزارش</button></div>

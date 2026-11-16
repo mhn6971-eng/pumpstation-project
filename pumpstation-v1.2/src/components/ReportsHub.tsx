@@ -5,6 +5,8 @@ import { useApp } from "./context";
 import { Icon, Panel } from "./ui";
 import { addDaysToDay, operationalDay } from "@/lib/jalali";
 
+const displayReportTitle = (title: string) => title.replace(/M-(0[1-8])\b/g, "P-$1");
+
 const KINDS: { key: string; label: string; desc: string; creatable: boolean }[] = [
   { key: "daily", label: "پایش روزانه", desc: "پارامترهای فرآیندی، موتورهای روشن، گزارش دستی و امضاها", creatable: true },
   { key: "aux", label: "تجهیزات جانبی", desc: "وضعیت و توضیحات سرویس تجهیزات جانبی و ایمنی", creatable: true },
@@ -75,7 +77,7 @@ export default function ReportsHub() {
               <tbody>
                 {matches.map((r) => (
                   <tr key={r.id}>
-                    <td className="mono">{r.id}</td><td>{r.title}</td><td className="mono">{r.day}</td><td className="small">{r.operators}</td><td className="mono small">{r.createdAt}</td>
+                    <td className="mono">{r.id}</td><td>{displayReportTitle(r.title)}</td><td className="mono">{r.day}</td><td className="small">{r.operators}</td><td className="mono small">{r.createdAt}</td>
                     <td><button type="button" className="btn tiny primary" onClick={() => window.open(`/report/${r.id}`, "_blank")}>مشاهده / چاپ PDF</button></td>
                   </tr>
                 ))}

@@ -5,13 +5,17 @@ import { reports } from "@/db/schema";
 import { getSessionUser } from "@/lib/auth";
 import { ensureSeed } from "@/db/seed";
 import PrintBar from "@/components/PrintBar";
-import { APP_NAME, APP_SUBTITLE, ORG_NAME, pumpTagOf } from "@/lib/domain";
+import { APP_NAME, APP_SUBTITLE, MOTOR_POWER_KW, ORG_NAME, pumpTagOf } from "@/lib/domain";
+import { faDigits } from "@/lib/jalali";
+import { parseManualReport } from "@/lib/manual-report";
 import { REPORT_KINDS } from "@/lib/reporting";
 
 export const dynamic = "force-dynamic";
 
 type Any = Record<string, unknown>;
 const v = (x: unknown) => (x === null || x === undefined || x === "" ? "—" : String(x));
+const reportTag = (tag: unknown) => pumpTagOf(String(tag ?? ""));
+const reportText = (value: unknown) => String(value ?? "").replace(/M-(0[1-8])\b/g, "P-$1");
 const kindOf = (k: string) => (k === "service" ? "در حال سرویس" : k === "ready" ? "آماده به کار" : k === "motor_service" ? "سرویس موتور" : k === "motor_overhaul" ? "سرویس اورهال" : k === "pm" ? "PM" : "گزارش سرویس");
 
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
@@ -26,7 +30,7 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
 
   return (
     <main className="report-page">
-      <PrintBar title={`${row.title} — نسخه ${row.id}`} />
+      <PrintBar title={`${reportText(row.title)} — نسخه ${row.id}`} />
       <article className={`print-sheet${row.kind === "pm" ? " pm-landscape" : ""}`}>
         <header className="print-head">
           <div>
@@ -49,9 +53,9 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         {row.kind === "daily" && <Daily d={d} />}
         {row.kind === "aux" && <Aux d={d} />}
         {row.kind === "motor_service" && <MotorService d={d} />}
-        {row.kind === "motor_overhaul" && <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(d.pumpTag ?? pumpTagOf(String(d.tag ?? "")))}`], ["تاریخ اورهال", v(d.day)], ["کارکرد هنگام اورهال (ساعت HMI)", v(d.hours)], ["انجام‌دهندگان", v(d.workers)], ["شیفت ثبت‌کننده", v(d.shiftLabel)], ["شرح عملیات و قطعات", v(d.note)]]} />}
+        {row.kind === "motor_overhaul" && <Simple rows={[["پمپ", v(d.pumpTag ?? reportTag(d.tag))], ["تاریخ اورهال", v(d.day)], ["کارکرد هنگام اورهال (ساعت HMI)", v(d.hours)], ["انجام‌دهندگان", v(d.workers)], ["شیفت ثبت‌کننده", v(d.shiftLabel)], ["شرح عملیات و قطعات", v(d.note)]]} />}
         {row.kind === "megger" && <Megger d={d} />}
-        {row.kind === "oil" && <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(pumpTagOf(String(d.tag ?? "")))}`], ["تاریخ", v(d.day)], ["ساعت کارکرد", v(d.hours)], ["یادداشت", v(d.note)]]} />}
+        {row.kind === "oil" && <Simple rows={[["پمپ", v(reportTag(d.tag))], ["تاریخ", v(d.day)], ["ساعت کارکرد", v(d.hours)], ["یادداشت", v(d.note)]]} />}
         {row.kind === "pm" && <Pm d={d} />}
         {row.kind === "registry" && <Registry d={d} />}
         {row.kind === "trend" && <Trend d={d} />}
@@ -72,8 +76,10 @@ function Simple({ rows }: { rows: [string, string][] }) {
 
 function Daily({ d }: { d: Any }) {
   const process = (d.process as Any[]) ?? [];
-  const motorsOn = (d.motorsOn as string[]) ?? [];
-  const motorsService = (d.motorsService as string[]) ?? [];
+  const motorsOn = ((d.motorsOn as string[]) ?? []).map(reportTag);
+  const motorsService = ((d.motorsService as string[]) ?? []).map(reportTag);
+  const motorsOff = ((d.motorsOff as string[]) ?? []).map(reportTag);
+  const manualReport = parseManualReport(String(d.note ?? ""));
   const hasStar = process.some((p) => p.out);
   return (
     <>
@@ -96,12 +102,15 @@ function Daily({ d }: { d: Any }) {
       <h2>وضعیت موتورهای اصلی</h2>
       <table><tbody>
         <tr><th style={{ width: 160 }}>روشن</th><td className="ltr">{motorsOn.length ? motorsOn.join("، ") : "—"}</td></tr>
-        <tr><th>خاموش / آماده به کار</th><td className="ltr">{((d.motorsOff as string[]) ?? []).join("، ") || "—"}</td></tr>
+        <tr><th>خاموش / آماده به کار</th><td className="ltr">{motorsOff.join("، ") || "—"}</td></tr>
         <tr><th>در حال سرویس</th><td className="ltr">{motorsService.join("، ") || "—"}</td></tr>
       </tbody></table>
 
       <h2>گزارش دستی اپراتور</h2>
-      <p className="print-para">{v(d.note)}</p>
+      <table><tbody>
+        <tr><th>شرح عملیات انجام‌شده</th></tr><tr><td>{v(manualReport.operations)}</td></tr>
+        <tr><th>اعلام خرابی / موارد نیازمند پیگیری</th></tr><tr><td>{v(manualReport.failures)}</td></tr>
+      </tbody></table>
 
     </>
   );
@@ -115,12 +124,12 @@ function Aux({ d }: { d: Any }) {
     <>
       <h2>وضعیت تجهیزات جانبی</h2>
       <table><thead><tr><th style={{ width: 80 }}>تگ</th><th>تجهیز</th><th style={{ width: 100 }}>وضعیت</th><th>توضیحات / دلیل سرویس</th><th style={{ width: 120 }}>زمان ثبت</th></tr></thead>
-        <tbody>{equipment.map((e) => <tr key={String(e.tag)}><td className="ltr">{v(e.tag)}{e.safetyCritical ? " *" : ""}</td><td>{v(e.name)}</td><td><span className={`st ${tone(String(e.statusFa ?? ""))}`}>{v(e.statusFa)}</span></td><td className="small">{v(e.description)}</td><td className="ltr small">{v(e.descriptionAt)}</td></tr>)}</tbody></table>
+        <tbody>{equipment.map((e) => <tr key={String(e.tag)}><td className="ltr">{reportTag(e.tag)}{e.safetyCritical ? " *" : ""}</td><td>{reportText(e.name)}</td><td><span className={`st ${tone(String(e.statusFa ?? ""))}`}>{v(e.statusFa)}</span></td><td className="small">{v(e.description)}</td><td className="ltr small">{v(e.descriptionAt)}</td></tr>)}</tbody></table>
       <p className="print-note">* تجهیز حیاتی ایمنی</p>
       <h2>گزارش‌های سرویس امروز</h2>
       {svc.length === 0 ? <p className="print-para">گزارشی ثبت نشده است.</p> : (
         <table><thead><tr><th style={{ width: 80 }}>تگ</th><th style={{ width: 100 }}>نوع</th><th>توضیحات</th><th style={{ width: 130 }}>زمان</th></tr></thead>
-          <tbody>{svc.map((s, i) => <tr key={i}><td className="ltr">{v(s.tag)}</td><td>{kindOf(String(s.kind))}</td><td>{v(s.reason)}</td><td className="ltr small">{v(s.at)}</td></tr>)}</tbody></table>)}
+          <tbody>{svc.map((s, i) => <tr key={i}><td className="ltr">{reportTag(s.tag)}</td><td>{kindOf(String(s.kind))}</td><td>{v(s.reason)}</td><td className="ltr small">{v(s.at)}</td></tr>)}</tbody></table>)}
     </>
   );
 }
@@ -131,7 +140,7 @@ function MotorService({ d }: { d: Any }) {
   const oil = d.oil as Any | null;
   return (
     <>
-      <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(d.pumpTag ?? pumpTagOf(String(d.tag ?? "")))}`], ["تاریخ سرویس", v(d.day)], ["ساعت HMI هنگام سرویس", v(d.hours)], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)], ["یادداشت", v(d.note)]]} />
+      <Simple rows={[["پمپ", v(d.pumpTag ?? reportTag(d.tag))], ["تاریخ سرویس", v(d.day)], ["ساعت HMI هنگام سرویس", v(d.hours)], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)], ["یادداشت", v(d.note)]]} />
       <h2>قرائت ذغال‌ها (میلی‌متر)</h2>
       <table><thead><tr><th>فاز</th>{Array.from({ length: 8 }, (_, i) => <th key={i} className="center">برس {i + 1}</th>)}</tr></thead>
         <tbody>{["U", "V", "W"].map((ph) => <tr key={ph}><td className="ltr"><b>{ph}</b></td>{Array.from({ length: 8 }, (_, i) => <td key={i} className="ltr center">{brush[`${ph}${i + 1}`] ?? "—"}</td>)}</tr>)}</tbody></table>
@@ -146,7 +155,7 @@ function MotorService({ d }: { d: Any }) {
 function Megger({ d }: { d: Any }) {
   return (
     <>
-      <Simple rows={[["موتور / پمپ", `${v(d.tag)} / ${v(pumpTagOf(String(d.tag ?? "")))}`], ["تاریخ", v(d.day)], ["ولتاژ تست استاتور", `${v(d.testVoltage)} V`], ["ولتاژ تست رتور", `${v(d.testVoltageRotor ?? d.testVoltage)} V`], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)]]} />
+      <Simple rows={[["پمپ", v(reportTag(d.tag))], ["تاریخ", v(d.day)], ["ولتاژ تست استاتور", `${v(d.testVoltage)} V`], ["ولتاژ تست رتور", `${v(d.testVoltageRotor ?? d.testVoltage)} V`], ["شیفت ثبت‌کننده", v(d.shiftLabel ?? d.workers)]]} />
       <h2>نتایج</h2>
       <table><thead><tr><th>آیتم</th><th className="center">U1</th><th className="center">V1</th><th className="center">W1</th></tr></thead>
         <tbody>
@@ -169,6 +178,12 @@ function Pm({ d }: { d: Any }) {
   const entries = keys.map((key) => [key, results[key] ?? ""] as [string, string]);
   const monthly = String(d.templateName ?? "").includes("ماهیانه") || entries.length >= 16;
   const monthlyData = (d.monthlyData as Any[]) ?? [];
+  const equipmentIsMotor = Boolean(d.isMotor) || /^M-0[1-8]$/.test(String(d.tag ?? ""));
+  const pmHeading = monthly
+    ? equipmentIsMotor
+      ? `چک‌لیست ماهانهٔ الکتروموتورهای ${faDigits(MOTOR_POWER_KW)} کیلووات`
+      : `چک‌لیست ماهانهٔ ${reportText(d.templateName ?? d.name ?? "تجهیز")}`
+    : `فرم نگهداشت پیشگیرانه — ${reportText(d.templateName ?? "PM")}`;
   const motorTags = Array.from({ length: 8 }, (_, i) => `P-${String(i + 1).padStart(2, "0")}`);
   const cell = (stage: string, pumpTag: string, item: string) => {
     const records = monthlyData.filter((r) => String(r.stage) === stage && pumpTagOf(String(r.tag ?? "")) === pumpTag);
@@ -180,10 +195,10 @@ function Pm({ d }: { d: Any }) {
   };
   return (
     <div className={monthly ? "pm-print-form" : ""}>
-      {monthly && <div className="pm-print-heading"><b>امور بهره‌برداری و نگهداری</b><b>چک‌لیست ماهیانه الکتروموتور زمینی</b><span>طرح انتقال آب به کاشان — بخش: تصفیه‌خانه / موتورخانه</span></div>}
+      <div className="pm-print-heading"><b>امور بهره‌برداری و نگهداری</b><span>طرح آبرسانی به کاشان</span><b>{pmHeading}</b><span>ایستگاه پمپاژ زیرزمینی</span></div>
       <table className="pm-meta"><tbody>
-        <tr><th>تجهیز / موتور</th><td className="ltr">{v(d.tag)} — {v(d.name)}</td><th>پمپ</th><td className="ltr">{v(d.pumpTag ?? pumpTagOf(String(d.tag ?? "")))}</td></tr>
-        <tr><th>ماه / تاریخ بازدید</th><td>{monthly ? String(d.day ?? "—").slice(0, 7) : v(d.day)}</td><th>تعداد دستگاه‌ها</th><td>{monthly ? "۸ موتور اصلی" : v(d.tag)}</td></tr>
+        <tr><th>تجهیز</th><td>{reportTag(d.tag)} — {reportText(d.name)}</td><th>مشخصات</th><td>{v(d.spec)}</td></tr>
+        <tr><th>تاریخ بازدید</th><td>{v(d.day)}</td><th>تعداد دستگاه‌ها</th><td>{monthly ? "۸ موتور اصلی" : reportTag(d.tag)}</td></tr>
         <tr><th>مسئول تکمیل فرم</th><td>{v(d.workers)}</td><th>مرحلهٔ جاری / قالب</th><td>{monthly ? (String(d.stage) === "2" ? "مرحلهٔ دوم — هفتهٔ سوم ماه" : "مرحلهٔ اول — هفتهٔ اول ماه") : v(d.templateName)}</td></tr>
       </tbody></table>
       <h2>{monthly ? "شرح بازدید و نتیجهٔ کنترل" : "چک‌لیست"}</h2>
@@ -228,7 +243,7 @@ function Trend({ d }: { d: Any }) {
         <table><thead><tr><th style={{ width: 110 }}>{isCompare ? "موتور" : "تاریخ"}</th><th style={{ width: 110 }}>{isCompare ? "پارامتر" : d.grouped === "day" ? "نوع" : "بازه"}</th><th>مقدار ({v(d.unit)})</th><th style={{ width: 120 }}>شیفت / ثبت</th></tr></thead>
           <tbody>{shown.map((p, i) => (
             <tr key={i}>
-              <td className="ltr">{isCompare ? v(p.x) : v(p.day)}</td>
+              <td className="ltr">{isCompare ? reportTag(p.x) : v(p.day)}</td>
               <td className="small">{isCompare ? v(d.label) : d.grouped === "day" ? "میانگین روزانه" : `بازه ${Number(p.interval) + 1}`}</td>
               <td className="ltr"><b>{v(p.y)}</b></td>
               <td className="small">{v(p.shift)}</td>
@@ -246,7 +261,7 @@ function Registry({ d }: { d: Any }) {
     <>
       <p className="print-para">محدوده: {d.scope === "all" ? "کل رجیستری" : d.scope === "category" ? `دستهٔ ${v(d.category)}` : d.scope === "single" ? "یک تجهیز" : "چند تجهیز انتخابی"} — {items.length} رکورد</p>
       <table><thead><tr><th style={{ width: 80 }}>تگ</th><th>نام</th><th>دسته</th><th>مشخصات</th><th>پلاک / قطعات</th><th>محل</th><th style={{ width: 80 }}>وضعیت</th><th style={{ width: 70 }}>آخرین PM</th></tr></thead>
-        <tbody>{items.map((e) => <tr key={String(e.tag)}><td className="ltr">{v(e.tag)}</td><td>{v(e.name)}</td><td className="small">{v(e.category)}</td><td className="small">{v(e.spec)}</td><td className="small">{[e.plate, e.partNumbers].filter(Boolean).join(" — ") || "—"}</td><td className="small">{v(e.location)}</td><td>{v(e.statusFa)}</td><td className="ltr small">{v(e.lastPm)}</td></tr>)}</tbody></table>
+        <tbody>{items.map((e) => <tr key={String(e.tag)}><td className="ltr">{reportTag(e.tag)}</td><td>{reportText(e.name)}</td><td className="small">{v(e.category)}</td><td className="small">{v(e.spec)}</td><td className="small">{[e.plate, e.partNumbers].filter(Boolean).join(" — ") || "—"}</td><td className="small">{v(e.location)}</td><td>{v(e.statusFa)}</td><td className="ltr small">{v(e.lastPm)}</td></tr>)}</tbody></table>
     </>
   );
 }
