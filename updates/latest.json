@@ -1,11 +1,11 @@
 {
-  "version": "1.4.28",
-  "archiveUrl": "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/Pumpstation-App-Update-1.4.28.zip",
-  "sha256": "9e3454f94d6647ee9b6ce8f2beeb08e1aad97c9e43a134f7f446d2d6561ff932",
+  "version": "1.4.29",
+  "archiveUrl": "https://raw.githubusercontent.com/mhn6971-eng/pumpstation-project/arena/9a0919c6-pumpstation-project/updates/Pumpstation-App-Update-1.4.29.zip",
+  "sha256": "a68f1f7354e0a282911a27e30d1b746b0381eb377a88787ad20ddc111534d474",
   "publishedAt": "2026-11-04",
   "notes": [
-    "شمارندهٔ ساعات موتور از ثبت «روشن» تا «خاموش» ادامه می‌یابد و زمان شروع پایدار در دیتابیس ذخیره می‌شود؛ پس از خاموشی یا راه‌اندازی مجدد برنامه نیز زمان سپری‌شده منظور می‌شود.",
-    "خاموش‌کردن یا ثبت سرویس، زمان روشن‌بودن را در شمارندهٔ کل تثبیت می‌کند؛ شمارندهٔ HMI همچنان قابل ثبت است.",
-    "این مقدار از وضعیت دستی موتور برآورد می‌شود و جایگزین سیگنال یا شمارندهٔ PLC نیست؛ بدون migration و بدون بازنشانی داده‌ها."
+    "رفع خطای نصب در Windows PowerShell 5.1: محاسبهٔ اثرانگشت وابستگی‌ها دیگر JSON دارای کلید خالی packages[\"\"] را deserialize نمی‌کند.",
+    "نصاب کامل ویندوز نسخهٔ ۱.۴.۲۹ برای نصب مجدد یا نصب تازه آماده است؛ نصب آنلاین به اینترنت نیاز دارد.",
+    "قابلیت شمارش زمان روشن‌بودن موتور از نسخهٔ ۱.۴.۲۸ حفظ شده است؛ دادهٔ عملیاتی پاک یا بازنشانی نمی‌شود."
   ]
 }

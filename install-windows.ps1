@@ -1,4 +1,4 @@
-﻿param([switch]$FreshData)
+param([switch]$FreshData)
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -98,17 +98,17 @@ function Copy-OfflineNpmCache([string]$Source, [string]$Destination) {
 }
 
 function Get-DependencyFingerprint([string]$LockFile) {
-  $lock = Get-Content -LiteralPath $LockFile -Raw | ConvertFrom-Json
-  if ($lock.PSObject.Properties['version']) { $lock.version = '' }
-  $packagesProperty = $lock.PSObject.Properties['packages']
-  if ($packagesProperty -and $packagesProperty.Value) {
-    $rootPackage = $packagesProperty.Value.PSObject.Properties['']
-    if ($rootPackage -and $rootPackage.Value.PSObject.Properties['version']) { $rootPackage.Value.version = '' }
-  }
-  $canonical = ConvertTo-Json -InputObject $lock -Depth 100 -Compress
+  # Windows PowerShell 5.1's ConvertFrom-Json cannot deserialize the empty
+  # package-lock key packages[""]. Normalize the two application-version fields
+  # as raw JSON instead; dependency changes remain part of the hash.
+  $lockText = Get-Content -LiteralPath $LockFile -Raw
+  $topVersionRegex = [regex]::new('(?m)^(\s*"version"\s*:\s*")[^"]*(")')
+  $rootVersionRegex = [regex]::new('(?s)("packages"\s*:\s*\{\s*""\s*:\s*\{.*?"version"\s*:\s*")[^"]*(")')
+  $normalized = $topVersionRegex.Replace($lockText, '$1$2', 1)
+  $normalized = $rootVersionRegex.Replace($normalized, '$1$2', 1)
   $sha = [Security.Cryptography.SHA256]::Create()
   try {
-    $digest = $sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($canonical))
+    $digest = $sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($normalized))
     return ([BitConverter]::ToString($digest)).Replace('-', '').ToLowerInvariant()
   } finally { $sha.Dispose() }
 }
