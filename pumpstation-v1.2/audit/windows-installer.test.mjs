@@ -1,0 +1,190 @@
+import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(here, "../..");
+if (!existsSync(path.join(root, "install-windows.ps1"))) {
+  console.log("SKIP | Windows installer integration | root installer files are not present in the app-only update bundle");
+  process.exit(0);
+}
+const installerBytes = await readFile(path.join(root, "install-windows.ps1"));
+assert.deepEqual(installerBytes.subarray(0, 3), Buffer.from([0xef, 0xbb, 0xbf]), "Windows PowerShell 5.1 installer source must declare UTF-8 with BOM");
+const installer = installerBytes.toString("utf8").replace(/^\uFEFF/, "");
+const batch = await readFile(path.join(root, "install-windows.bat"), "utf8");
+const freshBatch = await readFile(path.join(root, "install-windows-fresh.bat"), "utf8");
+const launcher = await readFile(path.join(root, "launch-pumpstation.ps1"), "utf8");
+const appLauncher = await readFile(path.join(root, "pumpstation-v1.2/launch-pumpstation.ps1"), "utf8");
+const updaterRunner = await readFile(path.join(root, "pumpstation-v1.2/scripts/update-runner.mjs"), "utf8");
+const packager = await readFile(path.join(root, "package-windows.ps1"), "utf8");
+const installGuide = await readFile(path.join(root, "INSTALL-WINDOWS-FA.md"), "utf8");
+const appInstallGuide = await readFile(path.join(root, "pumpstation-v1.2/docs/INSTALL-WINDOWS-FA.md"), "utf8");
+const appPackage = JSON.parse(await readFile(path.join(root, "pumpstation-v1.2/package.json"), "utf8"));
+const appLockText = await readFile(path.join(root, "pumpstation-v1.2/package-lock.json"), "utf8");
+const appLock = JSON.parse(appLockText);
+const dbIndex = await readFile(path.join(root, "pumpstation-v1.2/src/db/index.ts"), "utf8");
+const adminTab = await readFile(path.join(root, "pumpstation-v1.2/src/components/AdminTab.tsx"), "utf8");
+const loginPage = await readFile(path.join(root, "pumpstation-v1.2/src/components/Login.tsx"), "utf8");
+const styles = await readFile(path.join(root, "pumpstation-v1.2/src/app/globals.css"), "utf8");
+const logoPng = await readFile(path.join(root, "pumpstation-v1.2/public/brand/logo-transparent.png"));
+const loginPhoto = await readFile(path.join(root, "pumpstation-v1.2/public/images/pump-hall.jpg"));
+const authRoute = await readFile(path.join(root, "pumpstation-v1.2/src/app/api/auth/route.ts"), "utf8");
+const actionsRoute = await readFile(path.join(root, "pumpstation-v1.2/src/app/api/actions/route.ts"), "utf8");
+const roster = await readFile(path.join(root, "pumpstation-v1.2/src/lib/roster.ts"), "utf8");
+const dashboard = await readFile(path.join(root, "pumpstation-v1.2/src/components/Dashboard.tsx"), "utf8");
+const motorCard = await readFile(path.join(root, "pumpstation-v1.2/src/components/MotorCard.tsx"), "utf8");
+const motorVisual = await readFile(path.join(root, "pumpstation-v1.2/src/components/MotorVisual.tsx"), "utf8");
+const chartModal = await readFile(path.join(root, "pumpstation-v1.2/src/components/ChartModal.tsx"), "utf8");
+const domain = await readFile(path.join(root, "pumpstation-v1.2/src/lib/domain.ts"), "utf8");
+const codeMap = await readFile(path.join(root, "pumpstation-v1.2/CODE-MAP_FA.md"), "utf8");
+
+assert.equal(appPackage.scripts.build, "next build --webpack", "production Windows builds must avoid the broken Turbopack external-PGlite resolution");
+assert.match(dbIndex, /new PGlite\(buildPhase \? undefined : dataDir/,
+  "Next build must use an in-memory PGlite instance and leave the real data directory for the migration process");
+assert.match(installer, /function Get-DependencyFingerprint/);
+assert.ok(appLock.packages?.[""]?.version, "the npm lockfile root package is stored at packages[\"\"]");
+const fingerprintStart = installer.indexOf("function Get-DependencyFingerprint");
+const fingerprintEnd = installer.indexOf("\nfunction Test-InstalledDependencies", fingerprintStart);
+const fingerprintFunction = installer.slice(fingerprintStart, fingerprintEnd);
+const executableFingerprintFunction = fingerprintFunction.replace(/^\s*#.*$/gm, "");
+assert.doesNotMatch(executableFingerprintFunction, /PSObject|ConvertFrom-Json|ConvertTo-Json/,
+  "dependency fingerprinting must not deserialize the empty packages[\"\"] key in Windows PowerShell 5.1");
+assert.match(fingerprintFunction, /topVersionRegex = \[regex\]::new/);
+assert.match(fingerprintFunction, /rootVersionRegex = \[regex\]::new/);
+const packageMarker = appLockText.indexOf('"packages"');
+assert.ok(packageMarker > 0, "package-lock.json must contain its packages section");
+function normalizeLockVersions(text) {
+  const marker = text.indexOf('"packages"');
+  let header = text.slice(0, marker);
+  let packages = text.slice(marker);
+  header = header.replace(/^(\s*"version"\s*:\s*")[^"]*(")/m, (_match, prefix, suffix) => `${prefix}${suffix}`);
+  packages = packages.replace(/("packages"\s*:\s*\{\s*""\s*:\s*\{.*?"version"\s*:\s*")[^"]*(")/s,
+    (_match, prefix, suffix) => `${prefix}${suffix}`);
+  return header + packages;
+}
+const changedAppVersionLock = appLockText
+  .replace(/^(\s*"version"\s*:\s*")[^"]*(")/m, (_match, prefix, suffix) => `${prefix}9.9.9${suffix}`)
+  .replace(/("packages"\s*:\s*\{\s*""\s*:\s*\{.*?"version"\s*:\s*")[^"]*(")/s,
+    (_match, prefix, suffix) => `${prefix}9.9.9${suffix}`);
+assert.equal(normalizeLockVersions(appLockText), normalizeLockVersions(changedAppVersionLock),
+  "changing only the app version must not invalidate the dependency fingerprint");
+assert.match(installer, /function Ensure-InstallerDirectory/);
+assert.match(installer, /Could not prepare installer directory/);
+assert.match(installer, /function Test-SameInstallerPath/);
+assert.match(installer, /Fresh-data mode resolved to the existing operational data folder/);
+assert.match(installer, /Fresh-data mode did not resolve to a separate application folder/);
+assert.match(installer, /function Test-DirectoryWritable/);
+assert.match(installer, /FileMode\]::CreateNew/);
+assert.match(installer, /Skipping data drive/);
+assert.match(installer, /less than 1 GB is free/);
+assert.match(installer, /No writable local data folder was found/);
+assert.match(installer, /function Test-InstalledDependencies/);
+assert.match(installer, /Matching dependencies are already present; npm install\/download skipped/);
+assert.match(installer, /Pumpstation-Offline-Resources-\$appVersion-Part1\.zip/);
+assert.match(installer, /Pumpstation-Offline-Resources-\$appVersion-Part2\.zip/);
+assert.equal(appInstallGuide, installGuide, "the complete Persian installation guide must be present in the app package and beside the Windows installer");
+assert.ok(installGuide.includes("node-win-x64-22.22.2.tgz") && installGuide.includes("npm-cache/"), "the offline companion contents must be listed in the installation guide");
+assert.equal(/\bRead-Host\b/i.test(installer), false, "the installation flow must not ask for interactive input");
+for (let step = 1; step <= 8; step += 1) {
+  assert.ok(installer.includes(`STEP ${step}/8`), `installer should report step ${step}/8`);
+}
+assert.match(installer, /\[regex\]::Replace\(\[string\]\$item, '\[\^\\x00-\\x7F\]', '\?'\)/);
+assert.match(installer, /INSTALLATION COMPLETE/);
+assert.match(installer, /param\(\[switch\]\$FreshData\)/);
+assert.match(installer, /Pumpstation-Fresh-\$appVersion/);
+assert.match(installer, /Get-AvailableFreshSibling/);
+assert.match(installer, /freshDataSourceRoot/);
+assert.match(installer, /stateDir = \$paths\.stateDir/);
+assert.match(freshBatch, /install-windows\.ps1" -FreshData/);
+assert.match(freshBatch, /Existing operational data will not be deleted or changed/);
+assert.match(freshBatch, /FRESH INSTALLATION COMPLETE/);
+assert.match(freshBatch, /Previous uncollected PowerShell error output/);
+assert.match(batch, /Previous uncollected PowerShell error output/);
+assert.doesNotMatch(batch, /del \/q "%PUMPSTATION_ERROR_LOG%"/i,
+  "rerunning the installer must not delete the previous diagnostic report");
+assert.doesNotMatch(freshBatch, /del \/q "%PUMPSTATION_ERROR_LOG%"/i,
+  "rerunning fresh-data setup must not delete the previous diagnostic report");
+assert.match(installer, /\("Stage: \{0\}" -f \$script:InstallerStage\)/);
+assert.match(installer, /Failed during: \{0\}/);
+assert.match(installer, /AppendAllText\(\$InstallerErrorLog/);
+assert.match(installer, /Verifying every database backup file by size and SHA-256/);
+assert.match(installer, /Assert-DirectoryFilesEqual/);
+assert.match(installer, /Get-CimInstance Win32_Process/);
+assert.match(installer, /CommandLine\.IndexOf\(\$AppDir/);
+assert.match(installer, /CommandLine -match '\(\?i\)scripts\[/);
+assert.doesNotMatch(installer, /Get-NetTCPConnection|Stop-Process\s+-Name\s+node/i, "server shutdown must not target arbitrary processes by port or name");
+assert.match(installer, /DATABASE ROLLBACK FAILED/);
+assert.match(installer, /Previous application code and configuration were restored/);
+assert.match(installer, /Data drive selected automatically/);
+assert.match(installer, /function New-DefaultPin\(\[string\]\$Key\)/);
+assert.match(installer, /A = '1111'; B = '2222'; C = '3333'; admin = '4444'/);
+assert.match(installer, /Shift A 1111, Shift B 2222, Shift C 3333, Administrator 4444/);
+assert.doesNotMatch(installer, /New-RandomPin|BitConverter\]::ToUInt32\(\$bytes|1234/);
+assert.match(adminTab, /maxLength=\{4\}/);
+assert.match(adminTab, /slice\(0, 4\)/);
+assert.match(adminTab, /\.length !== 4/);
+assert.match(adminTab, /یک PIN مستقل چهاررقمی تعیین کنید/);
+assert.ok(loginPage.includes('src="/brand/logo-transparent.png"'));
+assert.ok(loginPage.includes("طراح: محسن نقی‌پور"));
+assert.doesNotMatch(loginPage, /ORG_NAME.*گزارش‌ها/);
+assert.match(styles, /\.hero-logo\s*\{[\s\S]*?filter: drop-shadow/);
+assert.match(styles, /\.designer-credit\s*\{/);
+assert.deepEqual([...logoPng.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+assert.ok(loginPhoto.length > 100_000, "login background must use the supplied high-resolution pump-station image");
+assert.ok(authRoute.includes("!/^\\d{4}$/.test(pin)"));
+assert.ok(actionsRoute.includes("!/^\\d{4}$/.test(pin)"));
+assert.ok(roster.includes("if (!/^\\d{4}$/.test(pin))"));
+assert.match(installer, /PUMPSTATION_SKIP_BROWSER = '1'/);
+const npmCiCommands = installer.split(/\r?\n/).filter((line) => line.includes("$npmCiArguments = @($npmCli, 'ci'"));
+assert.equal(npmCiCommands.length, 3, "online, offline, and fallback dependency installs should all be tested");
+assert.ok(npmCiCommands.every((line) => line.includes("'--include=dev'")), "Next build tooling is in devDependencies and must be installed even when NODE_ENV=production");
+assert.match(installer, /Verifying first-run database setup/);
+assert.match(installer, /api\/auth/);
+const seedCheck = installer.indexOf("Verifying first-run database setup");
+const rosterDelete = installer.indexOf("Remove-Item -LiteralPath $paths.rosterFile", seedCheck);
+const browserOpen = installer.indexOf("Start-Process $applicationUrl", seedCheck);
+assert.ok(seedCheck >= 0 && rosterDelete > seedCheck && browserOpen > rosterDelete, "seed verification and PIN cleanup must finish before opening the browser");
+assert.match(installer, /Existing data location preserved/);
+assert.match(installer, /Existing database files were found without an installer marker; saved PINs will not be replaced/);
+assert.match(installer, /if \(\$databaseHasFiles -and -not \(Test-Path -LiteralPath \$rosterMarker\) -and -not \(Test-Path -LiteralPath \$paths\.rosterFile\) -and -not \$FreshData\)/, "a fresh-data install must create its temporary local roster even when migration files already exist, without changing a pre-existing operational install");
+assert.equal(/\bRead-Host\b/i.test(launcher), true, "launch errors can wait for the user in a visible console");
+assert.match(launcher, /\[regex\]::Replace\(\[string\]\$item, '\[\^\\x00-\\x7F\]', '\?'\)/);
+assert.match(launcher, /PUMPSTATION_SKIP_BROWSER -eq '1'/);
+assert.match(launcher, /PUMPSTATION_UPDATE_STOP_TOKEN -ErrorAction SilentlyContinue/,
+  "the single-use updater token must not be inherited by the restarted server");
+assert.match(launcher, /updateLaunch[\s\S]*skipBrowser[\s\S]*PUMPSTATION_UPDATE_STOP_TOKEN/,
+  "an updater-launched server must skip opening a second browser window and clear the hand-off token before startup");
+assert.match(updaterRunner, /configuredPort\(\)[\s\S]*preferred \+ index \+ 1/,
+  "health-check must follow the installer's bounded fallback-port selection instead of probing only stale PORT");
+assert.equal(launcher, appLauncher, "the bundled and root launchers must stay in sync");
+assert.match(batch, /INSTALLATION COMPLETE/);
+assert.match(batch, /set \/p "PUMPSTATION_WAIT="/);
+assert.match(batch, /Diagnostic log:/);
+assert.match(packager, /Creating an online installer/);
+assert.match(packager, /Pumpstation-Windows-\$version\.zip/);
+assert.match(packager, /Pumpstation-Offline-Resources-\$version-Part1\.zip/);
+assert.match(packager, /Pumpstation-Offline-Resources-\$version-Part2\.zip/);
+assert.match(packager, /OFFLINE RESOURCE PART READY/);
+assert.match(packager, /offline-vendor/);
+assert.match(packager, /'install-windows-fresh\.bat'/);
+assert.match(packager, /\$downloadDir = Join-Path \$root 'downloads'/);
+assert.match(packager, /Join-Path \$downloadDir/);
+assert.match(packager, /'\.data'/);
+assert.match(packager, /'\*\.local\.json'/);
+assert.doesNotMatch(packager, /reset-pins/);
+assert.equal(existsSync(path.join(root, "reset-pins.bat")), false);
+assert.equal(existsSync(path.join(root, "reset-pins.ps1")), false);
+assert.equal(existsSync(path.join(root, "pumpstation-v1.2/scripts/reset-admin-pin.mjs")), false);
+assert.ok(styles.includes('url("/images/pump-hall.jpg")'));
+assert.ok(dashboard.includes('title="پمپ‌های اصلی P-01 تا P-08"'), "dashboard equipment group must use pump identifiers");
+assert.ok(dashboard.includes("{m.pumpTag}"), "dashboard status summaries must display P-xx identifiers");
+assert.ok(motorCard.includes("{m.pumpTag}"), "pump card heading must display the P-xx identifier");
+assert.ok(chartModal.includes("{m.pumpTag}</option>"), "dashboard chart selector must display P-xx while keeping the internal M-xx value");
+assert.ok(domain.includes('export const MOTOR_BRAND = "Siemens"'));
+assert.ok(motorVisual.includes("{MOTOR_POWER_KW}KW") && motorVisual.includes("{MOTOR_BRAND}"), "motor nameplate must show power and Siemens branding");
+assert.ok(codeMap.includes("src/components/Dashboard.tsx") && codeMap.includes("src/components/MotorVisual.tsx"), "the source map must point to the dashboard and equipment drawing");
+assert.ok(codeMap.includes("داخل برنامه، API، دیتابیس و سابقهٔ گزارش‌ها شناسهٔ موتور"), "the code map must document preserved internal M tags");
+
+console.log("PASS | Windows/login/equipment | fresh PINs, Siemens 1800KW nameplate, pump IDs on dashboard and source map");

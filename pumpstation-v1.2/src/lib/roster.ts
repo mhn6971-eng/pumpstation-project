@@ -1,0 +1,159 @@
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+
+/**
+ * روستر شیفت‌ها (نام‌ها و PINها) — نسخهٔ ۱٫۴٫۱.
+ *
+ * نام واقعی اپراتورها و PIN واقعی هرگز در کد و گیت نیست. ترتیب خواندن:
+ *   ۱) فایل محلی `data/roster.local.json` (یا مسیر ROSTER_FILE) — اگر هست،
+ *      حتماً باید معتبر باشد؛ اگر خراب باشد سرور بالا نمی‌آید تا اشتباهاً
+ *      با PIN آزمایشی کار نکند.
+ *   ۲) وگرنه نمونهٔ ساختگی `data/roster.sample.json` (فقط تست و توسعه؛ در production پیش‌فرض ممنوع).
+ *
+ * این ماژول هیچ ایمپورتی از داخل src ندارد تا هم در سرور، هم در اسکریپت‌ها
+ * و هم در تست‌ها (audit6) مستقیم قابل استفاده باشد.
+ */
+
+export type RosterEntry = {
+  key: string;
+  label: string;
+  role: "operator" | "admin";
+  pin: string;
+  members: string[];
+};
+
+export type RosterSource = "local" | "sample";
+
+let sampleWarningPrinted = false;
+
+function warnSampleRoster(localPath: string) {
+  if (sampleWarningPrinted) return;
+  sampleWarningPrinted = true;
+  console.warn(`[roster] فایل محلی پیدا نشد یا مسیر روستر به نمونه اشاره می‌کند (${localPath}) — از روستر نمونهٔ ساختگی استفاده می‌شود؛ پیش از بهره‌برداری واقعی roster.local.json را بسازید.`);
+}
+
+export function sampleRosterPath(): string {
+  return path.join(process.cwd(), "data", "roster.sample.json");
+}
+
+export function localRosterPath(): string {
+  const raw = (process.env.ROSTER_FILE ?? "").trim() || path.join("data", "roster.local.json");
+  return path.isAbsolute(raw) ? raw : path.join(process.cwd(), raw);
+}
+
+const CP1252_REVERSE = new Map<number, number>([
+  [0x20ac, 0x80], [0x201a, 0x82], [0x0192, 0x83], [0x201e, 0x84], [0x2026, 0x85],
+  [0x2020, 0x86], [0x2021, 0x87], [0x02c6, 0x88], [0x2030, 0x89], [0x0160, 0x8a],
+  [0x2039, 0x8b], [0x0152, 0x8c], [0x017d, 0x8e], [0x2018, 0x91], [0x2019, 0x92],
+  [0x201c, 0x93], [0x201d, 0x94], [0x2022, 0x95], [0x2013, 0x96], [0x2014, 0x97],
+  [0x02dc, 0x98], [0x2122, 0x99], [0x0161, 0x9a], [0x203a, 0x9b], [0x0153, 0x9c],
+  [0x017e, 0x9e], [0x0178, 0x9f],
+]);
+
+/**
+ * Repair Persian text that Windows PowerShell 5.1 wrote after reading a UTF-8
+ * installer script without a BOM. Only suspicious Latin-1/CP1252 mojibake is
+ * decoded; if bytes were irreversibly replaced, use a readable generic label.
+ */
+export function normalizeRosterDisplayText(value: string, fallback: string): string {
+  const suspiciousCount = (text: string) => (text.match(/[ØÙÛÃÂÐÑ]/g) ?? []).length;
+  if (!suspiciousCount(value)) return value;
+  let candidate = value;
+  for (let pass = 0; pass < 2 && suspiciousCount(candidate) > 0; pass += 1) {
+    const bytes: number[] = [];
+    let reversible = true;
+    for (const character of candidate) {
+      const code = character.codePointAt(0)!;
+      if (code <= 0xff) bytes.push(code);
+      else if (CP1252_REVERSE.has(code)) bytes.push(CP1252_REVERSE.get(code)!);
+      else { reversible = false; break; }
+    }
+    if (!reversible) break;
+    try {
+      const decoded = new TextDecoder("utf-8", { fatal: true }).decode(Uint8Array.from(bytes));
+      if (suspiciousCount(decoded) >= suspiciousCount(candidate)) break;
+      candidate = decoded;
+    } catch {
+      break;
+    }
+  }
+  return /[\u0600-\u06ff]/.test(candidate) && suspiciousCount(candidate) < suspiciousCount(value) ? candidate : fallback;
+}
+
+/** اعتبارسنجی ساختار روستر؛ در صورت ایراد با پیام فارسی خطا می‌دهد. */
+export function validateRoster(input: unknown, sourceName: string): RosterEntry[] {
+  const bad = (why: string): Error => new Error(`روستر ${sourceName} معتبر نیست: ${why}`);
+  const root = input as { roster?: unknown } | null;
+  const rawList: unknown = root && typeof root === "object" && "roster" in root ? root.roster : input;
+  if (!Array.isArray(rawList) || rawList.length === 0) throw bad("فهرست شیفت‌ها خالی است");
+  const list: unknown[] = rawList;
+  const seen = new Set<string>();
+  const out: RosterEntry[] = [];
+  for (const item of list) {
+    const e = (item ?? {}) as Partial<RosterEntry>;
+    const key = String(e.key ?? "").trim();
+    if (!/^[A-Za-z0-9_-]{1,10}$/.test(key)) throw bad(`کلید شیفت نامعتبر است (${String(e.key ?? "")})`);
+    if (seen.has(key)) throw bad(`کلید تکراری: ${key}`);
+    seen.add(key);
+    const fallbackLabel = key === "admin" ? "مدیر سامانه" : `شیفت ${key}`;
+    const label = normalizeRosterDisplayText(String(e.label ?? "").trim(), fallbackLabel);
+    if (!label || label.length > 40) throw bad(`نام نمایشی شیفت ${key} نامعتبر است`);
+    const role = e.role;
+    if (role !== "operator" && role !== "admin") throw bad(`نقش شیفت ${key} باید operator یا admin باشد`);
+    const pin = String(e.pin ?? "");
+    if (!/^\d{4}$/.test(pin)) throw bad(`PIN شیفت ${key} باید دقیقاً چهار رقم باشد`);
+    const fallbackMember = key === "admin" ? "مدیر سامانه" : `اپراتور شیفت ${key}`;
+    const members = Array.isArray(e.members)
+      ? e.members.map((m) => normalizeRosterDisplayText(String(m ?? "").trim(), fallbackMember)).filter(Boolean)
+      : [];
+    if (members.length === 0 || members.length > 4) throw bad(`اعضای شیفت ${key} باید یک تا چهار نام باشد`);
+    if (members.some((m) => m.length > 80)) throw bad(`نام یکی از اعضای شیفت ${key} بیش از حد طولانی است`);
+    out.push({ key, label, role, pin, members });
+  }
+  const admin = out.find((e) => e.key === "admin");
+  if (!admin || admin.role !== "admin") throw bad("یک شیفت admin لازم است تا سامانه قفل نشود");
+  return out;
+}
+
+/** خواندن و اعتبارسنجی یک فایل روستر. */
+export function loadRosterFile(file: string): RosterEntry[] {
+  const raw = readFileSync(file, "utf8");
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error(`روستر ${file} معتبر نیست: فایل JSON خراب است`);
+  }
+  return validateRoster(parsed, file);
+}
+
+/**
+ * روستر فعال: فایل محلی اگر هست (خراب = توقف با خطا)، وگرنه نمونهٔ ساختگی.
+ * اخطار «نمونه» عمداً بلند است تا در بهره‌برداری واقعی جا نماند.
+ */
+export function resolveRoster(): { roster: RosterEntry[]; source: RosterSource; path: string } {
+  const local = localRosterPath();
+  if (existsSync(local)) {
+    const roster = loadRosterFile(local);
+    if (process.env.NODE_ENV === "production" && process.env.ALLOW_SAMPLE_ROSTER !== "1") {
+      const samplePins = new Map(loadRosterFile(sampleRosterPath()).map((entry) => [entry.key, entry.pin]));
+      if (roster.some((entry) => samplePins.get(entry.key) === entry.pin)) {
+        throw new Error("روستر محلی هنوز PIN پیش‌فرض نمونه دارد؛ PINهای واقعی را تعیین کنید. برای آزمون کنترل‌شده فقط ALLOW_SAMPLE_ROSTER=1 را تنظیم کنید.");
+      }
+    }
+    const source: RosterSource = path.resolve(local) === path.resolve(sampleRosterPath()) ? "sample" : "local";
+    if (source === "sample") warnSampleRoster(local);
+    return { roster, source, path: local };
+  }
+  if (process.env.NODE_ENV === "production" && process.env.ALLOW_SAMPLE_ROSTER !== "1") {
+    throw new Error(
+      `روستر محلی پیدا نشد (${local}). اجرای production با PINهای نمونه مسدود است؛ ` +
+        "فایل data/roster.local.json را بسازید. برای تست کنترل‌شده فقط ALLOW_SAMPLE_ROSTER=1 را تنظیم کنید.",
+    );
+  }
+
+  const sample = sampleRosterPath();
+  const roster = loadRosterFile(sample);
+  warnSampleRoster(local);
+  return { roster, source: "sample", path: sample };
+}
