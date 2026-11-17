@@ -1,7 +1,7 @@
 ==============================================================================
 کد کامل برنامه — سامانهٔ پایش ایستگاه پمپاژ زیرزمینی (تونل انتقال آب گلاب)
-نسخهٔ برنامه: 1.4.32   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: baef64b
-تاریخ تولید: 2026-11-16   |   137 فایل   |   27,342 خط
+نسخهٔ برنامه: 1.4.33   |   شاخه: arena/9a0919c6-pumpstation-project   |   کامیت: baef64b
+تاریخ تولید: 2026-11-17   |   138 فایل   |   27,391 خط
 ==============================================================================
 
 این فایل، «نسخهٔ خوانا»ی کل کد برنامه است؛ هر فایل کامل و بدون حذف درج شده و
@@ -127,7 +127,7 @@
      src/components/UpdatePanel.tsx                       315 خط
 
   ۷) اسکریپت‌های عملیاتی (scripts)
-     launch-pumpstation.ps1                               215 خط
+     launch-pumpstation.ps1                               243 خط
      launch-pumpstation.vbs                               34 خط
      scripts/init-db.mjs                                  87 خط
      scripts/doctor.mjs                                   259 خط
@@ -159,6 +159,7 @@
      audit/update-zip.test.mjs                            68 خط
      audit/manual-report.test.mjs                         18 خط
      audit/build-compat.test.mjs                          6 خط
+     audit/update-launcher-compat.test.mjs                21 خط
      audit/windows-installer.test.mjs                     191 خط
      audit/probe.mjs                                      10 خط
      audit/sess.mjs                                       34 خط
@@ -190,7 +191,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "doctor": "node scripts/doctor.mjs",
-    "test:audit": "node audit/jalali.test.mjs && node audit/updater.test.mjs && node audit/update-zip.test.mjs && node audit/manual-report.test.mjs && node audit/build-compat.test.mjs && node audit/windows-installer.test.mjs && node audit/audit1.mjs && node audit/audit2.mjs && node audit/audit3.mjs && node audit/audit4.mjs && node audit/audit5.mjs && node audit/audit6.mjs && node audit/conc.mjs",
+    "test:audit": "node audit/jalali.test.mjs && node audit/updater.test.mjs && node audit/update-zip.test.mjs && node audit/manual-report.test.mjs && node audit/build-compat.test.mjs && node audit/update-launcher-compat.test.mjs && node audit/windows-installer.test.mjs && node audit/audit1.mjs && node audit/audit2.mjs && node audit/audit3.mjs && node audit/audit4.mjs && node audit/audit5.mjs && node audit/audit6.mjs && node audit/conc.mjs",
     "test:perf": "node audit/perf.mjs",
     "test": "npm run typecheck && npm run test:audit",
     "db:pg-init": "node scripts/pg-init.mjs",
@@ -221,7 +222,7 @@
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3"
   },
-  "version": "1.4.32",
+  "version": "1.4.33",
   "overrides": {
     "@typescript-eslint/typescript-estree": {
       "minimatch": "11.0.5"
@@ -233,13 +234,13 @@
 
 {
   "name": "pumpstation-monitoring",
-  "version": "1.4.32",
+  "version": "1.4.33",
   "lockfileVersion": 3,
   "requires": true,
   "packages": {
     "": {
       "name": "pumpstation-monitoring",
-      "version": "1.4.32",
+      "version": "1.4.33",
       "dependencies": {
         "@electric-sql/pglite": "^0.5.15",
         "dotenv": "17.3.1",
@@ -23191,7 +23192,7 @@ export default function UpdatePanel() {
   );
 }
 
-── FILE: launch-pumpstation.ps1  (215 خط) ──
+── FILE: launch-pumpstation.ps1  (243 خط) ──
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
@@ -23245,6 +23246,15 @@ trap {
   exit 1
 }
 $updateLaunch = -not [string]::IsNullOrWhiteSpace($env:PUMPSTATION_UPDATE_STOP_TOKEN)
+# The updater bundled with releases before 1.4.33 checks only its original PORT.
+# Preserve that port before the normal launcher initializes its defaults.
+$updaterRequestedPort = 0
+if ($updateLaunch) {
+  $parsedUpdaterPort = 0
+  if ([int]::TryParse([string]$env:PORT, [ref]$parsedUpdaterPort) -and $parsedUpdaterPort -ge 1024 -and $parsedUpdaterPort -le 65535) {
+    $updaterRequestedPort = $parsedUpdaterPort
+  }
+}
 $skipBrowser = $env:PUMPSTATION_SKIP_BROWSER -eq '1' -or $updateLaunch
 Remove-Item Env:\PUMPSTATION_SKIP_BROWSER -ErrorAction SilentlyContinue
 Remove-Item Env:\PUMPSTATION_UPDATE_STOP_TOKEN -ErrorAction SilentlyContinue
@@ -23296,6 +23306,11 @@ try {
   $savedPort = [int]$config.port
   if ($savedPort -ge 1024 -and $savedPort -le 65535) { $preferredPort = $savedPort }
 } catch { }
+# Compatibility with the currently installed updater: its health probe is fixed to PORT.
+# On updater restarts, use exactly that same port rather than the possibly stale config port.
+if ($updateLaunch -and $updaterRequestedPort -ge 1024 -and $updaterRequestedPort -le 65535) {
+  $preferredPort = $updaterRequestedPort
+}
 $port = $preferredPort
 $baseUrl = "http://127.0.0.1:$port"
 function Set-ConfigPort([int]$Value) {
@@ -23348,6 +23363,20 @@ if (-not $running) {
 
 if (-not $running) {
   if (-not (Test-LocalPortFree $port)) {
+    if ($updateLaunch) {
+      $ownerPid = 0
+      try {
+        $listener = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction Stop | Select-Object -First 1
+        if ($listener) { $ownerPid = [int]$listener.OwningProcess }
+      } catch { }
+      $failure = Join-Path $logsDir 'launch-failure.txt'
+      [IO.File]::WriteAllText(
+        $failure,
+        "وقت: $(Get-Date -Format o)`r`nراه‌اندازی پس از به‌روزرسانی روی پورت اصلی $port انجام نشد؛ پورت در اختیار PID $ownerPid است. برای جلوگیری از اجرای دو نسخه با یک دیتابیس، روی پورت جایگزین سرور دیگری اجرا نشد.`r`nنسخهٔ مورد انتظار: $($config.appVersion)`r`n",
+        ([System.Text.UTF8Encoding]::new($false))
+      )
+      throw "Update restart refused to use an alternate port: $port is occupied by PID $ownerPid."
+    }
     $found = $false
     for ($candidate = $preferredPort + 1; $candidate -le [Math]::Min(65535, $preferredPort + 30); $candidate++) {
       if (Test-LocalPortFree $candidate) { $port = $candidate; $found = $true; break }
@@ -25002,7 +25031,7 @@ const SECTIONS = [
     "audit/audit1.mjs", "audit/audit2.mjs", "audit/audit3.mjs", "audit/audit4.mjs",
     "audit/audit5.mjs", "audit/audit6.mjs", "audit/bulk.mjs", "audit/perf.mjs", "audit/conc.mjs",
     "audit/db-inspect.mjs", "audit/jalali.test.mjs", "audit/updater.test.mjs", "audit/update-zip.test.mjs",
-    "audit/manual-report.test.mjs", "audit/build-compat.test.mjs", "audit/windows-installer.test.mjs", "audit/probe.mjs", "audit/sess.mjs", "audit/writeperf.mjs",
+    "audit/manual-report.test.mjs", "audit/build-compat.test.mjs", "audit/update-launcher-compat.test.mjs", "audit/windows-installer.test.mjs", "audit/probe.mjs", "audit/sess.mjs", "audit/writeperf.mjs",
     "audit/README.md",
   ] },
   { title: "استقرار و CI", files: [
@@ -27223,6 +27252,29 @@ import nextConfig from "../next.config.ts";
 
 assert.equal(nextConfig.experimental?.cpus, 2, "build concurrency must stay low for Windows stations");
 console.log("PASS | Next build | page-data worker count is capped at 2");
+
+── FILE: audit/update-launcher-compat.test.mjs  (21 خط) ──
+
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+
+const launcher = readFileSync(new URL("../launch-pumpstation.ps1", import.meta.url), "utf8");
+const runner = readFileSync(new URL("../scripts/update-runner.mjs", import.meta.url), "utf8");
+const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+
+assert.equal(packageJson.version, "1.4.33", "compatibility fix is packaged in release 1.4.33");
+assert.match(launcher, /\$updateLaunch = -not \[string\]::IsNullOrWhiteSpace\(\$env:PUMPSTATION_UPDATE_STOP_TOKEN\)/);
+assert.match(launcher, /\$updaterRequestedPort = 0[\s\S]*\[int\]::TryParse\(\[string\]\$env:PORT/,
+  "the updated launcher must capture the active updater's original health-check port before replacing PORT");
+assert.match(launcher, /if \(\$updateLaunch -and \$updaterRequestedPort -ge 1024[\s\S]*\$preferredPort = \$updaterRequestedPort/,
+  "the candidate server must start on the same port monitored by the previously installed updater");
+assert.match(launcher, /if \(\$updateLaunch\) \{[\s\S]*Update restart refused to use an alternate port/,
+  "an updater launch must refuse a second port instead of creating another PGlite process");
+assert.match(launcher, /launch-failure\.txt[\s\S]*پورت در اختیار PID/,
+  "port conflicts must be written to launch-failure.txt with the owner PID");
+assert.match(runner, /async function waitForHealth\([\s\S]*configuredPort\(\)[\s\S]*preferred \+ index \+ 1/,
+  "future updater versions should also probe the launcher's bounded fallback ports");
+console.log("PASS | updater launcher compatibility | retains legacy health-check port and refuses duplicate DB servers");
 
 ── FILE: audit/windows-installer.test.mjs  (191 خط) ──
 

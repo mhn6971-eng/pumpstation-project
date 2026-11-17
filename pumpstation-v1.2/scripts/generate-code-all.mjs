@@ -79,7 +79,7 @@ const SECTIONS = [
     "audit/audit1.mjs", "audit/audit2.mjs", "audit/audit3.mjs", "audit/audit4.mjs",
     "audit/audit5.mjs", "audit/audit6.mjs", "audit/bulk.mjs", "audit/perf.mjs", "audit/conc.mjs",
     "audit/db-inspect.mjs", "audit/jalali.test.mjs", "audit/updater.test.mjs", "audit/update-zip.test.mjs",
-    "audit/manual-report.test.mjs", "audit/build-compat.test.mjs", "audit/windows-installer.test.mjs", "audit/probe.mjs", "audit/sess.mjs", "audit/writeperf.mjs",
+    "audit/manual-report.test.mjs", "audit/build-compat.test.mjs", "audit/update-launcher-compat.test.mjs", "audit/windows-installer.test.mjs", "audit/probe.mjs", "audit/sess.mjs", "audit/writeperf.mjs",
     "audit/README.md",
   ] },
   { title: "استقرار و CI", files: [

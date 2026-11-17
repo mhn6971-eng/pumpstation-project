@@ -50,6 +50,15 @@ trap {
   exit 1
 }
 $updateLaunch = -not [string]::IsNullOrWhiteSpace($env:PUMPSTATION_UPDATE_STOP_TOKEN)
+# The updater bundled with releases before 1.4.33 checks only its original PORT.
+# Preserve that port before the normal launcher initializes its defaults.
+$updaterRequestedPort = 0
+if ($updateLaunch) {
+  $parsedUpdaterPort = 0
+  if ([int]::TryParse([string]$env:PORT, [ref]$parsedUpdaterPort) -and $parsedUpdaterPort -ge 1024 -and $parsedUpdaterPort -le 65535) {
+    $updaterRequestedPort = $parsedUpdaterPort
+  }
+}
 $skipBrowser = $env:PUMPSTATION_SKIP_BROWSER -eq '1' -or $updateLaunch
 Remove-Item Env:\PUMPSTATION_SKIP_BROWSER -ErrorAction SilentlyContinue
 Remove-Item Env:\PUMPSTATION_UPDATE_STOP_TOKEN -ErrorAction SilentlyContinue
@@ -101,6 +110,11 @@ try {
   $savedPort = [int]$config.port
   if ($savedPort -ge 1024 -and $savedPort -le 65535) { $preferredPort = $savedPort }
 } catch { }
+# Compatibility with the currently installed updater: its health probe is fixed to PORT.
+# On updater restarts, use exactly that same port rather than the possibly stale config port.
+if ($updateLaunch -and $updaterRequestedPort -ge 1024 -and $updaterRequestedPort -le 65535) {
+  $preferredPort = $updaterRequestedPort
+}
 $port = $preferredPort
 $baseUrl = "http://127.0.0.1:$port"
 function Set-ConfigPort([int]$Value) {
@@ -153,6 +167,20 @@ if (-not $running) {
 
 if (-not $running) {
   if (-not (Test-LocalPortFree $port)) {
+    if ($updateLaunch) {
+      $ownerPid = 0
+      try {
+        $listener = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction Stop | Select-Object -First 1
+        if ($listener) { $ownerPid = [int]$listener.OwningProcess }
+      } catch { }
+      $failure = Join-Path $logsDir 'launch-failure.txt'
+      [IO.File]::WriteAllText(
+        $failure,
+        "وقت: $(Get-Date -Format o)`r`nراه‌اندازی پس از به‌روزرسانی روی پورت اصلی $port انجام نشد؛ پورت در اختیار PID $ownerPid است. برای جلوگیری از اجرای دو نسخه با یک دیتابیس، روی پورت جایگزین سرور دیگری اجرا نشد.`r`nنسخهٔ مورد انتظار: $($config.appVersion)`r`n",
+        ([System.Text.UTF8Encoding]::new($false))
+      )
+      throw "Update restart refused to use an alternate port: $port is occupied by PID $ownerPid."
+    }
     $found = $false
     for ($candidate = $preferredPort + 1; $candidate -le [Math]::Min(65535, $preferredPort + 30); $candidate++) {
       if (Test-LocalPortFree $candidate) { $port = $candidate; $found = $true; break }
